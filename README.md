@@ -1,10 +1,12 @@
-A set of utilities to run the processCcd task on some CFHT data
+A set of utilities to run the processCcd task on some 
+CFHT data and DECam data
 and validate the astrometry of the results.
 
 Pre-requisites: install and declare the following
 1. pipe_tasks from the LSST DM stack (note that pipe_tasks is included with lsst_apps, which is the usual thing to install)
 2. obs_cfht from https://github.com/lsst/obs_cfht (this package is not included with lsst_apps); declare this with tag "current"
 3. validation_data_cfht from https://github.com/wmwv/validation_data_cfht
+4. validation_data_decam -- This doesn't exist yet.
 
 Locate and install the selected input data in `/lsst8/boutigny/valid_cfht/rawDownload` and the custom astrometry_net_data file in `/lsst8/boutigny/valid_cfht/astrometry_net_data`.
 
