@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 
-from checkAstrometry import main, loadAndMatchData
+import checkAstrometry
 
 def defaultData(repo):
     # List of visits to be considered
@@ -44,4 +44,4 @@ where repo is the path to a repository containing the output of processCcd
         sys.exit(1)
 
     visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef = defaultData(repo)
-    main(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef)
+    checkAstrometry.run(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef)
