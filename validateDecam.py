@@ -8,7 +8,7 @@ import sys
 import matplotlib.pylab as plt
 import numpy as np
 
-from check_astrometry import main, loadAndMatchData
+from checkAstrometry import main, loadAndMatchData
 
 def defaultData(repo):
     # List of visits to be considered

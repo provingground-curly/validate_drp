@@ -37,11 +37,11 @@ else
     NUMPROC=$(($NUMPROC<4?$NUMPROC:4))
 fi
 
-processCcd.py input --output output @run_cfht.list --configfile anetAstrometryConfig.py --clobber-config -j $NUMPROC
+processCcd.py input --output output @runCfht.list --configfile anetAstrometryConfig.py --clobber-config -j $NUMPROC
 
 # Run astrometry check on src
 echo "validating"
-./valid_cfht.py output
+./validateCfht.py output
 
 if [ $? != 0 ]; then
    print_error "Validation failed"

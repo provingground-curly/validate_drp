@@ -22,13 +22,13 @@ validation_data_cfht contains both the test CFHT data and the SDSS reference cat
 
 Run the measurement algorithm processing and astrometry test with
 ```
-sh run_test.sh
+sh runCfhtTest.sh
 ```
 
 The last line of the output will give the median astrometric scatter (in milliarcseconds) for stars with mag < 21.
 
 ------
-While `run_test.sh` does everything, here is some examples of running the processing/measurement steps individually:
+While `runCfhtTest.sh` does everything, here is some examples of running the processing/measurement steps individually:
 
 First make sure the astrometry.net environment variable is pointed to the right place for this validation set:
 
@@ -38,12 +38,12 @@ export ASTROMETRY_NET_DATA_DIR=${VALIDATION_DATA_CFHT_DIR}/astrometry_net_data
 
 1. To process all CCDs with the new (now default) AstrometryTask use newAstrometryConfig.py:
 ```
-processCcd.py input @run_cfht.list --configfile newAstrometryConfig.py --clobber-config -j 6 --output junk
+processCcd.py input @runCfht.list --configfile newAstrometryConfig.py --clobber-config -j 6 --output junk
 ```
 
 2. To process all CCDs with the old ANetAstrometryTask:
 ```
-processCcd.py input @run_cfht.list --configfile anetAstrometryConfig.py --clobber-config -j 6 --output <outputPath>
+processCcd.py input @runCfht.list --configfile anetAstrometryConfig.py --clobber-config -j 6 --output <outputPath>
 ./valid_cfht.py <outputPath>
 ```
 
@@ -63,4 +63,4 @@ Files :
 * `valid_cfht.py`    : run some analysis on the output data produced by processCcd.py
 * `newAstrometryConfig.py`  : configuration for running processCcd with the new AstrometryTask
 * `anetAstrometryConfig.py` : configuration for running processCcd ANetAstrometryTask
-* `run_cfht.list`         : list of vistits / ccd to be processed by processCcd
+* `runCfht.list`         : list of vistits / ccd to be processed by processCcd

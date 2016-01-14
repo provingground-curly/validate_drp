@@ -193,7 +193,7 @@ def main(repo):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print """Usage: valid_cfht.py repo
+        print """Usage: validateCfht.py repo
 where repo is the path to a repository containing the output of processCcd
 """
         sys.exit(1)
