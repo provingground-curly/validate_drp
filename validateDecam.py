@@ -5,14 +5,13 @@
 import os.path
 import sys
 
-import matplotlib.pylab as plt
 import numpy as np
 
 from checkAstrometry import main, loadAndMatchData
 
 def defaultData(repo):
     # List of visits to be considered
-    visits = [176837, 176846, 176850]
+    visits = [176846, 176850]
 
     # Reference visit (the other visits will be compared to this one)
     ref = 176837
@@ -26,7 +25,11 @@ def defaultData(repo):
     medianRef = 25
     matchRef = 5600
 
-    return visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef
+    visitDataIds = [[{'visit':v, 'filter':filter, 'ccdnum':c} for v in visits]
+                    for c in ccd]
+    refDataIds = [{'visit':ref, 'filter':filter, 'ccdnum':c} for c in ccd]
+    
+    return visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -40,5 +43,5 @@ where repo is the path to a repository containing the output of processCcd
         print("Could not find repo %r" % (repo,))
         sys.exit(1)
 
-    visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef = defaultData(repo)
-    main(repo, visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef)
+    visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef = defaultData(repo)
+    main(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef)

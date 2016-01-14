@@ -34,20 +34,42 @@ import lsst.afw.table as afwTable
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 
-def loadAndMatchData(repo, visits, ref, ccd, filter) :
+def getCcdKeyName(dataid):
+    """Return the key in a dataId that's referring to the CCD or moral equivalent.
+
+    @param dataid  A dictionary that will be searched for a key that matches on e in the hardcoded list of possible names for the CCD field.
+
+    Different camera mappings use different keys
+      to indicate the different amps/ccds in the same exposure.
+    We here look through the reference dataId to determine which one this. 
+    """
+    possibleCcdFieldNames = ['ccd', 'ccdnum', 'camcol']
+
+    for name in possibleCcdFieldNames:
+        if name in dataid:
+            return name
+    else:
+        return none
+
+
+def isExtended(source, extRefKey, extendedThreshold=1.0):
+    return source.get(extRefKey) >= extendedThreshold
+
+
+def loadAndMatchData(repo, visitDataIds, refDataIds,
+                     matchRadius=afwGeom.Angle(1, afwGeom.arcseconds)):
     """Load data from specific visit.  Match with reference.
 
     @param repo  The repository.  This is generally the directory on disk 
                     that contains the repository and mapper.
-    @param visits  Visit IDs.  List.
-    @param ref        The visit of the reference image set.  Scalar.
-    @param ccd      CCD ID to use.  List.
-    @param filter   Name of the filter.  Scalar
+    @param visitDataIds   Butler Data ID of Image catalogs to compare to reference.  List of Lists.  
+           Should have dimensions of (N, len(refDataId));
+           for a series of N visits.
+    @param refDataIds       Butler Data ID of reference catalog.  The actual pixel image is also needed for now.  List.
+
+    @param matchRadius    Radius for matching.  afwGeom.Angle().
 
     Return a pipeBase.Struct with mag, dist, and number of matches.
-
-    Notes: {visit, ccd, filter} should be sufficient to unique specfiy
-      a data ID for the Butler in the obs_sdss camera mapping.
     """
 
     flags = ["base_PixelFlags_flag_saturated", "base_PixelFlags_flag_cr", "base_PixelFlags_flag_interpolated",
@@ -56,59 +78,58 @@ def loadAndMatchData(repo, visits, ref, ccd, filter) :
     # setup butler
     butler = dafPersist.Butler(repo)
 
-    for indx, c in enumerate(ccd):
-        dataid = {'visit':ref, 'filter':filter, 'ccdnum':c}
-        oldSrc = butler.get('src', dataid, immediate=True)
-        print(len(oldSrc), "sources in ccd:", c)
-        if indx == 0 :
-            # retrieve the schema of the source catalog and extend it in order to add a field to record the ccd number
-            oldSchema = oldSrc.getSchema()
-            mapper = afwTable.SchemaMapper(oldSchema)
-            mapper.addMinimalSchema(oldSchema)
-            mapper.addOutputField(afwTable.Field[int]("ccd", "CCD number"))
-            newSchema = mapper.getOutputSchema()
-            
-        # create the new extented source catalog 
-        srcRef = afwTable.SourceCatalog(newSchema)
+    # retrieve the schema of the source catalog and extend it in order to add a field to record the ccd number
+    ccdKeyName = getCcdKeyName(refDataIds[0])
+
+    oldSrc = butler.get('src', refDataIds[0], immediate=True)
+    oldSchema = oldSrc.getSchema()
+    mapper = afwTable.SchemaMapper(oldSchema)
+    mapper.addMinimalSchema(oldSchema)
+    mapper.addOutputField(afwTable.Field[int](ccdKeyName, "CCD number"))
+    newSchema = mapper.getOutputSchema()
+
+    # create the new extented source catalog 
+    srcRef = afwTable.SourceCatalog(newSchema)
         
+    for rId in refDataIds:
+        oldSrc = butler.get('src', rId, immediate=True)
+        print(len(oldSrc), "sources in ccd:", rId[ccdKeyName])
+
         # create temporary catalog
         tmpCat = afwTable.SourceCatalog(srcRef.table)
         tmpCat.extend(oldSrc, mapper=mapper)
         # fill in the ccd information in numpy mode in order to be efficient
-        tmpCat['ccd'][:] = c
-        # append the temporary catalog to the extended source catalog    
+        tmpCat[ccdKeyName][:] = rId[ccdKeyName]
+        # add on the temporary catalog to the extended source catalog    
         srcRef.extend(tmpCat, deep=False)
 
-    print(len(srcRef), "Sources in reference visit :", ref)
+    print(len(srcRef), "total sources in reference visit.")
 
     mag = []
     dist = []
-    for v in visits :
-        if v == ref :
-            continue
-        for indx, c in enumerate(ccd):
-            dataid = {'visit':v, 'filter':filter, 'ccdnum':c}
-            if indx == 0 :
-                srcVis = butler.get('src', dataid, immediate=True)
-            else :
-                srcVis.extend(butler.get('src', dataid, immediate=True), False)
-            print(len(srcVis), "sources in ccd: ", c)
+    matchNum = []
+    # Calibration for each 'ccd' in the reference data Id list.
+    # Here ccdKeyName values must be unique.
+    # This is why we need the calibrated images for the ref source catalogs.
+    calib = {rId[ccdKeyName] : afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for rId in refDataIds}
+
+    for v_set in visitDataIds :
+        srcVis = butler.get('src', v_set[0], immediate=True)
+        for vId in v_set[1:]:
+            srcVis.extend(butler.get('src', vId, immediate=True), False)
+            print(len(srcVis), "sources in ccd: ", vId[ccdKeyName])
         
-        match = afwTable.matchRaDec(srcRef, srcVis, afwGeom.Angle(1, afwGeom.arcseconds))
-        matchNum = len(match)
-        print("Visit :", v, matchNum, "matches found")
+        match = afwTable.matchRaDec(srcRef, srcVis, matchRadius)
+
+        matchNum.append(len(match))
+        print("Visits :", v_set, matchNum[-1], "matches found")
 
         schemaRef = srcRef.getSchema()
         schemaVis = srcVis.getSchema()
         extRefKey = schemaRef["base_ClassificationExtendedness_value"].asKey()
         extVisKey = schemaVis["base_ClassificationExtendedness_value"].asKey()
-        flagKeysRef = []
-        flagKeysVis = []
-        for fl in flags :
-            keyRef = schemaRef[fl].asKey()
-            flagKeysRef.append(keyRef)
-            keyVis = schemaVis[fl].asKey()
-            flagKeysVis.append(keyVis)
+        flagKeysRef = [schemaRef[fl].asKey() for fl in flags]
+        flagKeysVis = [schemaVis[fl].asKey() for fl in flags]
         
         for m in match :
             mRef = m.first
@@ -121,30 +142,32 @@ def loadAndMatchData(repo, visits, ref, ccd, filter) :
                 if mVis.get(fl) :
                     continue
             
-            # cleanup the reference sources in order to keep only decent star-like objects
-            if mRef.get(extRefKey) >= 1.0 or mVis.get(extVisKey) >= 1.0 :
+            # Keep only decent star-like objects
+            if isExtended(mRef, extRefKey) or isExtended(mVis, extVisKey):
                 continue
             
             ang = afwGeom.radToMas(m.distance)
             
             # retrieve the CCD corresponding to the reference source
-            ccdRef = mRef.get('ccd')
-            # retrieve the calibration object associated to the CCD
-            did = {'visit':ref, 'filter':filter, 'ccdnum':ccdRef}
-            md = butler.get("calexp_md", did, immediate=True)
-            calib = afwImage.Calib(md)
-            # compute magnitude
-            refMag = calib.getMagnitude(mRef.get('base_PsfFlux_flux'))
+            ccdRef = mRef.get(ccdKeyName)
+            refMag = calib[ccdRef].getMagnitude(mRef.get('base_PsfFlux_flux'))
             
-                                        
             mag.append(refMag)
             dist.append(ang)
 
+    # 2016-01-14 MWV <wmwv@pitt.edu>:
+    # Need to re-think tracking of MatchNum
+    # Presently, all of the magnitudes and distances are just stored
+    # in one 1D array that serializes all visits.
+    # What should matchNum be?  
+    # For now, I'm fixing to the number of matches in the first visit.
+     
     return pipeBase.Struct(
         mag = mag,
         dist = dist,
-        match = matchNum
+        match = matchNum[0]
     )
+
 
 def plotAstrometry(mag, dist, match, good_mag_limit=19.5) :
     """Plot angular distance between matched sources from different exposures."""
@@ -192,6 +215,7 @@ def plotAstrometry(mag, dist, match, good_mag_limit=19.5) :
     plotPath = "check_astrometry.png"
     plt.savefig(plotPath, format="png")
 
+
 def checkAstrometry(mag, dist, match, 
                     good_mag_limit=19.5,
                     medianRef=100, matchRef=500):
@@ -212,32 +236,35 @@ def checkAstrometry(mag, dist, match,
 
     idxs = np.where(np.asarray(mag) < good_mag_limit)
     astromScatter = np.median(np.asarray(dist)[idxs])
-    print("Astrometric scatter (median) - mag < %.1f :" % good_mag_limit, astromScatter, "mas")
+    print("Astrometric scatter (median) - mag < %.1f : %.1f %s" % 
+          (good_mag_limit, astromScatter, "mas"))
 
     if astromScatter > medianRef :
-        print("Median astrometric scatter %.1f mas is larger than reference : %.1f mas " % (astromScatter, medianRef))
+        print("Median astrometric scatter %.1f %s is larger than reference : %.1f %s " % (astromScatter, "mas", medianRef, "mas"))
     if match < matchRef :
         print("Number of matched sources %d is too small (shoud be > %d)" % (match,matchRef))
 
     return astromScatter
 
-def main(repo, visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef):
+
+def main(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef):
     """Main executable.
     """
 
-    struct = loadAndMatchData(repo, visits, ref, ccd, filter)
+    struct = loadAndMatchData(repo, visitDataIds, refDataIds)
     mag = struct.mag
     dist = struct.dist
     match = struct.match
     checkAstrometry(mag, dist, match, 
-                    good_mag_limit=good_mag_limit, medianRef=medianRef, matchRef=matchRef)
+                    good_mag_limit=good_mag_limit, 
+                    medianRef=medianRef, matchRef=matchRef)
     plotAstrometry(mag, dist, match, good_mag_limit=good_mag_limit)
 
 def defaultData(repo):
     # List of visits to be considered
-    visits = [176837, 176846, 176850]
+    visits = [176846, 176850]
 
-    # Reference visit (the other visits will be compared to this one)
+    # Reference visit ('visits' will be compared to this one)
     ref = 176837
 
     # List of CCD to be considered (source catalogs will be concateneted)
@@ -249,7 +276,11 @@ def defaultData(repo):
     medianRef = 25
     matchRef = 5600
 
-    return visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef
+    visitDataIds = [{'visit':v, 'filter':filter, 'ccdnum':c} for v in visits
+                    for c in ccd]
+    refDataIds = [{'visit':ref, 'filter':filter, 'ccdnum':c} for c in ccd]
+
+    return visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef
 
 
 if __name__ == "__main__":
@@ -264,5 +295,5 @@ where repo is the path to a repository containing the output of processCcd
         print("Could not find repo %r" % (repo,))
         sys.exit(1)
 
-    visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef = defaultData(repo)
-    main(repo, visits, ref, ccd, filter, good_mag_limit, medianRef, matchRef)
+    visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef = defaultData(repo)
+    main(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef)
