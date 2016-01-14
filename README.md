@@ -38,12 +38,12 @@ export ASTROMETRY_NET_DATA_DIR=${VALIDATION_DATA_CFHT_DIR}/astrometry_net_data
 
 1. To process all CCDs with the new (now default) AstrometryTask use newAstrometryConfig.py:
 ```
-processCcd.py input @run.list --configfile newAstrometryConfig.py --clobber-config -j 6 --output junk
+processCcd.py input @run_cfht.list --configfile newAstrometryConfig.py --clobber-config -j 6 --output junk
 ```
 
 2. To process all CCDs with the old ANetAstrometryTask:
 ```
-processCcd.py input @run.list --configfile anetAstrometryConfig.py --clobber-config -j 6 --output <outputPath>
+processCcd.py input @run_cfht.list --configfile anetAstrometryConfig.py --clobber-config -j 6 --output <outputPath>
 ./valid_cfht.py <outputPath>
 ```
 
@@ -63,4 +63,4 @@ Files :
 * `valid_cfht.py`    : run some analysis on the output data produced by processCcd.py
 * `newAstrometryConfig.py`  : configuration for running processCcd with the new AstrometryTask
 * `anetAstrometryConfig.py` : configuration for running processCcd ANetAstrometryTask
-* `run.list`         : list of vistits / ccd to be processed by processCcd
+* `run_cfht.list`         : list of vistits / ccd to be processed by processCcd
