@@ -25,9 +25,8 @@ from __future__ import print_function
 import os.path
 import sys
 
-import numpy as np
-
 import checkAstrometry
+
 
 def defaultData(repo):
     # List of visits to be considered
@@ -39,16 +38,17 @@ def defaultData(repo):
     # List of CCD to be considered (source catalogs will be concateneted)
     ccd = [10, 12, 14, 18]
     filter = 'z'
-    
-    # Reference values for the median astrometric scatter and the number of matches
-    good_mag_limit = 21
-    medianRef = 25
-    matchRef = 5600
+
+    # Reference values that the DECam analysis should pass
+    #  for the median astrometric scatter and the number of matches
+    good_mag_limit = 21  # [mag]
+    medianRef = 25  # [arcsec]
+    matchRef = 5600  # [number of stars]
 
     visitDataIds = [[{'visit':v, 'filter':filter, 'ccdnum':c} for v in visits]
                     for c in ccd]
     refDataIds = [{'visit':ref, 'filter':filter, 'ccdnum':c} for c in ccd]
-    
+
     return visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef
 
 if __name__ == "__main__":
@@ -63,5 +63,5 @@ where repo is the path to a repository containing the output of processCcd
         print("Could not find repo %r" % (repo,))
         sys.exit(1)
 
-    visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef = defaultData(repo)
-    checkAstrometry.run(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef)
+    args = defaultData(repo)
+    checkAstrometry.run(repo, *args)

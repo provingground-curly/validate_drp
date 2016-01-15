@@ -111,9 +111,9 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
     # Calibration for each 'ccd' in the reference data Id list.
     # Here ccdKeyName values must be unique.
     # This is why we need the calibrated images for the ref source catalogs.
-    calib = {rId[ccdKeyName] : afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for rId in refDataIds}
+    calib = {rId[ccdKeyName]: afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for rId in refDataIds}
 
-    for v_set in visitDataIds :
+    for v_set in visitDataIds:
         srcVis = butler.get('src', v_set[0], immediate=True)
         for vId in v_set[1:]:
             srcVis.extend(butler.get('src', vId, immediate=True), False)
@@ -131,15 +131,15 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
         flagKeysRef = [schemaRef[fl].asKey() for fl in flags]
         flagKeysVis = [schemaVis[fl].asKey() for fl in flags]
         
-        for m in match :
+        for m in match:
             mRef = m.first
             mVis = m.second
             
-            for fl in flagKeysRef :
-                if mRef.get(fl) :
+            for fl in flagKeysRef:
+                if mRef.get(fl):
                     continue
-            for fl in flagKeysVis :
-                if mVis.get(fl) :
+            for fl in flagKeysVis:
+                if mVis.get(fl):
                     continue
             
             # Keep only decent star-like objects
@@ -173,7 +173,7 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
     )
 
 
-def plotAstrometry(mag, dist, match, good_mag_limit=19.5) :
+def plotAstrometry(mag, dist, match, good_mag_limit=19.5):
     """Plot angular distance between matched sources from different exposures."""
     
     plt.rcParams['axes.linewidth'] = 2 
@@ -243,9 +243,9 @@ def checkAstrometry(mag, dist, match,
     print("Astrometric scatter (median) - mag < %.1f : %.1f %s" % 
           (good_mag_limit, astromScatter, "mas"))
 
-    if astromScatter > medianRef :
+    if astromScatter > medianRef:
         print("Median astrometric scatter %.1f %s is larger than reference : %.1f %s " % (astromScatter, "mas", medianRef, "mas"))
-    if match < matchRef :
+    if match < matchRef:
         print("Number of matched sources %d is too small (shoud be > %d)" % (match,matchRef))
 
     return astromScatter
