@@ -37,7 +37,7 @@ def defaultData(repo):
     ref = 176837
 
     # List of CCD to be considered (source catalogs will be concateneted)
-    ccd = [10] #, 12, 14, 18]
+    ccd = [10, 12, 14, 18]
     filter = 'z'
     
     # Reference values for the median astrometric scatter and the number of matches
