@@ -139,7 +139,7 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
         for m in match:
             mRef = m.first
             mVis = m.second
-
+            
             for fl in flagKeysRef:
                 if mRef.get(fl):
                     continue
