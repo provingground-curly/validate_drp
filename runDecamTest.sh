@@ -36,7 +36,7 @@ else
     NUMPROC=$(($NUMPROC<4?$NUMPROC:4))
 fi
 
-processCcdDecam.py ${INPUT} --output ${OUTPUT} @runDecam.list --configfile anetAstrometryConfig.py --clobber-config -j $NUMPROC
+processCcdDecam.py ${INPUT} --output ${OUTPUT} @runDecam.list --configfile decamConfig.py --clobber-config -j $NUMPROC
 
 # Run astrometry check on src
 echo "validating"
