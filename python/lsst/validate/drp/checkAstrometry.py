@@ -223,7 +223,7 @@ def plotAstrometry(mag, dist, match, good_mag_limit=19.5):
     ax[2][1].tick_params(labelsize=20)
 
     plt.suptitle("Astrometry Check", fontsize=30)
-    plotPath = "check_astrometry.png"
+    plotPath = os.path.join(repo, "check_astrometry.png")
     plt.savefig(plotPath, format="png")
 
 
