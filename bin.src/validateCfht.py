@@ -62,5 +62,5 @@ where repo is the path to a repository containing the output of processCcd
         print("Could not find repo %r" % (repo,))
         sys.exit(1)
 
-    visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef = defaultData(repo)
-    checkAstrometry.run(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef)
+    args = defaultData(repo)
+    checkAstrometry.run(repo, *args)
