@@ -1,4 +1,5 @@
-calibrate.doPhotoCal=False
-calibrate.doAstrometry=False
-calibrate.measurePsf.starSelector.name="secondMoment"
-doWriteCalibrate=True
+config.calibrate.doCalibrate=False
+config.calibrate.doPhotoCal=False
+config.calibrate.doAstrometry=False
+config.calibrate.measurePsf.starSelector.name="secondMoment"
+config.doWriteCalibrate=False
