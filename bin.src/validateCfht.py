@@ -26,6 +26,7 @@ import os.path
 import sys
 
 from lsst.validate.drp import checkAstrometry
+from lsst.validate.drp import checkAstrometryPhotometry
 
 
 def defaultData(repo):
@@ -64,3 +65,4 @@ where repo is the path to a repository containing the output of processCcd
 
     args = defaultData(repo)
     checkAstrometry.run(repo, *args)
+    checkAstrometryPhotometry.run(repo, *args)
