@@ -36,14 +36,14 @@ def defaultData(repo):
     ref = 176837
 
     # List of CCD to be considered (source catalogs will be concateneted)
-    ccd = [10] # , 12, 14, 18]
+    ccd = [10, 11, 12, 13, 14, 15, 16, 17, 18]
     filter = 'z'
 
     # Reference values that the DECam analysis should pass
     #  for the median astrometric scatter and the number of matches
     good_mag_limit = 21  # [mag]
     medianRef = 25  # [arcsec]
-    matchRef = 5600  # [number of stars]
+    matchRef = 10000 # [number of stars]
 
     visitDataIds = [[{'visit':v, 'filter':filter, 'ccdnum':c} for v in visits]
                     for c in ccd]
