@@ -1,3 +1,5 @@
 input/
 output/
 test.log
+bin/validateCfht.py
+bin/validateDecam.py
