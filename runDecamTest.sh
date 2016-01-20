@@ -30,11 +30,10 @@ echo "running processCcd"
 MACH=`uname -s`
 if [ $MACH == Darwin ]; then
     NUMPROC=`sysctl -a | grep machdep.cpu | grep core_count | cut -d ' ' -f 2`
-    NUMPROC=$(($NUMPROC<4?$NUMPROC:4))
 else
     NUMPROC=`grep -c processor /proc/cpuinfo`
-    NUMPROC=$(($NUMPROC<4?$NUMPROC:4))
 fi
+NUMPROC=$(($NUMPROC<8?$NUMPROC:8))
 
 processCcdDecam.py ${INPUT} --output ${OUTPUT} @runDecam.list --configfile decamConfig.py --clobber-config -j $NUMPROC
 

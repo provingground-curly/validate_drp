@@ -1,5 +1,5 @@
-config.calibrate.doCalibrate=False
-config.calibrate.doPhotoCal=False
-config.calibrate.doAstrometry=False
+config.calibrate.doPhotoCal=True
+config.calibrate.doAstrometry=True
 config.calibrate.measurePsf.starSelector.name="secondMoment"
-config.doWriteCalibrate=False
+config.doWriteCalibrate=True
+config.doDeblend=True

@@ -30,13 +30,13 @@ import checkAstrometry
 
 def defaultData(repo):
     # List of visits to be considered
-    visits = [176846, 176850]
+    visits = [176846]
 
     # Reference visit (the other visits will be compared to this one)
     ref = 176837
 
     # List of CCD to be considered (source catalogs will be concateneted)
-    ccd = [10, 12, 14, 18]
+    ccd = [10] # , 12, 14, 18]
     filter = 'z'
 
     # Reference values that the DECam analysis should pass
