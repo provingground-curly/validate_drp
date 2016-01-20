@@ -25,7 +25,7 @@ from __future__ import print_function
 import os.path
 import sys
 
-import checkAstrometry
+from lsst.validate.drp import checkAstrometry
 
 
 def defaultData(repo):
