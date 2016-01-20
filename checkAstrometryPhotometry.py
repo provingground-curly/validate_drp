@@ -109,7 +109,7 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
             srcVis.extend(butler.get('src', vId, immediate=True), False)
             print(len(srcVis), "sources in ccd: ", vId[ccdKeyName])
         
-    calib += {aId: afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for aId in allDataIds}
+#        calib += {aId: afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for aId in allDataIds}
         match = afwTable.matchRaDec(srcRef, srcVis, matchRadius)
 
         matchNum.append(len(match))
@@ -125,6 +125,8 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
         for m in match:
             mRef = m.first
             mVis = m.second
+            print("MREF: ")
+            print(repr(mRef))
             
             for fl in flagKeysRef:
                 if mRef.get(fl):
