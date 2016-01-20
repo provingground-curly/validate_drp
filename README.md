@@ -35,7 +35,7 @@ validation_data_decam contains both the test DECam data and selected SDSS refere
 
 Run the measurement algorithm processing and astrometry test with
 ```
-sh runCfhtTest.sh
+sh runDecamTest.sh
 ```
 
 
