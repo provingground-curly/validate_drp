@@ -6,21 +6,38 @@ Pre-requisites: install and declare the following
 1. pipe_tasks from the LSST DM stack (note that pipe_tasks is included with lsst_apps, which is the usual thing to install)
 2. obs_cfht from https://github.com/lsst/obs_cfht (this package is not included with lsst_apps); declare this with tag "current"
 3. validation_data_cfht from https://github.com/lsst/validation_data_cfht
-4. validation_data_decam -- This doesn't exist yet.
+4. validation_data_decam from https://github.com/lsst/validation_data_decam
 
-To setup for a run:
+------
+To setup for a run with CFHT:
 ```
 setup obs_cfht 
 setup validation_data_cfht
 ```
 If you did not declare obs_cfht and validation_data_cfht current then also specify the version name you used
 
-validation_data_cfht contains both the test CFHT data and the SDSS reference catalogs in astrometry.net format.
+validation_data_cfht contains both the test CFHT data and selected SDSS reference catalogs in astrometry.net format.
 
 Run the measurement algorithm processing and astrometry test with
 ```
 sh runCfhtTest.sh
 ```
+
+------
+To setup for a run with DECam:
+```
+setup obs_decam
+setup validation_data_decam
+```
+If you did not declare obs_decam and validation_data_decam current then also specify the version name you used
+
+validation_data_decam contains both the test DECam data and selected SDSS reference catalogs in astrometry.net format.
+
+Run the measurement algorithm processing and astrometry test with
+```
+sh runCfhtTest.sh
+```
+
 
 The last line of the output will give the median astrometric scatter (in milliarcseconds) for stars with mag < 21.
 
@@ -56,8 +73,12 @@ processCcd.py CFHT/input --id visit=850587 ccd=21 --configfile anetAstrometryCon
 
 Files :
 -------
-* `run_test.sh`      : Run initialization, ingest, measurement, and astrometry validation.
-* `valid_cfht.py`    : run some analysis on the output data produced by processCcd.py
+* `runCfhtTest.sh`  : CFHT Run initialization, ingest, measurement, and astrometry validation.
+* `runDecamTest.sh` : DECam Run initialization, ingest, measurement, and astrometry validation.
+* `validCfht.py`    : CFHT run some analysis on the output data produced by processCcd.py
+* `validDecam.py`   : DECam run some analysis on the output data produced by processCcd.py
+* `runCfht.list`    : CRHT list of vistits / ccd to be processed by processCcd
+* `runDecam.list`   : DECam list of vistits / ccd to be processed by processCcd
 * `newAstrometryConfig.py`  : configuration for running processCcd with the new AstrometryTask
 * `anetAstrometryConfig.py` : configuration for running processCcd ANetAstrometryTask
-* `runCfht.list`         : list of vistits / ccd to be processed by processCcd
+* 'README.md` : THIS FILE.  Guide and examples.
