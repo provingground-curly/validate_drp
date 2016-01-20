@@ -1,5 +1,8 @@
+CFHT/
+DECam/
 input/
 output/
 test.log
 bin/validateCfht.py
 bin/validateDecam.py
+*.png
