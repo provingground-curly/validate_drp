@@ -127,6 +127,7 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
             mVis = m.second
             print("MREF: ")
             print(repr(mRef))
+            print(mRef.getSchema())
             
             for fl in flagKeysRef:
                 if mRef.get(fl):
