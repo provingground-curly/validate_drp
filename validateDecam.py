@@ -43,11 +43,11 @@ def defaultData(repo):
     #  for the median astrometric scatter and the number of matches
     good_mag_limit = 21  # [mag]
     medianRef = 25  # [arcsec]
-    matchRef = 10000 # [number of stars]
+    matchRef = 10000  # [number of stars]
 
-    visitDataIds = [[{'visit':v, 'filter':filter, 'ccdnum':c} for v in visits]
+    visitDataIds = [[{'visit': v, 'filter': filter, 'ccdnum': c} for v in visits]
                     for c in ccd]
-    refDataIds = [{'visit':ref, 'filter':filter, 'ccdnum':c} for c in ccd]
+    refDataIds = [{'visit': ref, 'filter': filter, 'ccdnum': c} for c in ccd]
 
     return visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef
 

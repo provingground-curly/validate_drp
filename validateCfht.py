@@ -22,13 +22,11 @@
 
 from __future__ import print_function
 
-import math
 import os.path
 import sys
 
-import numpy as np
-
 import checkAstrometry
+
 
 def defaultData(repo):
     # List of visits to be considered
@@ -40,15 +38,15 @@ def defaultData(repo):
     # List of CCD to be considered (source calalogs will be concateneted)
     ccd = [12, 13, 14, 21, 22, 23]
     filter = 'r'
-    
+
     # Reference values for the median astrometric scatter and the number of matches
     good_mag_limit = 21.0
     medianRef = 25
     matchRef = 5600
-    
-    visitDataIds = [[{'visit':v, 'filter':filter, 'ccd':c} for v in visits]
+
+    visitDataIds = [[{'visit': v, 'filter': filter, 'ccd': c} for v in visits]
                     for c in ccd]
-    refDataIds = [{'visit':ref, 'filter':filter, 'ccd':c} for c in ccd]
+    refDataIds = [{'visit': ref, 'filter': filter, 'ccd': c} for c in ccd]
 
     return visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef
 
