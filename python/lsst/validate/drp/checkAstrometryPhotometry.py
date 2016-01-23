@@ -75,6 +75,9 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
         oldSrc = butler.get('src', rId, immediate=True)
         print(len(oldSrc), "sources in ccd:", rId[ccdKeyName])
 
+        # We need to track the CCD number with the source
+        # So that we can go back and figure it out later
+        #  to get the photometric calibration.
         # create temporary catalog
         tmpCat = afwTable.SourceCatalog(srcRef.table)
         tmpCat.extend(oldSrc, mapper=mapper)
@@ -101,15 +104,22 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
     # Calibration for each 'ccd' in the reference data Id list.
     # Here ccdKeyName values must be unique.
     # This is why we need the calibrated images for the ref source catalogs.
-    calib = {rId[ccdKeyName]: afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for rId in refDataIds}
+    ref_calib = {rId[ccdKeyName]: afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for rId in refDataIds}
 
     for v_set in visitDataIds:
-        srcVis = butler.get('src', v_set[0], immediate=True)
-        for vId in v_set[1:]:
-            srcVis.extend(butler.get('src', vId, immediate=True), False)
+        srcVis = afwTable.SourceCatalog(newSchema)
+        for vId in v_set:
+            oldSrc = butler.get('src', vId, immediate=True)
+            tmpCat = afwTable.SourceCatalog(srcVis.table)
+            tmpCat.extend(oldSrc, mapper=mapper)
+            # fill in the ccd information in numpy mode in order to be efficient
+            tmpCat[ccdKeyName][:] = vId[ccdKeyName]
+            # add on the temporary catalog to the extended source catalog    
+            srcVis.extend(tmpCat, deep=False)
             print(len(srcVis), "sources in ccd: ", vId[ccdKeyName])
         
-#        calib += {aId: afwImage.Calib(butler.get("calexp_md", rId, immediate=True)) for aId in allDataIds}
+        vis_calib = {vId[ccdKeyName]: afwImage.Calib(butler.get("calexp_md", vId, immediate=True)) for vId in v_set}
+
         match = afwTable.matchRaDec(srcRef, srcVis, matchRadius)
 
         matchNum.append(len(match))
@@ -125,9 +135,6 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
         for m in match:
             mRef = m.first
             mVis = m.second
-            print("MREF: ")
-            print(repr(mRef))
-            print(mRef.getSchema())
             
             for fl in flagKeysRef:
                 if mRef.get(fl):
@@ -148,9 +155,9 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
             
             # retrieve the CCD corresponding to the reference source
             ccdRef = mRef.get(ccdKeyName)
-#            ccdVis = mVis.get(ccdKeyName)
-            refMag = calib[ccdRef].getMagnitude(mRef.get('base_PsfFlux_flux'))
-            visMag = calib[vId].getMagnitude(mVis.get('base_PsfFlux_flux'))
+            ccdVis = mVis.get(ccdKeyName)
+            refMag = ref_calib[ccdRef].getMagnitude(mRef.get('base_PsfFlux_flux'))
+            visMag = vis_calib[ccdVis].getMagnitude(mVis.get('base_PsfFlux_flux'))
             
             mag.append(refMag)
             delta_mag.append(visMag-refMag)
@@ -164,36 +171,37 @@ def loadAndMatchData(repo, visitDataIds, refDataIds,
     # For now, I'm fixing to the number of matches in the first visit.
      
     return pipeBase.Struct(
-        mag = mag,
-        delta_mag = delta_mag,
-        dist = dist,
+        mag = np.asarray(mag),
+        delta_mag = np.asarray(delta_mag),
+        dist = np.asarray(dist),
         match = sum(matchNum)
     )
 
 
-def plotPhotometry(repo, mag, delta_mag, dist, match, good_mag_limit=19.5):
+def plotPhotometry(mag, delta_mag, dist, match, good_mag_limit=19.5):
     """Plot photometric changes between matched sources from different exposures."""
     
     plt.rcParams['axes.linewidth'] = 2 
     plt.rcParams['mathtext.default'] = 'regular'
     
     fig, ax = plt.subplots(ncols=2, nrows=3, figsize=(18,22))
-    ax[0][0].hist(delta_mag, bins=80)
+    ax[0][0].hist(delta_mag*1000, bins=25, histtype='stepfilled')
     ax[0][1].scatter(mag, delta_mag, s=10, color='b')
-#    ax[0][0].set_xlim([0., 900.])
-    ax[0][0].set_xlabel("Difference in mag", fontsize=20)
+    ax[0][0].set_xlim([-1000, +1000])
+    ax[0][0].set_xlabel("Difference in mmag", fontsize=20)
     ax[0][0].tick_params(labelsize=20)
-    ax[0][0].set_title("Median : %.3f mag" % (np.median(delta_mag)), fontsize=20, x=0.6, y=0.88)
+    ax[0][0].set_title("Median : %.3f mmag" % (np.median(delta_mag)*1000), fontsize=20, x=0.6, y=0.88)
     ax[0][1].set_xlabel("Magnitude", fontsize=20)
     ax[0][1].set_ylabel("Delta Mag", fontsize=20)
-#    ax[0][1].set_ylim([0., 900.])
+    ax[0][1].set_ylim([-1, +1])
     ax[0][1].tick_params(labelsize=20)
     ax[0][1].set_title("Number of matches : %d" % match, fontsize=20)
 
-    ax[1][0].hist(delta_mag,bins=150)
-    ax[1][0].set_xlim([0.,400.])
-    ax[1][1].scatter(mag, delta_mag, s=10, color='b')
-    ax[1][1].set_ylim([0.,400.])
+    dflux_over_flux = 10**(-0.4*delta_mag) - 1
+    ax[1][0].hist(dflux_over_flux, bins=25, histtype='stepfilled')
+    ax[1][0].set_xlim([-1, +1])
+    ax[1][1].scatter(mag, dflux_over_flux, s=10, color='b')
+    ax[1][1].set_ylim([-1, +1])
     ax[0][1].set_xlabel("Magnitude", fontsize=20)
     ax[0][1].set_ylabel("Delta Mag", fontsize=20)
     ax[1][0].tick_params(labelsize=20)
@@ -201,31 +209,31 @@ def plotPhotometry(repo, mag, delta_mag, dist, match, good_mag_limit=19.5):
 
     idxs = np.where(np.asarray(mag) < good_mag_limit)
 
-    ax[2][0].hist(np.asarray(dist)[idxs], bins=100)
+    ax[2][0].hist(np.asarray(dist)[idxs], bins=100, histtype='stepfilled')
     ax[2][0].set_xlabel("Distance in mag for mag < %.1f" % good_mag_limit, fontsize=20)
     ax[2][0].set_xlim([0,200])
-    ax[2][0].set_title("Median (mag < %.1f) : %.3f mas" % (good_mag_limit, np.median(np.asarray(delta_mag)[idxs])), fontsize=20, x=0.6, y=0.88)
-    ax[2][1].scatter(np.asarray(mag)[idxs], np.asarray(delta_mag)[idxs], s=10, color='b')
+    ax[2][0].set_title("Median (mag < %.1f) : %.3f mag" % (good_mag_limit, np.median(np.asarray(delta_mag)[idxs])), fontsize=20, x=0.6, y=0.88)
+    ax[2][1].scatter(mag[idxs], delta_mag[idxs], s=10, color='b')
     ax[2][1].set_xlabel("Magnitude", fontsize=20)
     ax[2][1].set_ylabel("Difference in mag for mag < %.1f" % good_mag_limit, fontsize=20)
-    ax[2][1].set_ylim([0.,200.])
+    ax[2][1].set_ylim([-1, +1])
     ax[2][0].tick_params(labelsize=20)
     ax[2][1].tick_params(labelsize=20)
     
     plt.suptitle("Photometry Check", fontsize=30)
-    plotPath = os.path.join(repo, "check_photometry.png")
+    plotPath = "check_photometry.png"
     plt.savefig(plotPath, format="png")
 
 
-def checkPhotometry(mag, delta_mag, dist, match, 
+def checkPhotometry(mag, delta_mag, match, 
                     good_mag_limit=19.5,
                     medianRef=100, matchRef=500):
     """Print out the photometric scatter for all stars, and for good stars.
 
-    @param medianRef  Median reference photometric scatter in arcseconds.
+    @param medianRef  Median reference photometric scatter in millimagnitudes.
     @param matchRef   Should match at least matchRef stars.
 
-    Return the photometric scatter (RMS, mag) for all good stars.
+    Return the photometric scatter (RMS, mmag) for all good stars.
 
     Notes:
        The scatter and match defaults are appropriate to SDSS are stored here.
@@ -233,17 +241,17 @@ def checkPhotometry(mag, delta_mag, dist, match,
     """
 
     print("Median value of the photometric scatter - all magnitudes:", 
-          np.median(dist), "mas")
+          np.median(delta_mag)*1000, "mmag")
 
     idxs = np.where(np.asarray(mag) < good_mag_limit)
     photoScatter = np.median(np.asarray(delta_mag)[idxs])
     print("Photometric scatter (median) for mag < %.1f : %.3f %s" % 
-          (good_mag_limit, photoScatter, "mag"))
+          (good_mag_limit, photoScatter*1000, "mmag"))
 
     if photoScatter > medianRef:
-        print("Median photoetric scatter %.3f %s is larger than reference : %.3f %s " % (photoScatter, "mas", medianRef, "mas"))
+        print("Median photoetric scatter %.3f %s is larger than reference : %.3f %s " % (photoScatter*1000, "mmag", medianRef, "mag"))
     if match < matchRef:
-        print("Number of matched sources %d is too small (shoud be > %d)" % (match,matchRef))
+        print("Number of matched sources %d is too small (shoud be > %d)" % (match, matchRef))
 
     return photoScatter
 
@@ -260,11 +268,11 @@ def run(repo, visitDataIds, refDataIds, good_mag_limit, medianRef, matchRef):
     checkAstrometry(mag, dist, match, 
                     good_mag_limit=good_mag_limit, 
                     medianRef=medianRef, matchRef=matchRef)
-    plotAstrometry(repo, mag, dist, match, good_mag_limit=good_mag_limit)
-    checkPhotometry(mag, dist, delta_mag, match, 
+    plotAstrometry(mag, dist, match, good_mag_limit=good_mag_limit)
+    checkPhotometry(mag, delta_mag, match, 
                     good_mag_limit=good_mag_limit, 
                     medianRef=medianRef, matchRef=matchRef)
-    plotPhotometry(repo, mag, delta_mag, dist, match, 
+    plotPhotometry(mag, delta_mag, dist, match, 
                    good_mag_limit=good_mag_limit)
 
 def defaultData(repo):
