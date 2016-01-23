@@ -35,19 +35,19 @@ def checkRuntime(repo, did={'visit': 849375, 'ccd': 12}):
     """Check the runtime of processCcd against benchmark."""
 
     butler = dafPersist.Butler(repo)
-    foo = butler.get('processCcd_metadata', did)
+    task_md = butler.get('processCcd_metadata', did)
 
     taskName = 'processCcd'
     typesOfTime = ('Cpu', 'System', 'User')
 
-    allNames = foo.names()
+    allNames = task_md.names()
 
     t = typesOfTime[0]
     for name in allNames:
         start = "%s.run%s%sTime" % (name, "Start", t)
         end = "%s.run%s%sTime" % (name, "End", t)
-        print(name, foo.get(start), foo.get(end))
-        print("%s took from %g to %g seconds" % (name, foo.get(start), foo.get(end)))
+        print(name, task_md.get(start), task_md.get(end))
+        print("{:s} took from {} to {} seconds".format(name, task_md.get(start), task_md.get(end)))
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
