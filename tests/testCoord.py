@@ -47,8 +47,8 @@ class CoordTestCase(unittest.TestCase):
     """Testing basic coordinate calculations."""
 
     def setUp(self):
-        self.simpleRa = np.deg2rad([15, 25])
-        self.simpleDec = np.deg2rad([30, 45])
+        self.simpleRa = [15, 25]
+        self.simpleDec = [30, 45]
         self.zeroDec = np.zeros_like(self.simpleRa)
 
         self.wrapRa = [359.9999, 0.0001, -0.1, +0.1]
