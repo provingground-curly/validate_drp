@@ -20,7 +20,7 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 
 import numpy as np
 import yaml
@@ -45,7 +45,7 @@ def loadDataIdsAndParameters(configFile):
     Inputs
     ------
     configFile : str
-        YAML file that stores visit, filter, ccd, 
+        YAML file that stores visit, filter, ccd,
         good_mag_limit, medianAstromscatterRef, medianPhotoscatterRef, matchRef
 
     Returns
@@ -57,7 +57,7 @@ def loadDataIdsAndParameters(configFile):
     data = yaml.load(stream)
 
     ccdKeyName = getCcdKeyName(data)
-    visitDataIds = constructDataIds(data['visits'], data['filter'], 
+    visitDataIds = constructDataIds(data['visits'], data['filter'],
                                     data[ccdKeyName], ccdKeyName)
 
     return (visitDataIds,
@@ -90,7 +90,7 @@ def constructDataIds(visits, filter, ccds, ccdKeyName=None):
     --------
     >>> dataIds = constructDataIds([100, 200], 'r', [10, 11, 12])
     >>> print(dataIds)
-    ... [{'filter': 'r', 'visit': 100, None: 10}, {'filter': 'r', 'visit': 100, None: 11}, {'filter': 'r', 'visit': 100, None: 12}, {'filter': 'r', 'visit': 200, None: 10}, {'filter': 'r', 'visit': 200, None: 11}, {'filter': 'r', 'visit': 200, None: 12}]
+    [{'filter': 'r', 'visit': 100, None: 10}, {'filter': 'r', 'visit': 100, None: 11}, {'filter': 'r', 'visit': 100, None: 12}, {'filter': 'r', 'visit': 200, None: 10}, {'filter': 'r', 'visit': 200, None: 11}, {'filter': 'r', 'visit': 200, None: 12}]
 
     Note
     -----
@@ -98,11 +98,68 @@ def constructDataIds(visits, filter, ccds, ccdKeyName=None):
     This isn't fundamentally necessary, but one would need to define logic
     such that filter="ugriz" and filter="r-1692 CFHT" are each processed correctly.
     """
-    visitDataIds = [{'visit': v, 'filter': filter, ccdKeyName: c} 
+    visitDataIds = [{'visit': v, 'filter': filter, ccdKeyName: c}
                     for v in visits
                     for c in ccds]
 
     return visitDataIds
+
+
+def loadRunList(configFile):
+    """Load run list rom a yaml file.
+
+    Inputs
+    ------
+    configFile : str
+        YAML file that stores visit, filter, ccd,
+
+    Returns
+    -------
+    list
+        run list lines.
+    """
+    stream = open(configFile, mode='r')
+    data = yaml.load(stream)
+
+    ccdKeyName = getCcdKeyName(data)
+    runList = constructRunList(data['visits'], data['filter'],
+                               data[ccdKeyName])
+
+    return runList
+
+
+def constructRunList(visits, filter, ccds, ccdKeyName=None):
+    """Construct a comprehensive runList for processCcd.py.
+
+    Inputs
+    ------
+    visits : list of int
+    filter : str
+    ccds : list of int
+
+    Returns
+    -------
+    list
+        list of strings suitable to be used with the LSST Butler.
+
+    Examples
+    --------
+    >>> runList = constructRunList([100, 200], 'r', [10, 11, 12])
+    >>> print(runList)
+    ['--id visit=100 ccd=10^11^12'^ '--id visit=200 ccd=10^11^12']
+
+    Note
+    -----
+    The LSST parsing convention is to use '^' as list separators
+        for arguments to `--id`.  While surprising, this convention
+        allows for CCD names to include ','.  E.g., 'R1,2'.
+    Currently ignores `filter`
+    """
+
+    runList = ["--id visit=%d ccd=%s" % (v, "^".join([str(c) for c in ccds]))
+               for v in visits]
+
+    return runList
 
 
 def loadAndMatchData(repo, visitDataIds,
@@ -118,7 +175,7 @@ def loadAndMatchData(repo, visitDataIds,
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
     matchRadius :  afwGeom.Angle().
-        Radius for matching. 
+        Radius for matching.
 
     Returns
     -------
@@ -184,14 +241,14 @@ def analyzeData(allMatches, good_mag_limit=19.5):
 
     Inputs
     ------
-    allMatches : afw.table.GroupView 
+    allMatches : afw.table.GroupView
         GroupView object with matches.
     good_mag_limit : float, optional
         Minimum average brightness (in magnitudes) for a star to be considered.
 
     Returns
-    ------- 
-    pipeBase.Struct 
+    -------
+    pipeBase.Struct
         Containing mag, magerr, magrms, dist, and number of matches.
     """
 
