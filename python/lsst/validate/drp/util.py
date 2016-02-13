@@ -25,6 +25,7 @@ import yaml
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
+import lsst.daf.persistence as dafPersist
 
 
 def averageRaDec(ra, dec):
@@ -108,6 +109,31 @@ def repoNameToPrefix(repo):
 
     return repo.lstrip('\.').strip(os.sep).replace(os.sep, "_") + "_"
 
+
+def discoverDataIds(repo, **kwargs):
+    """Retrieve a list of all dataIds in a repo.
+
+    Parameters
+    ----------
+    repo : str
+        Path of a repository with 'src' entries.
+
+    Returns
+    -------
+    list
+        dataIds in the butler.
+
+    Notes
+    -----
+    May consider making this an iterator if large N becomes important.
+    However, will likely need to know things like, "all unique filters"
+    of a data set anyway, so would need to go through chain at least once.
+    """
+    butler = dafPersist.Butler(repo)
+    thisSubset = butler.subset('src', **kwargs)
+    # This totally works, but would be better to do this as a TaskRunner?
+    dataIds = [dr.dataId for dr in thisSubset]
+    return dataIds
 
 def loadDataIdsAndParameters(configFile):
     """Load data IDs, magnitude range, and expected metrics from a yaml file.
