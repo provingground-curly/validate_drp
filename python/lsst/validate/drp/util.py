@@ -121,7 +121,7 @@ def discoverDataIds(repo, **kwargs):
     Returns
     -------
     list
-        dataIds in the butler.
+        dataIds in the butler that exist.
 
     Notes
     -----
@@ -130,10 +130,17 @@ def discoverDataIds(repo, **kwargs):
     of a data set anyway, so would need to go through chain at least once.
     """
     butler = dafPersist.Butler(repo)
-    thisSubset = butler.subset('src', **kwargs)
+    thisSubset = butler.subset(datasetType='src', **kwargs)
     # This totally works, but would be better to do this as a TaskRunner?
-    dataIds = [dr.dataId for dr in thisSubset]
+    dataIds = [dr.dataId for dr in thisSubset 
+               if dr.datasetExists(datasetType='src') and dr.datasetExists(datasetType='calexp')]
+    # Make sure we have the filter information
+    for dId in dataIds:
+        filterForThisDataId = butler.queryMetadata(datasetType='src', key=None, format=['filter'])[0]
+        dId['filter'] = filterForThisDataId
+
     return dataIds
+
 
 def loadDataIdsAndParameters(configFile):
     """Load data IDs, magnitude range, and expected metrics from a yaml file.
