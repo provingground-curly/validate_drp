@@ -112,6 +112,9 @@ def loadAndMatchData(repo, visitDataIds,
         (tmpCat['base_PsfFlux_mag'][:], tmpCat['base_PsfFlux_magerr'][:]) = \
          calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
                             tmpCat['base_PsfFlux_fluxSigma'])
+
+        # Add in CCD information for future reference
+        tmpCat[ccdKeyName] = 
         srcVis.extend(tmpCat, False)
         mmatch.add(catalog=tmpCat, dataId=vId)
 
