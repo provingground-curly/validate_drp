@@ -73,3 +73,7 @@ if __name__ == "__main__":
 
     kwargs['verbose'] = args.verbose
     validate.run(args.repo, visitDataIds, **kwargs)
+
+    # Only check against expectations if we were passed informationa about those expectations
+    if args.configFile:
+        validate.checkPassed(args.repo, **kwargs)

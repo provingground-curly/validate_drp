@@ -143,35 +143,53 @@ def discoverDataIds(repo, **kwargs):
 
 
 def loadDataIdsAndParameters(configFile):
-    """Load data IDs, magnitude range, and expected metrics from a yaml file.
+    """Load configuration parameters from a yaml file.
 
     Parameters
     ----------
     configFile : str
         YAML file that stores visit, filter, ccd,
         good_mag_limit, medianAstromscatterRef, medianPhotoscatterRef, matchRef
+        and other parameters
 
     Returns
     -------
-    dict, float, float, float
-        dataIds, good_mag_limit, medianRef, matchRef
+    pipeBase.Struct
+        with configuration parameters
     """
-    stream = open(configFile, mode='r')
-    data = yaml.load(stream)
+    with open(configFile, mode='r') as stream:
+        data = yaml.load(stream)
 
-    ccdKeyName = getCcdKeyName(data)
+    return pipeBase.Struct(**data)
+
+
+def loadDataIdsAndParameters(configFile):
+    """Load data IDs, magnitude range, and expected metrics from a yaml file.
+
+    Parameters
+    ----------
+    configFile : str
+        YAML file that stores visit, filter, ccd,
+        and additional configuration parameters such as
+        good_mag_limit, medianAstromscatterRef, medianPhotoscatterRef, matchRef
+
+    Returns
+    -------
+    pipeBase.Struct
+        with attributes of 
+        visitDataIds - dict
+        and configuration parameters
+    """
+    parameters = loadParameters(configfile).getDict()
+
+    ccdKeyName = getCcdKeyName(parameters)
     try:
-        visitDataIds = constructDataIds(data['filter'], data['visits'],
-                                        data[ccdKeyName], ccdKeyName)
+        visitDataIds = constructDataIds(parameters['filter'], parameters['visits'],
+                                        parameters[ccdKeyName], ccdKeyName)
     except KeyError as ke:
         visitDataIds = []
 
-    return (visitDataIds,
-            data['good_mag_limit'],
-            data['medianAstromscatterRef'],
-            data['medianPhotoscatterRef'],
-            data['matchRef'],
-           )
+    return pipeBase.Struct(visitDataIds=visitDataIds, **parameters)
 
 
 def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):

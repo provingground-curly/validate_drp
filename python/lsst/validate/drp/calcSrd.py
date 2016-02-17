@@ -125,6 +125,7 @@ def calcPA1(matches, magKey, numRandomShuffles=50, verbose=False):
     iqrPA1 = np.array([pa1.iqr for pa1 in pa1Samples])
 
     return pipeBase.Struct(name='PA1',
+                           PA1=np.mean(iqrPA1),
                            rms=np.mean(rmsPA1), iqr=np.mean(iqrPA1),
                            rmsStd=np.std(rmsPA1), iqrStd=np.std(iqrPA1),
                            rmsUnits='mmag', iqrUnits='mmag',

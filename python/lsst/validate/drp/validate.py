@@ -333,3 +333,74 @@ def runOneFilter(repo, visitDataIds, good_mag_limit=21.0,
             if metric:
                 outfile = outputPrefix + "%s.json" % metric.name
                 saveKpmToJson(metric, outfile)
+
+def didThisRepoPass(repo, dataIds, configFile, **kwargs):
+    """Convenience function for calling didIPass using the standard conventions for
+    output filenames.
+
+    Parameters
+    ----------
+    repo : str
+        Path name of repository
+    dataIds : list
+        Data Ids that were analyzed
+    configFile : str
+        Path name of configuration file with requirements specified
+
+    See Also
+    --------
+    didIPass : The key function that does the work.
+    """
+    outputPrefix = repoNameToPrefix(repo)
+    filters = set(d['filter'] for d in dataIds)
+    requirements = loadParameters(configFile)
+
+    return didIPass(outputPrefix, filters, requirements, **kwargs)
+
+
+def didIPass(outputPrefix, filters, requirements, verbose=False):
+    """Score the metrics for PA1, PA2, AM1, [AM2, ] [AM3, ].  Return False if any failed.
+    
+    Parameters 
+    ----------
+    outputPrefix : str
+        The starting name for the output JSON files with the results
+    filters : list, str, or None
+        The filters in the analysis.  Output JSON files will be searched as
+            "%s%s" % (outputPrefix, filters[i]) 
+        If `None`, then JSON files will be searched for as just
+            "%s" % outputPrefix.
+    requirements : pipeBase.Struct
+        The requirements on each of the Key Performance Metrics
+
+    We check against these configured standards instead of the srdSpec because
+    1. Different data sets may not lend themselves to satisfying the SRD.
+    2. The pipeline continues to improve.  
+       Specifying a set of standards and updating that allows for a natural tightening of requirements.
+    """
+    if isinstance(filters, str):
+        filters = list(filters)
+
+    requirementsDict = requirements.getDict()
+    for f in filters:
+        # get json files
+        for metricName in ("PA1", "PA2", "AM1", "AM2", "AM3"):
+            if f:
+                jsonFile = "%s%s_%s.%s" % (outputPrefix, f, metricName, 'json')
+            else
+                jsonFile = "%s_%s.%s" % (outputPrefix, metricName, 'json')
+
+        metricUnits = metricName.lower()+'Units'
+        metricResults = loadKpmFromJson(jsonFile)
+        standardToMeet = 'required%s' % metricName
+        if verbose:
+            print("Measured {}: {} {};  Required {}." % (metricResults.name,
+                                                         metricResults.getDict()[metricUnits] 
+
+    # Check values against configured standards
+    ### Note that there's no filter-dependence for the requirements
+    for 
+    
+    # Print output of each
+    # Return false (1) if any failed.
+    return False
