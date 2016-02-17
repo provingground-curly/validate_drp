@@ -160,8 +160,11 @@ def loadDataIdsAndParameters(configFile):
     data = yaml.load(stream)
 
     ccdKeyName = getCcdKeyName(data)
-    visitDataIds = constructDataIds(data['filter'], data['visits'],
-                                    data[ccdKeyName], ccdKeyName)
+    try:
+        visitDataIds = constructDataIds(data['filter'], data['visits'],
+                                        data[ccdKeyName], ccdKeyName)
+    except KeyError as ke:
+        visitDataIds = []
 
     return (visitDataIds,
             data['good_mag_limit'],

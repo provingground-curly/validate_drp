@@ -62,7 +62,8 @@ if __name__ == "__main__":
             'medianPhotoscatterRef': medianPhotoscatterRef, 
             'matchRef': matchRef,
             }
-    else:
+
+    if not args.configFile or not visitDataIds:
         visitDataIds = util.discoverDataIds(args.repo)
         print("VISITDATAIDS: ", visitDataIds)
         kwargs = {}
