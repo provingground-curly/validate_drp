@@ -46,6 +46,8 @@ if __name__ == "__main__":
                         help='path to a repository containing the output of processCcd')
     parser.add_argument('--configFile', '-c', type=str, default=None,
                         help='YAML configuration file validation parameters and dataIds.')
+    parser.add_argument('--verbose', '-v', default=False, action='store_true',
+                        help='Display additional information about the analysis.')
     
     args = parser.parse_args()
 
@@ -65,7 +67,9 @@ if __name__ == "__main__":
 
     if not args.configFile or not visitDataIds:
         visitDataIds = util.discoverDataIds(args.repo)
-        print("VISITDATAIDS: ", visitDataIds)
+        if args.verbose:
+            print("VISITDATAIDS: ", visitDataIds)
         kwargs = {}
 
+    kwargs['verbose'] = args.verbose
     validate.run(args.repo, visitDataIds, **kwargs)
