@@ -24,6 +24,7 @@ import numpy as np
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
+import lsst.afw.image.utils as afwImageUtils
 from lsst.afw.table import SourceCatalog, SchemaMapper, Field
 from lsst.afw.table import MultiMatch, SimpleRecord, GroupView
 import lsst.daf.persistence as dafPersist
@@ -91,17 +92,23 @@ def loadAndMatchData(repo, visitDataIds,
     srcVis = SourceCatalog(newSchema)
 
     for vId in visitDataIds:
-        calib = afwImage.Calib(butler.get("calexp_md", vId, immediate=True))
-        calib.setThrowOnNegativeFlux(False)
+        try:
+            calib = afwImage.Calib(butler.get("calexp_md", vId, immediate=True))
+        except TypeError as te:
+            print(te)
+            continue
+
         oldSrc = butler.get('src', vId, immediate=True)
         print(len(oldSrc), "sources in ccd %s  visit %s" % (vId[ccdKeyName], vId["visit"]))
 
         # create temporary catalog
         tmpCat = SourceCatalog(SourceCatalog(newSchema).table)
         tmpCat.extend(oldSrc, mapper=mapper)
-        (tmpCat['base_PsfFlux_mag'][:], tmpCat['base_PsfFlux_magerr'][:]) = \
-         calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
-                            tmpCat['base_PsfFlux_fluxSigma'])
+        with afwImageUtils.CalibNoThrow():
+            (tmpCat['base_PsfFlux_mag'][:], tmpCat['base_PsfFlux_magerr'][:]) = \
+             calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
+                                tmpCat['base_PsfFlux_fluxSigma'])
+
         srcVis.extend(tmpCat, False)
         mmatch.add(catalog=tmpCat, dataId=vId)
 
