@@ -26,6 +26,7 @@ import yaml
 import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
 import lsst.daf.persistence as dafPersist
+import lsst.pipe.base as pipeBase
 
 
 def averageRaDec(ra, dec):
@@ -142,7 +143,7 @@ def discoverDataIds(repo, **kwargs):
     return dataIds
 
 
-def loadDataIdsAndParameters(configFile):
+def loadParameters(configFile):
     """Load configuration parameters from a yaml file.
 
     Parameters
@@ -177,19 +178,19 @@ def loadDataIdsAndParameters(configFile):
     -------
     pipeBase.Struct
         with attributes of 
-        visitDataIds - dict
+        dataIds - dict
         and configuration parameters
     """
-    parameters = loadParameters(configfile).getDict()
+    parameters = loadParameters(configFile).getDict()
 
     ccdKeyName = getCcdKeyName(parameters)
     try:
-        visitDataIds = constructDataIds(parameters['filter'], parameters['visits'],
+        dataIds = constructDataIds(parameters['filter'], parameters['visits'],
                                         parameters[ccdKeyName], ccdKeyName)
     except KeyError as ke:
-        visitDataIds = []
+        dataIds = []
 
-    return pipeBase.Struct(visitDataIds=visitDataIds, **parameters)
+    return pipeBase.Struct(dataIds=dataIds, **parameters)
 
 
 def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
@@ -221,11 +222,11 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
         filters = [filters for _ in visits]
 
     assert len(filters) == len(visits)
-    visitDataIds = [{'filter': f, 'visit': v, ccdKeyName: c}
+    dataIds = [{'filter': f, 'visit': v, ccdKeyName: c}
                     for (f, v) in zip(filters, visits)
                     for c in ccds]
 
-    return visitDataIds
+    return dataIds
 
 
 def loadRunList(configFile):

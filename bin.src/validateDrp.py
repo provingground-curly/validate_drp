@@ -55,25 +55,20 @@ if __name__ == "__main__":
         print("Could not find repo %r" % (args.repo,))
         sys.exit(1)
 
+    kwargs = {}
     if args.configFile:
-        visitDataIds, good_mag_limit, medianAstromscatterRef, medianPhotoscatterRef, matchRef = \
-            util.loadDataIdsAndParameters(args.configFile)
-        kwargs = {
-            'good_mag_limit': good_mag_limit, 
-            'medianAstromscatterRef': medianAstromscatterRef, 
-            'medianPhotoscatterRef': medianPhotoscatterRef, 
-            'matchRef': matchRef,
-            }
+        pbStruct = util.loadDataIdsAndParameters(args.configFile)
+        kwargs = pbStruct.getDict()
 
-    if not args.configFile or not visitDataIds:
-        visitDataIds = util.discoverDataIds(args.repo)
+    if not args.configFile or not pbStruct.dataIds:
+        kwargs['dataIds'] = util.discoverDataIds(args.repo)
         if args.verbose:
-            print("VISITDATAIDS: ", visitDataIds)
-        kwargs = {}
+            print("VISITDATAIDS: ", dataIds)
 
     kwargs['verbose'] = args.verbose
-    validate.run(args.repo, visitDataIds, **kwargs)
+    validate.run(args.repo, **kwargs)
 
     # Only check against expectations if we were passed informationa about those expectations
     if args.configFile:
-        validate.checkPassed(args.repo, **kwargs)
+        validate.didThisRepoPass(args.repo, kwargs['dataIds'], args.configFile,
+                                 verbose=args.verbose)
