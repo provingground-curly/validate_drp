@@ -48,7 +48,13 @@ if __name__ == "__main__":
                         help='YAML configuration file validation parameters and dataIds.')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
                         help='Display additional information about the analysis.')
-    
+    parser.add_argument('--plot', dest='makePlot', default=True,
+                        action='store_true',
+                        help='Make plots of performance.')
+    parser.add_argument('--noplot', dest='makePlot',
+                        action='store_false',
+                        help='Skip making plots of performance.')
+
     args = parser.parse_args()
 
     if not os.path.isdir(args.repo):
