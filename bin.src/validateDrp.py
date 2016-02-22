@@ -72,6 +72,7 @@ if __name__ == "__main__":
             print("VISITDATAIDS: ", dataIds)
 
     kwargs['verbose'] = args.verbose
+    kwargs['makePlot'] = args.makePlot
     validate.run(args.repo, **kwargs)
 
     # Only check against expectations if we were passed informationa about those expectations
