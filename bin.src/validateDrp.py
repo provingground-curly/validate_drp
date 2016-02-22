@@ -42,7 +42,7 @@ if __name__ == "__main__":
         JSON serialization of each KPM.
     """
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('repo', type=str, 
+    parser.add_argument('repo', type=str,
                         help='path to a repository containing the output of processCcd')
     parser.add_argument('--configFile', '-c', type=str, default=None,
                         help='YAML configuration file validation parameters and dataIds.')
@@ -76,5 +76,15 @@ if __name__ == "__main__":
 
     # Only check against expectations if we were passed informationa about those expectations
     if args.configFile:
-        validate.didThisRepoPass(args.repo, kwargs['dataIds'], args.configFile,
-                                 verbose=args.verbose)
+        print("========================================")
+        print("Comparison against current requirements.")
+        passed = validate.didThisRepoPass(
+                    args.repo, 
+                    kwargs['dataIds'], 
+                    args.configFile,
+                    verbose=args.verbose
+                )
+        if passed:
+            print("PASSED.  ALL MEASURED KEY PERFROMANCE METRICS PASSED.")
+        else:
+            print("FAILED.  NOT ALL KEY PERFORMANCE METRICS PASSED.")
