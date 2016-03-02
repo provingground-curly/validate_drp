@@ -69,14 +69,20 @@ def averageDecFromCat(cat):
     return meanDec
 
 
-def getCcdKeyName(dataid):
-    """Return the key in a dataId that's referring to the CCD or moral equivalent.
+def getCcdKeyName(dataId):
+    """Return the key or kes in a dataId that refer to the CCD or moral equivalent.
 
     Parameters
     ----------
-    dataid : dict
+    dataId : dict
         A dictionary that will be searched for a key that matches
         an entry in the hardcoded list of possible names for the CCD field.
+
+    Returns
+    -------
+    hashable or dict
+        The hashable key of the dataId (in practice a str).  E.g., 'ccd' or 'ccdnum'
+        Or a dict storing the individual keys and their types that make up a unique CCD or raft+sensor.
 
     Notes
     -----
@@ -85,12 +91,17 @@ def getCcdKeyName(dataid):
       through the reference dataId to locate a field that could be the one.
     """
     possibleCcdFieldNames = ['ccd', 'ccdnum', 'camcol']
+    raftSensorFieldNames = ['raft', 'sensor']
 
     for name in possibleCcdFieldNames:
-        if name in dataid:
+        if name in dataId:
             return name
     else:
-        return 'ccd'
+        for k in raftSensorFieldNames:
+            if not dataId[k]:
+                return 'ccd'
+        return {'raft': str, 'sensor': str}
+
 
 
 def repoNameToPrefix(repo):

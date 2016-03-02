@@ -89,9 +89,24 @@ def loadAndMatchData(repo, dataIds,
     mapper.addOutputField(Field[float]('base_PsfFlux_magerr', "PSF magnitude uncertainty"))
     newSchema = mapper.getOutputSchema()
 
+    # Create minimum unique ID.
+    #  This can be different for each camera
+    dataIdFormat = {'visit': int}
+    if isinstance(ccdKeyName, dict):
+        ### Awful hack to fix CCD to be 1
+        dataIdFormat['ccd'] = int
+#        dataIdFormat.update(ccdKeyName)
+        ccdKeyName = 'ccd'
+    elif isinstance(ccdKeyName, list):
+        # I have in mind ccdKeyName = ['raft', 'sensor'] here,  which are each str
+        for k in ccdKeyName:
+            dataIdFormat[k] = str
+    else:
+        dataIdFormat[ccdKeyName] = int
+
     # Create an object that can match multiple catalogs with the same schema
     mmatch = MultiMatch(newSchema,
-                        dataIdFormat={'visit': int, ccdKeyName: int},
+                        dataIdFormat=dataIdFormat,
                         radius=matchRadius,
                         RecordClass=SimpleRecord)
 
@@ -122,8 +137,11 @@ def loadAndMatchData(repo, dataIds,
 
         calib = afwImage.Calib(calexpMetadata)
 
+        ###### AAAAAAAAAAA AWFUL HACK ######
+        if ccdKeyName not in vId.keys():
+            vId[ccdKeyName] = 1
+
         oldSrc = butler.get('src', vId, immediate=True)
-        print(len(oldSrc), "sources in ccd %s  visit %s" % (vId[ccdKeyName], vId["visit"]))
 
         # create temporary catalog
         tmpCat = SourceCatalog(SourceCatalog(newSchema).table)
