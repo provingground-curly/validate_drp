@@ -44,3 +44,22 @@ class ValidateErrorSpecification(ValidateError):
 class ValidateErrorUnknownSpecificationLevel(ValidateErrorSpecification):
     """Indicates the requested level of requirements is unknown."""
     pass
+
+
+class ValidateErrorNeedMultipleDataIds(ValidateError):
+    """To be returned by functions that require more than one visit.
+
+    Some example cases that might return such an error:
+    1. There is only one visit in the repository for a given filter.
+    """
+    pass
+
+
+class ValidateErrorNoMatches(ValidateError):
+    """To be returned by functions that require at least one matching source
+
+    Some example cases that might return such an error:
+    1. The dataIds refer to images that don't overlap.
+    2. The astrometric solution completely failed.
+    """
+    pass
