@@ -98,7 +98,7 @@ def getCcdKeyName(dataId):
             return name
     else:
         for k in raftSensorFieldNames:
-            if not dataId[k]:
+            if k is not dataId.keys():
                 return 'ccd'
         return {'raft': str, 'sensor': str}
 
