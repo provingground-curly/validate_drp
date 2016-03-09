@@ -473,17 +473,17 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
     for filt in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
         thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filt)
-        theseVisitDataIds = [v for v in dataIds if v['filter'] == filt]
-        runOneFilter(repo, theseVisitDataIds, outputPrefix=thisOutputPrefix, verbose=verbose, filterName=filt,
+        theseDataIds = [v for v in dataIds if v['filter'] == filt]
+        runOneFilter(repo, theseDataIds, outputPrefix=thisOutputPrefix, verbose=verbose, filterName=filt,
                      **kwargs)
 
-        if len(theseVisitDataIds) < 2:
+        if len(theseDataIds) < 2:
             print("Skipping filter '%s' because only %d dataId found." % \
-                  (filt, len(theseVisitDataIds)))
+                  (filt, len(theseDataIds)))
             continue
 
-        print("* Analyzing filter '%s': %d visits *." % (filt, len(theseVisitDataIds)))
-        runOneFilter(repo, theseVisitDataIds, outputPrefix=thisOutputPrefix, verbose=verbose, **kwargs)
+        print("* Analyzing filter '%s': %d visits *." % (filt, len(theseDataIds)))
+        runOneFilter(repo, theseDataIds, outputPrefix=thisOutputPrefix, verbose=verbose, **kwargs)
 
     if verbose:
         print("==============================")
@@ -499,7 +499,7 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
     scoreMetrics(outputPrefix, allFilters, SRDrequirements, verbose=verbose)
 
 
-def runOneFilter(repo, visitDataIds, brightSnr=100,
+def runOneFilter(repo, dataIds, brightSnr=100,
                  medianAstromscatterRef=25, medianPhotoscatterRef=25, matchRef=500,
                  makePrint=True, makePlot=True, makeJson=True,
                  filterName=None, outputPrefix=None,
@@ -521,6 +521,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
+        Must have at least 2 entries.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
     medianAstromscatterRef : float, optional
@@ -550,17 +551,17 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
         because that would impose some constraints on how to detect such things
         which in principle requires knowing more about the Camera geometry and schema.
     ValidateErrorNoMatches
-        Raised if no matches are found between the visitDataIds.
+        Raised if no matches are found between the dataIds.
     """
 
-    if len(visitDataIds) < 2:
-        raise ValidateErrorNeedMultipleDataIds("Need at least 2 exposures.  Found only ", len(visitDataIds))
+    if len(dataIds) < 2:
+        raise ValidateErrorNeedMultipleDataIds("Need at least 2 exposures.  Found only ", len(dataIds))
 
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
 
-    filterName = set([dId['filter'] for dId in visitDataIds]).pop()
-    allMatches = loadAndMatchData(repo, visitDataIds, verbose=verbose)
+    filterName = set([dId['filter'] for dId in dataIds]).pop()
+    allMatches = loadAndMatchData(repo, dataIds, verbose=verbose)
     struct = analyzeData(allMatches, brightSnr, verbose=verbose)
 
     magavg = struct.mag
