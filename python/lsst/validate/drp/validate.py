@@ -482,7 +482,7 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
                   (filt, len(theseVisitDataIds)))
             continue
 
-        print("* Analyzing filter '%s' *." % filt)
+        print("* Analyzing filter '%s': %d visits *." % (filt, len(theseVisitDataIds)))
         runOneFilter(repo, theseVisitDataIds, outputPrefix=thisOutputPrefix, verbose=verbose, **kwargs)
 
     if verbose:
