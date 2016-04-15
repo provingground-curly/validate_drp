@@ -5,6 +5,10 @@ brightSnr: 100  # Only consider stars with higher S/N than this limit
 medianAstromscatterRef: 25  # expected astrometric variability [mas]
 medianPhotoscatterRef: 25  # expected photometric variability [mmag]
 matchRef: 10000  # Number of stars expected to match.  Update if you change the ccd list below
+# Note that the AF1, AF2 constraints here are horrendously too large
+# but it does match current (2016-04-15) performance with validation_data_decam + obs_decam.
+requirements: {PA1: 40, PF1: 40, PA2: 55, AM1: 35, AF1: 50, AM2: 30, AF2: 50, AM3: null, AF3: null}
+requirementsUnits: {PA1: 'mmag', PF1: '%', PA2: 'mmag', AM1: 'mas', AF1: '%', AM2: 'mas', AF2: '%', AM3: 'mas', AF3: '%'}
 visits: [176837, 176846]
 filter: 'z'
 ccdnum: [10, 11, 12, 13, 14, 15, 16, 17, 18]
