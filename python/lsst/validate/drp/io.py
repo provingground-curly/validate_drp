@@ -22,7 +22,66 @@ from __future__ import print_function, division, absolute_import
 
 import json
 import numpy as np
+import astropy.units
 import lsst.pipe.base as pipeBase
+
+
+class DatumSerializer(object):
+    """Serializer for an annotated data point.
+
+    Use the `DatumSerializer.json` property to convert a datum to a JSON-ready
+    data structure.
+    """
+
+    def __init__(self, metric, units, label=None, description=None):
+        self._doc = {}
+        self.metric = metric
+        self.units = units
+        self.label = label
+        self.description = description
+
+    @property
+    def json(self):
+        """Datum as a `dict` compatible with overall Job JSON schema."""
+        # Copy the dict so that the serializer is immutable
+        return dict(self._doc)
+
+    @property
+    def value(self):
+        """Value of the datum (`str`, `int`, `float` or 1-D iterable.)."""
+        return self._doc['value']
+
+    @value.setter
+    def value(self, v):
+        self._doc['value'] = v
+
+    @property
+    def units(self):
+        return self._doc['units']
+
+    @units.setter
+    def units(self, value):
+        # verify that Astropy can parse the unit string
+        astropy.units.Unit(value, parse_strict='raise')
+        self._doc['units'] = value
+
+    @property
+    def label(self):
+        return self._doc['label']
+
+    @label.setter
+    def label(self, value):
+        assert isinstance(value, basestring) or None
+        self._doc['label'] = value
+
+    @property
+    def description(self):
+        return self._doc['description']
+
+    @description.setter
+    def description(self, value):
+        assert isinstance(value, basestring) or None
+        self._doc['description'] = value
 
 
 def saveKpmToJson(KpmStruct, filename):
