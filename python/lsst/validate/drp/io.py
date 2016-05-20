@@ -87,6 +87,44 @@ class DatumSerializer(object):
         self._doc['description'] = value
 
 
+class MeasurementSerializer(object):
+    """Serializer for a measurement of a metric."""
+
+    # Or do we want to persist a metric document instead? Is just name fine?
+    # Perhaps it is necessary to specify a metric_spec if it's non-default
+    # e.g. a custom value of AD1 for an AF1
+    # TODO incorporate depedent MetricSpecs
+    def __init__(self, metric, metric_spec, value, parameters, blob_id):
+        self._doc = {}
+        self.metric = metric
+        self.metric_spec = metric_spec
+        self.parameters = parameters
+        self.blob_id = blob_id
+        self.value = value
+
+    @property
+    def json(self):
+        return dict(self.doc)
+
+    @property
+    def metric(self):
+        return self._doc['metric']
+
+    @metric.setter
+    def metric(self, name):
+        assert isinstance(name, basestring)
+        self._doc['metric'] = name
+
+    @property
+    def metric(self):
+        return self._doc['metric']
+
+    @metric.setter
+    def metric(self, name):
+        assert isinstance(name, basestring)
+        self._doc['metric'] = name
+
+
 def saveKpmToJson(KpmStruct, filename):
     """Save KPM `lsst.pipe.base.Struct` to JSON file.
 
