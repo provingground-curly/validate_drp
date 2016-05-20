@@ -61,12 +61,14 @@ class DatumSerializer(object):
 
     @units.setter
     def units(self, value):
+        """Astropy-compatible unit string."""
         # verify that Astropy can parse the unit string
         astropy.units.Unit(value, parse_strict='raise')
         self._doc['units'] = value
 
     @property
     def label(self):
+        """Label for plotting (without units)."""
         return self._doc['label']
 
     @label.setter
@@ -76,6 +78,7 @@ class DatumSerializer(object):
 
     @property
     def description(self):
+        """Extended description of Datum."""
         return self._doc['description']
 
     @description.setter
