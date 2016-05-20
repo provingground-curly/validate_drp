@@ -67,7 +67,7 @@ class JsonTestCase(unittest.TestCase):
         os.unlink(tmpFilepath)
 
 
-class DatumTestCase(unittest.Testcase):
+class DatumTestCase(unittest.TestCase):
     """Test DatumSerializer."""
 
     def testDatumSerialization(self):
@@ -77,7 +77,7 @@ class DatumTestCase(unittest.Testcase):
         self.assertEqual(d['value'], 1.)
         self.assertEqual(d['units'], 'arcsec')
         self.assertEqual(d['label'], 'RMS')
-        self.assertEqual(d['label'],
+        self.assertEqual(d['description'],
                          'Star-to-star distance repeatability')
 
 
