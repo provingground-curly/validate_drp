@@ -33,9 +33,9 @@ class DatumSerializer(object):
     data structure.
     """
 
-    def __init__(self, metric, units, label=None, description=None):
+    def __init__(self, value, units, label=None, description=None):
         self._doc = {}
-        self.metric = metric
+        self.value = value
         self.units = units
         self.label = label
         self.description = description
