@@ -116,7 +116,8 @@ class ParametersSerializerBase(object):
 
     __metaclass__ = abc.ABCMeta
 
-    _doc = {}
+    def __init__(self, *args, **kwargs):
+        self._doc = {}
 
     @property
     def json(self):
@@ -152,8 +153,9 @@ class BlobSerializerBase(object):
 
     __metaclass__ = abc.ABCMeta
 
-    _doc = {}
-    _id = uuid.uuid4().hex
+    def __init__(self, *args, **kwargs):
+        self._id = uuid.uuid4().hex
+        self._doc = {}
 
     @property
     def json(self):
