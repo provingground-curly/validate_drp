@@ -172,6 +172,7 @@ def analyzeData(allMatches, safeSnr=50.0, verbose=False):
           * and do not have flags set for bad, cosmic ray, edge or saturated
     - safeMatches: safe matches, as an afw.table.GroupView;
         safe matches are good matches that are sufficiently bright and sufficiently compact
+    - safeFlag: flag against goodMatches where 1=safe
     """
 
     # Filter down to matches with at least 2 sources and good flags
@@ -207,6 +208,7 @@ def analyzeData(allMatches, safeSnr=50.0, verbose=False):
         extended = np.max(cat.get(extendedKey))
         return psfSnr >= safeSnr and extended < safeMaxExtended
 
+    safeFlag = safeFilter(goodMatches).astype(np.int8)
     safeMatches = goodMatches.where(safeFilter)
 
     # Pass field=psfMagKey so np.mean just gets that as its input
@@ -226,6 +228,7 @@ def analyzeData(allMatches, safeSnr=50.0, verbose=False):
         dist = dist,
         goodMatches = goodMatches,
         safeMatches = safeMatches,
+        safeFlag = safeFlag
     )
 
 
