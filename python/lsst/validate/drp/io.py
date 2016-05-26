@@ -295,27 +295,27 @@ class MeasurementSerializer(object):
         return self._doc['metric']
 
     @metric.setter
-    def metric(self, name):
-        assert isinstance(name, MetricSerializer)
-        self._doc['metric'] = name
+    def metric(self, metric_doc):
+        assert isinstance(metric_doc, MetricSerializer)
+        self._doc['metric'] = metric_doc
 
     @property
     def value(self):
         return self._doc['value']
 
     @value.setter
-    def value(self, name):
-        assert isinstance(name, DatumSerializer)
-        self._doc['value'] = name
+    def value(self, measured_value):
+        assert isinstance(measured_value, DatumSerializer)
+        self._doc['value'] = measured_value
 
     @property
     def parameters(self):
         return self._doc['parameters']
 
     @parameters.setter
-    def parameters(self, name):
-        assert isinstance(name, ParametersSerializerBase)
-        self._doc['parameters'] = name
+    def parameters(self, params):
+        assert isinstance(params, ParametersSerializerBase)
+        self._doc['parameters'] = params
 
     @property
     def blob_id(self):
