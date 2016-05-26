@@ -425,17 +425,17 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
         args[astrom_struct.model_name]['doc'] \
             = "Photometric uncertainty model: mas = C*theta/SNR + sigmaSys"
         args[astrom_struct.model_name]['C'] = DatumSerializer(
-            astrom_struct.fit_params['C'],
+            astrom_struct.params['C'],
             None,
             label='C',
             description='Scaling factor')
         args[astrom_struct.model_name]['theta'] = DatumSerializer(
-            astrom_struct.fit_params['theta'],
+            astrom_struct.params['theta'],
             'milliarcsecond',  # TODO replace with 'thetaUnits'
             label='theta',
             description='Seeing')  # TODO
         args[astrom_struct.model_name]['sigmaSys'] = DatumSerializer(
-            astrom_struct.fit_params['sigmaSys'],
+            astrom_struct.params['sigmaSys'],
             'milliarcsecond',  # TODO replace with struct's units
             label='sigma(sys)',
             description='Systematic error floor')
@@ -454,17 +454,17 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
               "sigma_rand^2 = (0.04 - gamma) * x + gamma * x^2 [mag^2] " \
               "where x = 10**(0.4*(m-m_5))"
         args[phot_struct.model_name]['sigmaSys'] = DatumSerializer(
-            phot_struct.fit_params['sigmaSys'],
+            phot_struct.params['sigmaSys'],
             'mag',
             label='sigma(sys)',
             description='Systematic error floor')
         args[phot_struct.model_name]['gamma'] = DatumSerializer(
-            phot_struct.fit_params['gamma'],
+            phot_struct.params['gamma'],
             None,
             label='gamma',
             description='Proxy for sky brightness and read noise')
         args[phot_struct.model_name]['m5'] = DatumSerializer(
-            phot_struct.fit_params['m5'],
+            phot_struct.params['m5'],
             'mag',
             label='m5',
             description='5-sigma depth')  # TODO
