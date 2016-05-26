@@ -264,7 +264,7 @@ class MeasurementSerializer(object):
     @property
     def json(self):
         """Measurement as a `dict` compatible with overall Job JSON schema."""
-        return dict(self.doc)
+        return dict(self._doc)
         d = {
             'metric': self.metric.json,
             'value': self.value.json,
