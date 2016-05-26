@@ -112,7 +112,7 @@ def calcPA1(matches, magKey, numRandomShuffles=50, verbose=False):
     ...     cat = butler.get('src', vId)
     ...     mmatch.add(catalog=cat, dataId=vId)
     ...
-    >>> matchCat = mmatch.finish()
+    >> matchCat = mmatch.finish()
     >>> allMatches = GroupView.build(matchCat)
     >>> allMatches
     >>> psfMagKey = allMatches.schema.find("base_PsfFlux_mag").key
@@ -633,6 +633,35 @@ def calcAMx(groupView, D=5, width=2, magRange=None,
         afxUnits='%',
         adxUnits='mas',
     )
+
+
+class AMxParamSerializer(ParametersSerializerBase):
+    """Serialize parameters used by AMx metric measurement."""
+
+    def __init__(self, D=None, annulus=None, mag_range=None):
+        ParametersSerializerBase.__init__(self)
+        assert isinstance(D, DatumSerializer)
+        assert isinstance(annulus, DatumSerializer)
+        assert isinstance(mag_range, DatumSerializer)
+        self._doc['D'] = D
+        self._doc['annulus'] = annulus
+        self._doc['mag_range'] = mag_range
+
+    @property
+    def schema_id(self):
+        return 'AMx-parameters-v1.0.0'
+
+
+class AMxSerializer(MetricSerializer):
+    """Serializer for AMx metric definition."""
+    def __init__(self, x):
+        MetricSerializer.__init__(
+            self,
+            name='AM{0:d}'.format(int(x)),
+            reference='LPM-17',
+            description='Median RMS of the astrometric distance distribution '
+                        'for stellar pairs with separation of D arcmin '
+                        '(repeatability)')
 
 
 def calcRmsDistances(groupView, annulus, magRange=None, verbose=False):
