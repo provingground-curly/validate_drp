@@ -417,11 +417,6 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
             'milliarcsecond',
             label='d',
             description='RMS of sky coordinates of stars over multiple visits')
-        args['safe_flag'] = DatumSerializer(
-            analyze_struct.safeFlag,
-            None,
-            label=None,
-            description='1 where stars is in safe sample, 0 otherwise')
 
         # serialize astrom_struct
         args[astrom_struct.model_name] = {}
