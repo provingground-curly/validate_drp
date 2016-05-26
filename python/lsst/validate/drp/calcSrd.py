@@ -294,10 +294,11 @@ class PA2ParamSerializer(ParametersSerializerBase):
 
 class PA2Serializer(MetricSerializer):
     """Serializer for PA2 metric definition."""
-    def __init__(self):
+    def __init__(self, spec_name):
         MetricSerializer.__init__(
             self,
             name='PA2',
+            spec_name=spec_name,
             reference='LPM-17',
             description='Mags from mean relative photometric RMS that '
                         'encompasses PF1 of measurements.')
@@ -318,10 +319,11 @@ class PF1ParamSerializer(ParametersSerializerBase):
 
 class PF1Serializer(MetricSerializer):
     """Serializer for PF1 metric definition."""
-    def __init__(self):
+    def __init__(self, spec_name):
         MetricSerializer.__init__(
             self,
             name='PF1',
+            spec_name=spec_name,
             reference='LPM-17',
             description='Fraction of measurements between PA1 and PF2 ')
 
