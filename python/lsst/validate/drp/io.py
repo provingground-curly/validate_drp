@@ -208,20 +208,20 @@ class MetricSerializer(object):
     ----------
     name : `str`
         Metric name/identifier.
-    spec_name : `str`, optional
-        Name of a Metric Specification that this Metric corresponds to,
+    spec_level : `str`, optional
+        Level of a Metric Specification that this Metric corresponds to,
         if applicable. For example, PF1 is dependent on the specification
-        of PA2.
+        level to determine PA2.
     reference : `str`, optional
         Document handle that defines this metric
     description : `str`, optional
         Long description of this metric.
     """
 
-    def __init__(self, name, spec_name=None, reference=None, description=None):
+    def __init__(self, name, spec_level=None, reference=None, description=None):
         self._doc = {}
         self.name = name
-        self.spec_name = spec_name
+        self.spec_level = spec_level
         self.reference = reference
         self.description = description
 
@@ -240,14 +240,14 @@ class MetricSerializer(object):
         self._doc['name'] = n
 
     @property
-    def spec_name(self):
-        """Metric specification name (`str` or `None`)."""
-        return self._doc['spec_name']
+    def spec_level(self):
+        """Metric specification level (`str` or `None`)."""
+        return self._doc['spec_level']
 
-    @spec_name.setter
-    def spec_name(self, n):
+    @spec_level.setter
+    def spec_level(self, n):
         assert isinstance(n, basestring) or n is None
-        self._doc['spec_name'] = n
+        self._doc['spec_level'] = n
 
     @property
     def reference(self):

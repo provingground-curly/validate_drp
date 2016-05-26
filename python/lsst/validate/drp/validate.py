@@ -20,6 +20,7 @@
 
 from __future__ import print_function, absolute_import
 
+import json
 import numpy as np
 
 import lsst.afw.geom as afwGeom
@@ -558,6 +559,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
     blob = MultiVisitStarBlobSerializer.init_from_structs(
         filterName, struct, astromStruct, photStruct)
+    json.dumps(blob.json)
 
     measurement_serializers = []
 
@@ -572,13 +574,14 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
         parameters=calcSrd.PA1ParamSerializer(
             num_random_shuffles=50),
         blob_id=blob.id)
+    json.dumps(PA1_serializer.json)
     measurement_serializers.append(PA1_serializer)
     # FIXME need to include the rest of AM1's measurement struct in a blob
 
     # Serialize PA2 with each level of PF1
     for level in srdSpec.levels:
         PA2_serializer = MeasurementSerializer(
-            metric=calcSrd.PA2Serializer(),
+            metric=calcSrd.PA2Serializer(spec_level=level),
             value=DatumSerializer(
                 value=PA2.PA2_measured[level],
                 units='millimag',
@@ -594,12 +597,13 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                     description='Fraction of measurements between PA1 and '
                                 'PF2, {0} spec'.format(level))),
             blob_id=blob.id)
+        json.dumps(PA2_serializer.json)
         measurement_serializers.append(PA2_serializer)
 
     # Serialize PF1 with each level of PA2
     for level in srdSpec.levels:
         PF1_serializer = MeasurementSerializer(
-            metric=calcSrd.PF1Serializer(),
+            metric=calcSrd.PF1Serializer(spec_level=level),
             value=DatumSerializer(
                 value=PA2.PF1_measured[level],
                 units=None,
@@ -615,13 +619,14 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                                 'encompasses PF1 of measurements at '
                                 '{0} spec'.format(level))),
             blob_id=blob.id)
+        json.dumps(PF1_serializer.json)
         measurement_serializers.append(PF1_serializer)
 
     # Wrap measurements in a Job
     job_serializer = JobSerializer(
         measurements=measurement_serializers,
         blobs=[blob])
-    persist_job(job_serializer, outputPrefix + '.json')
+    persist_job(job_serializer, outputPrefix.rstrip('_') + '.json')
 
     if makePrint:
         print("=============================================")
