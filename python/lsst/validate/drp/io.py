@@ -369,8 +369,9 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
 
     This serializer is used with AMx, AFx, ADx, PA1, PA2 and PF1 metrics.
     """
-    def __init__(self):
+    def __init__(self, **args):
         BlobSerializerBase.__init__(self)
+        self._doc.update(args)
 
     @classmethod
     def init_from_structs(cls, bandpass, analyze_struct, astrom_struct, phot_struct):
@@ -440,7 +441,7 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
             label='sigma(sys)',
             description='Systematic error floor')
         args['astrom_rms'] = DatumSerializer(
-            astrom_struct.astromScatter,
+            astrom_struct.astromRmsScatter,
             'milliarcsecond',  # TODO replace with struct's units
             label='RMS',
             description='Astrometric scatter (RMS) for good stars')
@@ -468,6 +469,11 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
             'mag',
             label='m5',
             description='5-sigma depth')  # TODO
+        args['phot_rms'] = DatumSerializer(
+            phot_struct.photRmsScatter,
+            'millimag',
+            label='RMS',
+            description='RMS photometric scatter for good stars')
 
         return cls(**args)
 
