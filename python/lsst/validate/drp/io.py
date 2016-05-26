@@ -83,7 +83,9 @@ class DatumSerializer(object):
     @units.setter
     def units(self, value):
         # verify that Astropy can parse the unit string
-        astropy.units.Unit(value, parse_strict='raise')
+        if value is not None and value != 'millimag':
+            print(value)
+            astropy.units.Unit(value, parse_strict='raise')
         self._doc['units'] = value
 
     @property
