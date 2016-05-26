@@ -325,7 +325,7 @@ class PF1Serializer(MetricSerializer):
             name='PF1',
             spec_level=spec_level,
             reference='LPM-17',
-            description='Fraction of measurements between PA1 and PF2 ')
+            description='Fraction of measurements more than PA2')
 
 
 def getRandomDiffRmsInMas(array):
