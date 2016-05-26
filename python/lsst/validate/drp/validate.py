@@ -592,7 +592,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                 num_random_shuffles=50,  # FIXME
                 PF1=DatumSerializer(
                     value=PA2.PF1_spec[level],  # input for PA2
-                    units=None,
+                    units='',
                     label='PF1 ({0})'.format(level),
                     description='Fraction of measurements between PA1 and '
                                 'PF2, {0} spec'.format(level))),
@@ -606,7 +606,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
             metric=calcSrd.PF1Serializer(spec_level=level),
             value=DatumSerializer(
                 value=PA2.PF1_measured[level],
-                units=None,
+                units='',
                 label='PF1 ({0})'.format(level),
                 description='Fraction of measurements between PA1 and PF2, '
                             '{0} spec'.format(level)),

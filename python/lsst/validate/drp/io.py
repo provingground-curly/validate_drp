@@ -442,7 +442,7 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
                         'multiple visits')
         args['snr'] = DatumSerializer(
             analyze_struct.snr,
-            None,
+            '',
             label='SNR({band})'.format(band=bandpass),
             description='Median signal-to-noise ratio of PSF magnitudes over '
                         'multiple visits')
@@ -458,7 +458,7 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
             = "Photometric uncertainty model: mas = C*theta/SNR + sigmaSys"
         args[astrom_struct.model_name]['C'] = DatumSerializer(
             astrom_struct.params['C'],
-            None,
+            '',
             label='C',
             description='Scaling factor')
         args[astrom_struct.model_name]['theta'] = DatumSerializer(
@@ -492,7 +492,7 @@ class MultiVisitStarBlobSerializer(BlobSerializerBase):
             description='Systematic error floor')
         args[phot_struct.model_name]['gamma'] = DatumSerializer(
             phot_struct.params['gamma'],
-            None,
+            '',
             label='gamma',
             description='Proxy for sky brightness and read noise')
         args[phot_struct.model_name]['m5'] = DatumSerializer(
