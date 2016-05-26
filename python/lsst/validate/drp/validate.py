@@ -33,12 +33,14 @@ import lsst.pipe.base as pipeBase
 
 from .base import ValidateErrorNoStars
 from .calcSrd import calcAM1, calcAM2, calcAM3, calcPA1, calcPA2
+from . import calcSrd
 from .check import checkAstrometry, checkPhotometry, positionRms
 from .plot import plotAstrometry, plotPhotometry, plotPA1, plotAMx
 from .print import printPA1, printPA2, printAMx
 from .srdSpec import srdSpec, loadSrdRequirements
 from .util import getCcdKeyName, repoNameToPrefix, calcOrNone, loadParameters
-from .io import saveKpmToJson, loadKpmFromJson, MultiVisitStarBlobSerializer
+from .io import (saveKpmToJson, loadKpmFromJson, MultiVisitStarBlobSerializer,
+                 MeasurementSerializer, DatumSerializer)
 
 
 def loadAndMatchData(repo, dataIds,
@@ -558,7 +560,67 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
     blob = MultiVisitStarBlobSerializer.init_from_structs(
         filterName, struct, astromStruct, photStruct)
-    print(blob.id)
+
+    measurement_serializers = []
+
+    PA1_serializer = MeasurementSerializer(
+        metric=calcSrd.PA1Serializer(),
+        value=DatumSerializer(
+            value=PA1.rms,
+            units='millimag',
+            label='PA1',
+            description='Median RMS of visit-to-visit relative photometry. '
+                        'LPM-17.'),
+        parameters=calcSrd.PA1ParamSerializer(
+            mag_key=magKey,
+            num_random_shuffles=50),
+        blob_id=blob.id)
+    measurement_serializers.append(PA1_serializer)
+    # FIXME need to include the rest of AM1's measurement struct in a blob
+
+    # Serialize PA2 with each level of PF1
+    for level in srdSpec.levels:
+        PA2_serializer = MeasurementSerializer(
+            metric=calcSrd.PA2Serializer(),
+            value=DatumSerializer(
+                value=PA2.PA2_measured[level],
+                units='millimag',
+                label='PA2 ({0})'.format(level),
+                description='Mags from mean relative photometric RMS that '
+                            'encompasses PF1 of measurements.'),
+            parameters=calcSrd.PA2ParamSerializer(
+                mag_key=magKey,
+                num_random_shuffles=50,  # FIXME
+                PF1=DatumSerializer(
+                    value=PA2.PF1_spec[level],  # input for PA2
+                    units=None,
+                    label='PF1 ({0})'.format(level),
+                    description='Fraction of measurements between PA1 and '
+                                'PF2, {0} spec'.format(level))),
+            blob_id=blob.id)
+        measurement_serializers.append(PA2_serializer)
+
+    # Serialize PF1 with each level of PA2
+    for level in srdSpec.levels:
+        PF1_serializer = MeasurementSerializer(
+            metric=calcSrd.PF1Serializer(),
+            value=DatumSerializer(
+                value=PA2.PF1_measured[level],
+                units=None,
+                label='PF1 ({0})'.format(level),
+                description='Fraction of measurements between PA1 and PF2, '
+                            '{0} spec'.format(level)),
+            parameters=calcSrd.PF1ParamSerializer(
+                mag_key=magKey,
+                PA2=DatumSerializer(
+                    value=PA2.PA2_spec[level],
+                    units='millimag',
+                    label='PA2 ({0})'.format(level),
+                    description='Mags from mean relative photometric RMS that '
+                                'encompasses PF1 of measurements at '
+                                '{0} spec'.format(level))),
+            blob_id=blob.id)
+        measurement_serializers.append(PF1_serializer)
 
     if makePrint:
         print("=============================================")
