@@ -179,7 +179,7 @@ class BlobSerializerBase(object):
     @property
     def id(self):
         """Unique blob identifier."""
-        self._id
+        return self._id
 
 
 class MetricSerializer(object):
