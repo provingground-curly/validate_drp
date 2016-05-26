@@ -585,7 +585,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
             value=DatumSerializer(
                 value=PA2.PA2_measured[level],
                 units='millimag',
-                label='PA2 ({0})'.format(level),
+                label='PA2',
                 description='Mags from mean relative photometric RMS that '
                             'encompasses PF1 of measurements.'),
             parameters=calcSrd.PA2ParamSerializer(
@@ -593,7 +593,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                 PF1=DatumSerializer(
                     value=PA2.PF1_spec[level],  # input for PA2
                     units='',
-                    label='PF1 ({0})'.format(level),
+                    label='PF1',
                     description='Fraction of measurements between PA1 and '
                                 'PF2, {0} spec'.format(level))),
             blob_id=blob.id)
@@ -607,14 +607,14 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
             value=DatumSerializer(
                 value=PA2.PF1_measured[level],
                 units='',
-                label='PF1 ({0})'.format(level),
+                label='PF1',
                 description='Fraction of measurements between PA1 and PF2, '
                             '{0} spec'.format(level)),
             parameters=calcSrd.PF1ParamSerializer(
                 PA2=DatumSerializer(
                     value=PA2.PA2_spec[level],
                     units='millimag',
-                    label='PA2 ({0})'.format(level),
+                    label='PA2',
                     description='Mags from mean relative photometric RMS that '
                                 'encompasses PF1 of measurements at '
                                 '{0} spec'.format(level))),
