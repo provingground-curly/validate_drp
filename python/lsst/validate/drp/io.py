@@ -220,6 +220,7 @@ class MetricSerializer(object):
         self.reference = reference
         self.description = description
 
+    @property
     def json(self):
         return dict(self._doc)
 
@@ -280,7 +281,6 @@ class MeasurementSerializer(object):
     @property
     def json(self):
         """Measurement as a `dict` compatible with overall Job JSON schema."""
-        return dict(self._doc)
         d = {
             'metric': self.metric.json,
             'value': self.value.json,
