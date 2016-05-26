@@ -58,8 +58,11 @@ class DatumSerializer(object):
     def json(self):
         """Datum as a `dict` compatible with overall Job JSON schema."""
         # Copy the dict so that the serializer is immutable
+        v = self.value
+        if isinstance(v, np.ndarray):
+            v = v.tolist()
         d = {
-            'value': self.value,
+            'value': v,
             'units': self.units,
             'label': self.label,
             'description': self.description
@@ -162,15 +165,22 @@ class BlobSerializerBase(object):
     @property
     def json(self):
         """Measurement as a `dict` compatible with overall Job JSON schema."""
-        d = {}
-        for k, v in self._doc.iteritems():
-            if isinstance(v, DatumSerializer):
-                d[k] = v.json
-            else:
-                d[k] = v
+        d = BlobSerializerBase.jsonify_dict(self._doc)
         d['schema_id'] = self.schema_id
         d['id'] = self.id
         return d
+
+    @staticmethod
+    def jsonify_dict(d):
+        json_dict = {}
+        for k, v in d.iteritems():
+            if isinstance(v, DatumSerializer):
+                json_dict[k] = v.json
+            elif isinstance(v, dict):
+                json_dict[k] = BlobSerializerBase.jsonify_dict(v)
+            else:
+                json_dict[k] = v
+        return json_dict
 
     @abc.abstractproperty
     def schema_id(self):
