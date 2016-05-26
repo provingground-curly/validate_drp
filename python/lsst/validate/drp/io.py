@@ -59,7 +59,7 @@ class DatumSerializer(object):
         """Datum as a `dict` compatible with overall Job JSON schema."""
         # Copy the dict so that the serializer is immutable
         d = {
-            'value': self.value.json,
+            'value': self.value,
             'units': self.units,
             'label': self.label,
             'description': self.description
