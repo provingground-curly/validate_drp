@@ -570,7 +570,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
             description='Median RMS of visit-to-visit relative photometry. '
                         'LPM-17.'),
         parameters=calcSrd.PA1ParamSerializer(
-            mag_key=magKey,
             num_random_shuffles=50),
         blob_id=blob.id)
     measurement_serializers.append(PA1_serializer)
@@ -587,7 +586,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                 description='Mags from mean relative photometric RMS that '
                             'encompasses PF1 of measurements.'),
             parameters=calcSrd.PA2ParamSerializer(
-                mag_key=magKey,
                 num_random_shuffles=50,  # FIXME
                 PF1=DatumSerializer(
                     value=PA2.PF1_spec[level],  # input for PA2
@@ -609,7 +607,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                 description='Fraction of measurements between PA1 and PF2, '
                             '{0} spec'.format(level)),
             parameters=calcSrd.PF1ParamSerializer(
-                mag_key=magKey,
                 PA2=DatumSerializer(
                     value=PA2.PA2_spec[level],
                     units='millimag',

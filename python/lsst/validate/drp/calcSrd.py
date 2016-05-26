@@ -166,11 +166,10 @@ def doCalcPA1(groupView, magKey):
 class PA1ParamSerializer(ParametersSerializerBase):
     """Serialize parameters used by PA1 metric measurement."""
 
-    def __init__(self, mag_key, num_random_shuffles):
+    def __init__(self, num_random_shuffles):
         # FIXME note that num_random_shuffles is hidden as a default param
         # of calcPA1. We need a better of exposing full provenance
         ParametersSerializerBase.__init__(self)
-        self._doc['mag_key'] = mag_key
         self._doc['num_random_shuffles'] = num_random_shuffles
 
     @property
@@ -281,12 +280,10 @@ def calcPA2(groupView, magKey, defaultLevel='design', verbose=False):
 class PA2ParamSerializer(ParametersSerializerBase):
     """Serialize parameters used by PA1 metric measurement."""
 
-    def __init__(self, mag_key=None, num_random_shuffles=None, PF1=None):
+    def __init__(self, num_random_shuffles=None, PF1=None):
         ParametersSerializerBase.__init__(self)
-        assert isinstance(mag_key, basestring)
         assert isinstance(num_random_shuffles, int)
         assert isinstance(PF1, DatumSerializer)
-        self._doc['mag_key'] = mag_key
         self._doc['num_random_shuffles'] = num_random_shuffles
         self._doc['PF1'] = PF1
 
@@ -309,11 +306,9 @@ class PA2Serializer(MetricSerializer):
 class PF1ParamSerializer(ParametersSerializerBase):
     """Serialize parameters used by PA1 metric measurement."""
 
-    def __init__(self, mag_key=None, PA2=None):
+    def __init__(self, PA2=None):
         ParametersSerializerBase.__init__(self)
-        assert isinstance(mag_key, basestring)
         assert isinstance(PA2, DatumSerializer)
-        self._doc['mag_key'] = mag_key
         self._doc['PA2'] = PA2
 
     @property
