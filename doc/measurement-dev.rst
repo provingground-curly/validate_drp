@@ -117,7 +117,8 @@ It's possible to first register a parameter and set its value later:
 
 .. code-block:: python
 
-   self.registerParameter('numRandomShuffles', units='', description=Number of random shuffles')
+   self.registerParameter('numRandomShuffles', units='',
+                          description='Number of random shuffles')
    # ...
    self.numRandomShuffles = 50
 
