@@ -1,5 +1,6 @@
+###################################################
 lsst.validate.drp — Science Requirements Monitoring
-===================================================
+###################################################
 
 .. toctree::
    :maxdepth: 2
@@ -9,3 +10,9 @@ lsst.validate.drp — Science Requirements Monitoring
    metric-dev
    measurement-dev
    blob-dev
+
+Python API Reference
+====================
+
+.. automodapi:: lsst.validate.drp.base
+
