@@ -17,3 +17,5 @@ Python API Reference
 .. automodapi:: lsst.validate.drp.base
 
 .. automodapi:: lsst.validate.drp.calcsrd
+
+.. automodapi:: lsst.validate.drp.matchreduce
