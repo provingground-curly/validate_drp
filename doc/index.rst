@@ -19,3 +19,9 @@ Python API Reference
 .. automodapi:: lsst.validate.drp.calcsrd
 
 .. automodapi:: lsst.validate.drp.matchreduce
+
+.. automodapi:: lsst.validate.drp.plot
+
+.. automodapi:: lsst.validate.drp.util
+
+.. automodapi:: lsst.validate.drp.validate
