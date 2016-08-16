@@ -25,7 +25,7 @@ from __future__ import print_function
 
 import unittest
 
-import lsst.utils.tests as utilsTests
+import lsst.utils.tests
 
 from lsst.validate.drp.base import Specification, Datum
 
@@ -45,20 +45,14 @@ class MetricTestCase(unittest.TestCase):
         self.assertEqual(s.a.value, 5)
 
 
-def suite():
-    """Returns a suite containing all the test cases in this module."""
-
-    utilsTests.init()
-
-    suites = []
-    suites += unittest.makeSuite(MetricTestCase)
-    return unittest.TestSuite(suites)
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    pass
 
 
-def run(shouldExit=False):
-    """Run the tests"""
-    utilsTests.run(suite(), shouldExit)
+def setup_module(module):
+    lsst.utils.tests.init()
 
 
 if __name__ == "__main__":
-    run(True)
+    lsst.utils.tests.init()
+    unittest.main()

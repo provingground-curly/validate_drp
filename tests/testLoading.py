@@ -25,12 +25,11 @@
 from __future__ import print_function
 
 import os
-import sys
 
 import unittest
 
 import lsst.utils
-import lsst.utils.tests as utilsTests
+import lsst.utils.tests
 
 from lsst.validate.drp import util
 
@@ -65,24 +64,3 @@ class LoadDataTestCase(unittest.TestCase):
         pbStruct = util.loadDataIdsAndParameters(self.configFileNoDataIds)
         # Tests of the dict entries require constructing and comparing sets
         self.assertFalse(pbStruct.dataIds)
-
-
-def suite():
-    """Returns a suite containing all the test cases in this module."""
-
-    utilsTests.init()
-
-    suites = []
-    suites += unittest.makeSuite(LoadDataTestCase)
-    return unittest.TestSuite(suites)
-
-
-def run(shouldExit=False):
-    """Run the tests"""
-    utilsTests.run(suite(), shouldExit)
-
-
-if __name__ == "__main__":
-    if "--display" in sys.argv:
-        display = True
-    run(True)

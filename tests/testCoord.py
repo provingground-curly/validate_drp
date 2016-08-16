@@ -24,14 +24,12 @@
 
 from __future__ import print_function
 
-import sys
-
 import unittest
 
 import numpy as np
 from numpy.testing import assert_allclose
 
-import lsst.utils.tests as utilsTests
+import lsst.utils.tests
 
 from lsst.validate.drp import util
 
@@ -63,22 +61,14 @@ class CoordTestCase(unittest.TestCase):
         assert_allclose([19.493625, 37.60447], np.rad2deg([meanRa, meanDec]))
 
 
-def suite():
-    """Returns a suite containing all the test cases in this module."""
-
-    utilsTests.init()
-
-    suites = []
-    suites += unittest.makeSuite(CoordTestCase)
-    return unittest.TestSuite(suites)
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    pass
 
 
-def run(shouldExit=False):
-    """Run the tests"""
-    utilsTests.run(suite(), shouldExit)
+def setup_module(module):
+    lsst.utils.tests.init()
 
 
 if __name__ == "__main__":
-    if "--display" in sys.argv:
-        display = True
-    run(True)
+    lsst.utils.tests.init()
+    unittest.main()
