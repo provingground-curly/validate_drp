@@ -28,6 +28,9 @@ from textwrap import TextWrapper
 from lsst.validate.base import Job
 
 from .util import repoNameToPrefix
+from .matchreduce import MatchedMultiVisitDataset
+from .photerrmodel import PhotometricErrorModel
+from .astromerrmodel import AstrometricErrorModel
 
 
 __all__ = ['run', 'runOneFilter']
@@ -174,7 +177,13 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
 
-    job = Job()
+    matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
+                                              verbose=verbose)
+    photomModel = PhotometricErrorModel(matchedDataset)
+    astromModel = AstrometricErrorModel(matchedDataset)
+    # linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
+
+    job = Job(blobs=[matchedDataset, photomModel, astromModel])
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
