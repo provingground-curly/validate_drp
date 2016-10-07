@@ -32,7 +32,7 @@ from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
-                      PA1Measurement, PA2Measurement)
+                      PA1Measurement, PA2Measurement, PF1Measurement)
 
 
 __all__ = ['run', 'runOneFilter']
@@ -212,6 +212,12 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         PA2Measurement(metrics['PA2'], matchedDataset,
                        pa1=job.get_measurement('PA1'), filter_name=filterName,
                        spec_name=specName, verbose=verbose,
+                       job=job, linkedBlobs=linkedBlobs)
+
+    for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
+        PF1Measurement(metrics['PF1'], matchedDataset,
+                       job.get_measurement('PA1'),
+                       filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
