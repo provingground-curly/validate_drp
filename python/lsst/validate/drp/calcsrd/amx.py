@@ -21,8 +21,9 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
-from ..base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 from ..util import radiansToMilliarcsec, calcRmsDistances
 
 
@@ -33,21 +34,17 @@ class AMxMeasurement(MeasurementBase):
 
     Parameters
     ----------
-    x : int
-        Variant of AMx metric (x=1, 2, 3), which in turn sets the radius
-        of the annulus for selecting pairs of stars.
+    metric : `lsst.validate.base.Metric`
+        An AM1, AM2 or AM3 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    specName : str
-        Name of a specification level to measure against (e.g., design,
-        minimum, stretch).
-    width : float
+    filter_name : `str`
+        filter_name (filter name) used in this measurement (e.g., ``'r'``).
+    width : `float` or `astropy.units.Quantity`, optional
         Width around fiducial distance to include. [arcmin]
-    magRange : 2-element list or tuple
+    magRange : 2-element `list`, `tuple`, or `numpy.ndarray`, optional
         brighter, fainter limits of the magnitude range to include.
-        E.g., `magRange=[17.5, 21.0]`
-    verbose : bool, optional
+        Default: ``[17.5, 21.5]`` mag.
+    verbose : `bool`, optional
         Output additional information on the analysis steps.
     job : :class:`lsst.validate.drp.base.Job`, optional
         If provided, the measurement will register itself with the Job
@@ -55,7 +52,7 @@ class AMxMeasurement(MeasurementBase):
     linkedBlobs : dict, optional
         A `dict` of additional blobs (subclasses of BlobBase) that
         can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+        direct dependencies of the computation (e.g., ``matchedDataset``).
 
     Attributes
     ----------
@@ -63,11 +60,6 @@ class AMxMeasurement(MeasurementBase):
         RMS of distance repeatability between stellar pairs.
     blob : AMxBlob
         Blob with by-products from this measurement.
-
-    Raises
-    ------
-    ValueError
-        If `x` isn't in [1, 2, 3].
 
     Notes
     -----
@@ -111,44 +103,45 @@ class AMxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    metric = None
-    value = None
-    units = 'milliarcsecond'
-    label = 'AMx'
-
-    def __init__(self, x, matchedDataset, bandpass, width=2., magRange=None,
-                 verbose=False, job=None,
-                 linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, filter_name, width=2.,
+                 magRange=None, linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)
 
-        if x not in [1, 2, 3]:
-            raise ValueError('AMx x should be 1, 2, or 3.')
-        self.label = 'AM{0:d}'.format(x)
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
-        DSpec = self.metric.D
+        self.metric = metric
+        self.filter_name = filter_name
 
-        # Register measurement parameters for serialization
-        self.registerParameter('D', datum=DSpec)
-        self.registerParameter('width', units='arcsecond',
-                               label='Width', description='Width of annulus')
-        self.registerParameter('annulus', units='arcsecond',
-                               label='annulus radii',
-                               description='Inner and outer radii of '
-                                           'selection annulus.')
-        self.registerParameter('magRange', units='mag',
-                               description='Stellar magnitude selection '
-                                           'range.')
+        # Register blob
+        self.matchedDataset = matchedDataset
+
+        # Measurement Parameters
+        self.register_parameter('D', datum=self.metric.D)
+
+        if not isinstance(width, u.Quantity):
+            width = width * u.arcmin
+        self.register_parameter('width',
+                                quantity=width,
+                                label='Width',
+                                description='Width of annulus')
+        if magRange is None:
+            magRange = np.array([17.0, 21.5]) * u.mag
+        else:
+            assert len(magRange) == 2
+            if not isinstance(magRange, u.Quantity):
+                magRange = np.array(magRange) * u.mag
+        self.register_parameter('magRange',
+                                quantity=magRange,
+                                description='Stellar magnitude selection '
+                                            'range.')
+
+        annulus = self.D + (self.width/2)*np.array([-1, +1])
+        self.register_parameter('annulus',
+                                quantity=annulus,
+                                label='annulus radii',
+                                description='Inner and outer radii of '
+                                            'selection annulus.')
 
         # Register measurement extras
-        self.registerExtra('rmsDistMas', label='RMS', units='milliarcsecond')
-
-        self.bandpass = bandpass
-        self.magRange = magRange
-        self.width = width
-
-        self.matchedDataset = matchedDataset
+        self.register_extra('rmsDistMas', label='RMS')
 
         # Add external blob so that links will be persisted with
         # the measurement
@@ -157,26 +150,26 @@ class AMxMeasurement(MeasurementBase):
                 setattr(self, name, blob)
 
         matches = matchedDataset.safeMatches
+        rmsDistances = calcRmsDistances(
+            matches,
+            self.annulus.to(u.arcmin).value,
+            magRange=self.magRange.to(u.mag).value,
+            verbose=verbose)[0]
 
-        self.annulus = self.D + (self.width/2)*np.array([-1, +1])
-
-        rmsDistances, self.annulus, self.magRange = \
-            calcRmsDistances(matches, self.annulus, magRange=self.magRange,
-                             verbose=verbose)
-
-        if not list(rmsDistances):
+        if len(rmsDistances) == 0:
             # raise ValidateErrorNoStars(
             #     'No stars found that are %.1f--%.1f arcmin apart.' %
             #     (annulus[0], annulus[1]))
             # FIXME should we still report that this measurement was
             # attempted instead of just crashing.
-            print('No stars found that are %.1f--%.1f arcmin apart.' %
-                  (self.annulus[0], self.annulus[1]))
+            print('No stars found that are {0:.1f}--{1:.1f} apart.'.format(
+                  self.annulus[0], self.annulus[1]))
             self.rmsDistMas = None
-            self.value = None
+            self.quantity = None
         else:
-            self.rmsDistMas = np.asarray(radiansToMilliarcsec(rmsDistances))
-            self.value = np.median(self.rmsDistMas)
+            self.rmsDistMas = np.asarray(radiansToMilliarcsec(rmsDistances)) \
+                * u.milliarcsecond
+            self.quantity = np.median(self.rmsDistMas)
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)
