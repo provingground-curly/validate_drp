@@ -21,8 +21,9 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
-from ..base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 
 
 class PF1Measurement(MeasurementBase):
@@ -31,12 +32,14 @@ class PF1Measurement(MeasurementBase):
 
     Parameters
     ----------
+    metric : `lsst.validate.base.Metric`
+        A PF1 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
     pa1 : PA1Measurement
         A PA1 measurement instance.
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    specName : str
+    filter_name : str
+        filter_name (filter name) used in this measurement (e.g., `'r'`).
+    spec_name : str
         Name of a specification level to measure against (e.g., design,
         minimum, stretch).
     verbose : bool, optional
@@ -58,24 +61,16 @@ class PF1Measurement(MeasurementBase):
     LPM-17 as of 2011-07-06, available at http://ls.st/LPM-17.
     """
 
-    metric = None
-    value = None
-    units = 'mmag'
-    label = 'PF1'
-
-    def __init__(self, matchedDataset, pa1, bandpass, specName, verbose=False,
-                 linkedBlobs=None, job=None,
-                 metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
+                 linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)
-        self.bandpass = bandpass
-        self.specName = specName  # spec-dependent measure because of PF1 dep
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
+        self.filter_name = filter_name
+        self.spec_name = spec_name  # spec-dependent measure because of PF1 dep
+        self.metric = metric
 
-        pa2spec = self.metric.getSpec(specName, bandpass=self.bandpass).\
-            PA2.getSpec(specName, bandpass=self.bandpass)
-        self.registerParameter('pa2', datum=pa2spec)
+        pa2spec = self.metric.get_spec(spec_name, filter_name=self.filter_name).\
+            PA2.get_spec(spec_name, filter_name=self.filter_name)
+        self.register_parameter('pa2', datum=pa2spec.datum)
 
         self.matchedDataset = matchedDataset
 
@@ -88,8 +83,7 @@ class PF1Measurement(MeasurementBase):
         # Use first random sample from original PA1 measurement
         magDiffs = pa1.magDiff[0, :]
 
-        # FIXME should this be np.abs(magDiffs) (see pa2)?
-        self.value = 100 * np.mean(np.asarray(magDiffs) > self.pa2)
+        self.quantity = 100 * np.mean(np.abs(magDiffs) > self.pa2) * u.Unit('')
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)
