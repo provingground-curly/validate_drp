@@ -23,13 +23,9 @@ grading, and persistence.
 
 from __future__ import print_function, absolute_import
 
-import os
 from textwrap import TextWrapper
 
-import yaml
-
-from lsst.utils import getPackageDir
-from lsst.validate.base import Metric, Job
+from lsst.validate.base import Job
 
 from .util import repoNameToPrefix
 
@@ -48,7 +44,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwargs):
+def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False, **kwargs):
     """Main executable.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
@@ -62,6 +58,10 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
+    metrics : `dict` or `collections.OrderedDict`
+        Dictionary of `lsst.validate.base.Metric` instances. Typically this is
+        data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
+        `lsst.validate.base.load_metrics`.
     outputPrefix : str, optional
         Specify the beginning filename for output files.
         The name of each filter will be appended to outputPrefix.
@@ -90,7 +90,7 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
         # Do this here so that each outputPrefix will have a different name for each filter.
         thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
         theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
-        job = runOneFilter(repo, theseVisitDataIds,
+        job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
                            verbose=verbose, filterName=filterName,
                            **kwargs)
@@ -124,7 +124,7 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
                 print(bcolors.FAIL + msg + bcolors.ENDC)
 
 
-def runOneFilter(repo, visitDataIds, brightSnr=100,
+def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  medianAstromscatterRef=25, medianPhotoscatterRef=25, matchRef=500,
                  makePrint=True, makePlot=True, makeJson=True,
                  filterName=None, outputPrefix=None,
@@ -146,6 +146,10 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
+    metrics : `dict` or `collections.OrderedDict`
+        Dictionary of `lsst.validate.base.Metric` instances. Typically this is
+        data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
+        `lsst.validate.base.load_metrics`.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
     medianAstromscatterRef : float, optional
@@ -167,12 +171,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    # Cache the YAML definitions of metrics (optional)
-    yamlPath = os.path.join(getPackageDir('validate_drp'),
-                            'metrics.yaml')
-    with open(yamlPath) as f:
-        yamlDoc = yaml.load(f)
-
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
 
@@ -181,11 +179,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePrint:
-        orderedMetrics = ['PA1', 'PF1', 'PA2',
-                          'AM1', 'AM2', 'AM3',
-                          'AF1', 'AF2', 'AF3',
-                          'AD1', 'AD2', 'AD3']
-
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER +
               '{band} band metric measurements'.format(band=filterName) +
@@ -194,8 +187,8 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
         wrapper = TextWrapper(width=65)
 
-        for metricName in orderedMetrics:
-            metric = Metric.fromYaml(metricName, yamlDoc=yamlDoc)
+        for metricName in metrics:
+            metric = metrics[metricName]
             print(bcolors.HEADER + '{name} - {reference}'.format(
                 name=metric.name, reference=metric.reference))
             print(wrapper.fill(bcolors.ENDC + '{description}'.format(
