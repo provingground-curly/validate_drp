@@ -2,8 +2,9 @@ setupRequired(utils)
 setupRequired(daf_persistence)
 setupRequired(afw)
 setupRequired(pipe_base)
-setupRequired(pyyaml)
+setupRequired(validate_base)
 
+setupRequired(pyyaml)
 setupRequired(scipy)
 setupRequired(matplotlib)
 
