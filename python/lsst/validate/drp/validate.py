@@ -29,15 +29,9 @@ from textwrap import TextWrapper
 import yaml
 
 from lsst.utils import getPackageDir
+from lsst.validate.base import Metric, Job
 
 from .util import repoNameToPrefix
-from .matchreduce import (MatchedMultiVisitDataset, AnalyticPhotometryModel,
-                          AnalyticAstrometryModel)
-from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
-                      AMxMeasurement, AFxMeasurement, ADxMeasurement)
-from .base import Metric, Job
-from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
-                   plotAnalyticAstrometryModel)
 
 
 __all__ = ['run', 'runOneFilter']
@@ -172,114 +166,14 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
         Name of the filter (bandpass).
     verbose : bool, optional
         Output additional information on the analysis steps.
-
     """
-    # Cache the YAML definitions of metrics (optional)
-    yamlPath = os.path.join(getPackageDir('validate_drp'),
-                            'metrics.yaml')
-    with open(yamlPath) as f:
-        yamlDoc = yaml.load(f)
 
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
 
-    matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
-                                              verbose=verbose)
-    photomModel = AnalyticPhotometryModel(matchedDataset)
-    astromModel = AnalyticAstrometryModel(matchedDataset)
-    linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
-
     job = Job()
 
-    PA1 = PA1Measurement(matchedDataset, bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    pa2Metric = Metric.fromYaml('PA2', yamlDoc=yamlDoc)
-    for specName in pa2Metric.getSpecNames(bandpass=filterName):
-        PA2Measurement(matchedDataset, pa1=PA1, bandpass=filterName,
-                       specName=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    pf1Metric = Metric.fromYaml('PF1', yamlDoc=yamlDoc)
-    for specName in pf1Metric.getSpecNames(bandpass=filterName):
-        PF1Measurement(matchedDataset, pa1=PA1, bandpass=filterName,
-                       specName=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    AM1 = AMxMeasurement(1, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    af1Metric = Metric.fromYaml('AF1', yamlDoc=yamlDoc)
-    for specName in af1Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(1, matchedDataset, AM1,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-        ADxMeasurement(1, matchedDataset, AM1,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    AM2 = AMxMeasurement(2, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    af2Metric = Metric.fromYaml('AF2', yamlDoc=yamlDoc)
-    for specName in af2Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(2, matchedDataset, AM2,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-        ADxMeasurement(2, matchedDataset, AM2,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    AM3 = AMxMeasurement(3, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    af3Metric = Metric.fromYaml('AF3', yamlDoc=yamlDoc)
-    for specName in af3Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(3, matchedDataset, AM3,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-        ADxMeasurement(3, matchedDataset, AM3,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
     job.write_json(outputPrefix.rstrip('_') + '.json')
-
-    if makePlot:
-        if AM1.value:
-            plotAMx(job.getMeasurement('AM1'),
-                    job.getMeasurement('AF1', specName='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
-        if AM2.value:
-            plotAMx(job.getMeasurement('AM2'),
-                    job.getMeasurement('AF2', specName='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
-        if AM3.value:
-            plotAMx(job.getMeasurement('AM3'),
-                    job.getMeasurement('AF3', specName='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
-
-        plotPA1(job.getMeasurement('PA1'), outputPrefix=outputPrefix)
-
-        plotAnalyticPhotometryModel(matchedDataset, photomModel,
-                                    outputPrefix=outputPrefix)
-
-        plotAnalyticAstrometryModel(matchedDataset, astromModel,
-                                    outputPrefix=outputPrefix)
 
     if makePrint:
         orderedMetrics = ['PA1', 'PF1', 'PA2',
