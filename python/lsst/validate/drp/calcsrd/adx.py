@@ -21,8 +21,9 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
-from ..base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 
 
 class ADxMeasurement(MeasurementBase):
@@ -31,16 +32,15 @@ class ADxMeasurement(MeasurementBase):
 
     Parameters
     ----------
-    x : int
-        Variant of AMx metric (x=1, 2, 3), which in turn sets the radius
-        of the annulus for selecting pairs of stars.
+    metric : `lsst.validate.base.Metric`
+        AD1, AD2, or AD3 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
     amx : :class:`lsst.validate.drp.calcsrd.AMxMeasurement`
         And AMx measurement, providing the median astrometric scatter in
         the annulus.
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    specName : str
+    filter_name : str
+        filter_name (filter name) used in this measurement (e.g., `'r'`).
+    spec_name : str
         Name of a specification level to measure against (e.g., design,
         minimum, stretch).
     verbose : bool, optional
@@ -52,11 +52,6 @@ class ADxMeasurement(MeasurementBase):
         A `dict` of additional blobs (subclasses of BlobBase) that
         can provide additional context to the measurement, though aren't
         direct dependencies of the computation (e.g., `matchedDataset).
-
-    Raises
-    ------
-    ValueError
-        If `x` isn't in [1, 2, 3].
 
     Notes
     -----
@@ -100,33 +95,20 @@ class ADxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    metric = None
-    value = None
-    units = ''
-    label = 'ADx'
-
-    def __init__(self, x, matchedDataset, amx, bandpass, specName,
-                 verbose=False, job=None,
-                 linkedBlobs=None,
-                 metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
+                 job=None, linkedBlobs=None, verbose=False):
         MeasurementBase.__init__(self)
 
-        if x not in [1, 2, 3]:
-            raise ValueError('ADx x should be 1, 2, or 3.')
-        self.label = 'AD{0:d}'.format(x)
-        self.bandpass = bandpass
-        self.specName = specName
-
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
+        self.metric = metric
+        self.filter_name = filter_name
+        self.spec_name = spec_name
 
         # register input parameters for serialization
         # note that matchedDataset is treated as a blob, separately
-        self.registerParameter('D', datum=amx.parameters['D'])
-        self.registerParameter('annulus', datum=amx.parameters['annulus'])
-        self.registerParameter('magRange', datum=amx.parameters['magRange'])
-        self.registerParameter('AMx', datum=amx.datum)
+        self.register_parameter('D', datum=amx.parameters['D'])
+        self.register_parameter('annulus', datum=amx.parameters['annulus'])
+        self.register_parameter('magRange', datum=amx.parameters['magRange'])
+        self.register_parameter('AMx', datum=amx.datum)
 
         self.matchedDataset = matchedDataset
 
@@ -136,21 +118,25 @@ class ADxMeasurement(MeasurementBase):
             for name, blob in linkedBlobs.items():
                 setattr(self, name, blob)
 
-        afx = getattr(self.metric.getSpec(specName, bandpass=self.bandpass),
-                      'AF{0:d}'.format(x))\
-            .getSpec(specName, bandpass=self.bandpass)
-        self.registerParameter('AFx', datum=afx.datum)
+        # AFx's value at this spec level and filter must be known to measure
+        self.register_parameter(
+            'AFx',
+            datum=self.metric.get_spec_dependency(
+                self.spec_name,
+                'AF{0:d}'.format(self.metric.x.quantity),
+                filter_name=self.filter_name))
 
-        if amx.value:
+        if amx.quantity is not None:
             # No more than AFx of values will deviate by more than the
             # AMx (50th) + AFx percentiles
             # To compute ADx, use measured AMx and spec for AFx.
-            percentileAtAfx = np.percentile(amx.rmsDistMas, 100. - self.AFx)
-            percentileAtAmx = np.percentile(amx.rmsDistMas, amx.value)
-            self.value = percentileAtAfx - percentileAtAmx
+            afxAtPercentile = np.percentile(
+                amx.rmsDistMas.to(u.marcsec),
+                100. - self.AFx) * u.marcsec
+            self.quantity = afxAtPercentile - amx.quantity
         else:
             # FIXME previously would raise ValidateErrorNoStars
-            self.value = None
+            self.quantity = None
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)
