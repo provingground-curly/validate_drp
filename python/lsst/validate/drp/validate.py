@@ -31,6 +31,7 @@ from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
+from .calcsrd import AMxMeasurement
 
 
 __all__ = ['run', 'runOneFilter']
@@ -181,9 +182,13 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
     astromModel = AstrometricErrorModel(matchedDataset)
-    # linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
+    linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
+
+    for x in (1, 2, 3):
+        AMxMeasurement(metrics['AM{0:d}'.format(x)], matchedDataset, filterName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 

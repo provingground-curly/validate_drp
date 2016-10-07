@@ -501,7 +501,7 @@ def radiansToMilliarcsec(rad):
     return np.rad2deg(rad)*3600*1000
 
 
-def calcRmsDistances(groupView, annulus, magRange=None, verbose=False):
+def calcRmsDistances(groupView, annulus, magRange, verbose=False):
     """Calculate the RMS distance of a set of matched objects over visits.
 
     Parameters
@@ -512,7 +512,7 @@ def calcRmsDistances(groupView, annulus, magRange=None, verbose=False):
         Distance range in which to compare object.  [arcmin]
         E.g., `annulus=[19, 21]` would consider all objects
         separated from each other between 19 and 21 arcminutes.
-    magRange : 2-element list or tuple of float, optional
+    magRange : 2-element list or tuple of float
         Magnitude range from which to select objects.
         Default of `None` will result in all objects being considered.
     verbose : bool, optional
@@ -522,13 +522,7 @@ def calcRmsDistances(groupView, annulus, magRange=None, verbose=False):
     -------
     list
         rmsDistMas
-
     """
-
-    # Default is specified here separately because defaults that are mutable
-    # get overridden by previous calls of the function.
-    if magRange is None:
-        magRange = [17.0, 21.5]
 
     # First we make a list of the keys that we want the fields for
     importantKeys = [groupView.schema.find(name).key for
