@@ -524,7 +524,7 @@ def plotAM3(*args, **kwargs):
     return plotAMx(*args, x=3, **kwargs)
 
 
-def plotAMx(amx, afx, bandpass, amxSpecName='design', outputPrefix=""):
+def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     """Plot a histogram of the RMS in relative distance between pairs of
     stars.
 
@@ -562,7 +562,7 @@ def plotAMx(amx, afx, bandpass, amxSpecName='design', outputPrefix=""):
                  magBright=amx.magRange[0],
                  magFaint=amx.magRange[1]))
 
-    if amx.checkSpec(amxSpecName):
+    if amx.check_spec(amxSpecName):
         amxStatus = 'passed'
     else:
         amxStatus = 'failed'
@@ -575,7 +575,7 @@ def plotAMx(amx, afx, bandpass, amxSpecName='design', outputPrefix=""):
     ax1.axvline(amx.value, 0, 1, linewidth=2, color='black',
                 label=amxLabel)
 
-    amxSpec = amx.metric.getSpec(amxSpecName, bandpass=bandpass)
+    amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
     amxSpecLabel = '{name} {specname}: {value:.0f} {units}'.format(
         name=amx.label,
         specname=amxSpecName,
@@ -584,7 +584,7 @@ def plotAMx(amx, afx, bandpass, amxSpecName='design', outputPrefix=""):
     ax1.axvline(amxSpec.value, 0, 1, linewidth=2, color='red',
                 label=amxSpecLabel)
 
-    if afx.checkSpec(afx.specName):
+    if afx.check_spec(afx.spec_name):
         afxStatus = 'passed'
     else:
         afxStatus = 'failed'
@@ -592,8 +592,8 @@ def plotAMx(amx, afx, bandpass, amxSpecName='design', outputPrefix=""):
                        '{afx} measured: {afxValue:.1f}% ({status})'
     afxLabel = afxLabelTemplate.format(
         afx=afx.label,
-        specname=afx.specName,
-        afxSpec=afx.metric.getSpec(afx.specName, bandpass=bandpass).value,
+        specname=afx.spec_name,
+        afxSpec=afx.metric.get_spec(afx.spec_name, filter_name=filterName).value,
         afxValue=afx.value,
         status=afxStatus)
 

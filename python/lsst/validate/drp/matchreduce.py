@@ -33,9 +33,9 @@ import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView)
 from lsst.afw.fits.fitsLib import FitsError
+from lsst.validate.base import BlobBase
 
 from .util import (getCcdKeyName, averageRaDecFromCat)
-from .base import BlobBase
 
 
 __all__ = ['MatchedMultiVisitDataset', 'AnalyticAstrometryModel',
@@ -104,6 +104,9 @@ class MatchedMultiVisitDataset(BlobBase):
 
         *Not serialized.*
     """
+
+    name = 'MatchedMultiVisitDataset'
+
     def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
                  verbose=False):
         BlobBase.__init__(self)
@@ -113,34 +116,36 @@ class MatchedMultiVisitDataset(BlobBase):
             matchRadius = afwGeom.Angle(1, afwGeom.arcseconds)
 
         # Extract single filter
-        self.registerDatum(
-            'filterName', value=set([dId['filter'] for dId in dataIds]).pop(),
-            units='', description='Filter name')
+        self.register_datum(
+            'filterName',
+            value=set([dId['filter'] for dId in dataIds]).pop(),
+            units='',
+            description='Filter name')
 
         # Register datums stored by this blob; will be set later
-        self.registerDatum(
+        self.register_datum(
             'mag',
             units='mag',
             label='{band}'.format(band=self.filterName),
             description='Mean PSF magnitudes of stars over multiple visits')
-        self.registerDatum(
+        self.register_datum(
             'magrms',
             units='mag',
             label='RMS({band})'.format(band=self.filterName),
             description='RMS of PSF magnitudes over multiple visits')
-        self.registerDatum(
+        self.register_datum(
             'magerr',
             units='mag',
             label='sigma({band})'.format(band=self.filterName),
             description='Median 1-sigma uncertainty of PSF magnitudes over '
                         'multiple visits')
-        self.registerDatum(
+        self.register_datum(
             'snr',
             units='',
             label='SNR({band})'.format(band=self.filterName),
             description='Median signal-to-noise ratio of PSF magnitudes over '
                         'multiple visits')
-        self.registerDatum(
+        self.register_datum(
             'dist',
             units='milliarcsecond',
             label='d',
@@ -361,32 +366,35 @@ class AnalyticPhotometryModel(BlobBase):
     For SDSS, stars with mag < 19.5 should be completely well measured.
     This limit is a band-dependent statement most appropriate to r.
     """
+
+    name = 'AnalyticPhotometryModel'
+
     def __init__(self, matchedMultiVisitDataset, brightSnr=100, medianRef=100,
                  matchRef=500):
         BlobBase.__init__(self)
 
-        self.registerDatum(
+        self.register_datum(
             'brightSnr',
             units='',
             label='Bright SNR',
             description='Threshold in SNR for bright sources used in this '
                         'model')
-        self.registerDatum(
+        self.register_datum(
             'sigmaSys',
             units='mag',
             label='sigma(sys)',
             description='Systematic error floor')
-        self.registerDatum(
+        self.register_datum(
             'gamma',
             units='',
             label='gamma',
             description='Proxy for sky brightness and read noise')
-        self.registerDatum(
+        self.register_datum(
             'm5',
             units='mag',
             label='m5',
             description='5-sigma depth')
-        self.registerDatum(
+        self.register_datum(
             'photScatter',
             units='mmag',
             label='RMS',
@@ -474,6 +482,9 @@ class AnalyticAstrometryModel(BlobBase):
       for `medianRef` and `matchRef`
     For SDSS, stars with mag < 19.5 should be completely well measured.
     """
+
+    name = 'AnalyticAstronmetryModel'
+
     def __init__(self, matchedMultiVisitDataset, brightSnr=100,
                  medianRef=100, matchRef=500):
         BlobBase.__init__(self)
@@ -508,31 +519,31 @@ class AnalyticAstrometryModel(BlobBase):
         if nMatch < matchRef:
             print("Number of matched sources %d is too small (shoud be > %d)" % (nMatch, matchRef))
 
-        self.registerDatum(
+        self.register_datum(
             'brightSnr',
             value=brightSnr,
             units='',
             label='Bright SNR',
             description='Threshold in SNR for bright sources used in this '
                         'model')
-        self.registerDatum(
+        self.register_datum(
             'C',
             value=fit_params['C'],
             units='',
             description='Scaling factor')
-        self.registerDatum(
+        self.register_datum(
             'theta',
             value=fit_params['theta'],
             units='milliarcsecond',
             label='theta',
             description='Seeing')
-        self.registerDatum(
+        self.register_datum(
             'sigmaSys',
             value=fit_params['sigmaSys'],
             units='milliarcsecond',
             label='sigma(sys)',
             description='Systematic error floor')
-        self.registerDatum(
+        self.register_datum(
             'astromRms',
             value=astromScatter,
             units='milliarcsecond',

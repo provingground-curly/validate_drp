@@ -22,7 +22,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 
-from ..base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase, Metric
 from ..util import radiansToMilliarcsec, calcRmsDistances
 
 
@@ -37,8 +37,8 @@ class AMxMeasurement(MeasurementBase):
         Variant of AMx metric (x=1, 2, 3), which in turn sets the radius
         of the annulus for selecting pairs of stars.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
+    filter_name : str
+        filter_name (filter name) used in this measurement (e.g., `'r'`).
     specName : str
         Name of a specification level to measure against (e.g., design,
         minimum, stretch).
@@ -116,7 +116,7 @@ class AMxMeasurement(MeasurementBase):
     units = 'milliarcsecond'
     label = 'AMx'
 
-    def __init__(self, x, matchedDataset, bandpass, width=2., magRange=None,
+    def __init__(self, x, matchedDataset, filter_name, width=2., magRange=None,
                  verbose=False, job=None,
                  linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
         MeasurementBase.__init__(self)
@@ -124,31 +124,29 @@ class AMxMeasurement(MeasurementBase):
         if x not in [1, 2, 3]:
             raise ValueError('AMx x should be 1, 2, or 3.')
         self.label = 'AM{0:d}'.format(x)
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
-        DSpec = self.metric.D
+        self.metric = Metric.from_yaml(self.label,
+                                       yaml_doc=metricYamlDoc,
+                                       yaml_path=metricYamlPath)
+        self.filter_name = filter_name
 
-        # Register measurement parameters for serialization
-        self.registerParameter('D', datum=DSpec)
-        self.registerParameter('width', units='arcsecond',
-                               label='Width', description='Width of annulus')
-        self.registerParameter('annulus', units='arcsecond',
-                               label='annulus radii',
-                               description='Inner and outer radii of '
-                                           'selection annulus.')
-        self.registerParameter('magRange', units='mag',
-                               description='Stellar magnitude selection '
-                                           'range.')
+        # Register blob
+        self.matchedDataset = matchedDataset
+
+        # Measurement Parameters
+        self.register_parameter('D', datum=self.metric.D)
+        self.register_parameter('width', value=width, units='arcsecond',
+                                label='Width', description='Width of annulus')
+        self.register_parameter('magRange', value=magRange, units='mag',
+                                description='Stellar magnitude selection '
+                                            'range.')
+        self.register_parameter('annulus', units='arcsecond',
+                                label='annulus radii',
+                                description='Inner and outer radii of '
+                                            'selection annulus.')
+        self.annulus = self.D + (self.width/2)*np.array([-1, +1])
 
         # Register measurement extras
-        self.registerExtra('rmsDistMas', label='RMS', units='milliarcsecond')
-
-        self.bandpass = bandpass
-        self.magRange = magRange
-        self.width = width
-
-        self.matchedDataset = matchedDataset
+        self.register_extra('rmsDistMas', label='RMS', units='milliarcsecond')
 
         # Add external blob so that links will be persisted with
         # the measurement
@@ -157,9 +155,6 @@ class AMxMeasurement(MeasurementBase):
                 setattr(self, name, blob)
 
         matches = matchedDataset.safeMatches
-
-        self.annulus = self.D + (self.width/2)*np.array([-1, +1])
-
         rmsDistances, self.annulus, self.magRange = \
             calcRmsDistances(matches, self.annulus, magRange=self.magRange,
                              verbose=verbose)
@@ -179,4 +174,4 @@ class AMxMeasurement(MeasurementBase):
             self.value = np.median(self.rmsDistMas)
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)

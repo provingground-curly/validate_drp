@@ -23,8 +23,7 @@ from __future__ import print_function, absolute_import
 import numpy as np
 
 import lsst.pipe.base as pipeBase
-
-from ..base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase, Metric
 from ..util import getRandomDiffRmsInMas, computeWidths
 
 
@@ -35,8 +34,8 @@ class PA1Measurement(MeasurementBase):
     Parameters
     ----------
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`)
+    filter_name : str
+        filter_name (filter name) used in this measurement (e.g., `'r'`)
     numRandomShuffles : int
         Number of times to draw random pairs from the different observations.
     verbose : bool, optional
@@ -98,35 +97,35 @@ class PA1Measurement(MeasurementBase):
     units = 'mmag'
     label = 'PA1'
 
-    def __init__(self, matchedDataset, bandpass,
+    def __init__(self, matchedDataset, filter_name,
                  numRandomShuffles=50, verbose=False, job=None,
                  linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
         MeasurementBase.__init__(self)
-        self.bandpass = bandpass
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
+        self.filter_name = filter_name
+        self.metric = Metric.from_yaml(self.label,
+                                       yaml_doc=metricYamlDoc,
+                                       yaml_path=metricYamlPath)
 
         # register input parameters for serialization
         # note that matchedDataset is treated as a blob, separately
-        self.registerParameter('numRandomShuffles', value=numRandomShuffles,
-                               units='', label='shuffles',
-                               description='Number of random shuffles')
+        self.register_parameter('numRandomShuffles', value=numRandomShuffles,
+                                units='', label='shuffles',
+                                description='Number of random shuffles')
 
         # register measurement extras
-        self.registerExtra(
+        self.register_extra(
             'rms', units='mmag', label='RMS',
             description='Photometric repeatability RMS of stellar pairs for '
                         'each random sampling')
-        self.registerExtra(
+        self.register_extra(
             'iqr', units='mmag', label='IQR',
             description='Photometric repeatability IQR of stellar pairs for '
                         'each random sample')
-        self.registerExtra(
+        self.register_extra(
             'magDiff', units='mmag', label='Delta mag',
             description='Photometric repeatability differences magnitudes for '
                         'stellar pairs for each random sample')
-        self.registerExtra(
+        self.register_extra(
             'magMean', units='mag', label='mag',
             description='Mean magnitude of pairs of stellar sources matched '
                         'across visits, for each random sample.')
@@ -152,7 +151,7 @@ class PA1Measurement(MeasurementBase):
         self.value = np.mean(self.iqr)
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)
 
     def _calc_PA1_sample(self, groupView, magKey):
         magDiffs = groupView.aggregate(getRandomDiffRmsInMas, field=magKey)

@@ -29,13 +29,13 @@ from textwrap import TextWrapper
 import yaml
 
 from lsst.utils import getPackageDir
+from lsst.validate.base import Metric, Job
 
 from .util import repoNameToPrefix
 from .matchreduce import (MatchedMultiVisitDataset, AnalyticPhotometryModel,
                           AnalyticAstrometryModel)
 from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
                       AMxMeasurement, AFxMeasurement, ADxMeasurement)
-from .base import Metric, Job
 from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
                    plotAnalyticAstrometryModel)
 
@@ -92,32 +92,32 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
         outputPrefix = repoNameToPrefix(repo)
 
     jobs = {}
-    for filt in allFilters:
+    for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
-        thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filt)
-        theseVisitDataIds = [v for v in dataIds if v['filter'] == filt]
+        thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
+        theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
         job = runOneFilter(repo, theseVisitDataIds,
                            outputPrefix=thisOutputPrefix,
-                           verbose=verbose, filterName=filt,
+                           verbose=verbose, filterName=filterName,
                            **kwargs)
-        jobs[filt] = job
+        jobs[filterName] = job
 
-    for filt, job in jobs.items():
+    for filterName, job in jobs.items():
         print('')
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filt) + bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-        for specName in job.availableSpecLevels:
+        for specName in job.spec_levels:
             passed = True
 
             measurementCount = 0
             failCount = 0
-            for m in job._measurements:
+            for m in job.measurements:
                 if m.value is None:
                     continue
                 measurementCount += 1
-                if not m.checkSpec(specName):
+                if not m.check_spec(specName):
                     passed = False
                     failCount += 1
 
@@ -191,89 +191,92 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
     job = Job()
 
-    PA1 = PA1Measurement(matchedDataset, bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
+    PA1 = PA1Measurement(matchedDataset, filterName, verbose=verbose,
+                         job=job, linkedBlobs=linkedBlobs,
+                         metricYamlDoc=yamlDoc)
 
-    pa2Metric = Metric.fromYaml('PA2', yamlDoc=yamlDoc)
-    for specName in pa2Metric.getSpecNames(bandpass=filterName):
-        PA2Measurement(matchedDataset, pa1=PA1, bandpass=filterName,
-                       specName=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+    pa2Metric = Metric.from_yaml('PA2', yaml_doc=yamlDoc)
+    for specName in pa2Metric.get_spec_names(filter_name=filterName):
+        PA2Measurement(matchedDataset, pa1=PA1, filter_name=filterName,
+                       spec_name=specName, verbose=verbose,
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-    pf1Metric = Metric.fromYaml('PF1', yamlDoc=yamlDoc)
-    for specName in pf1Metric.getSpecNames(bandpass=filterName):
-        PF1Measurement(matchedDataset, pa1=PA1, bandpass=filterName,
-                       specName=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+    pf1Metric = Metric.from_yaml('PF1', yaml_doc=yamlDoc)
+    for specName in pf1Metric.get_spec_names(filter_name=filterName):
+        PF1Measurement(matchedDataset, PA1, filterName,
+                       specName, verbose=verbose,
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-    AM1 = AMxMeasurement(1, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
+    AM1 = AMxMeasurement(1, matchedDataset, filterName, verbose=verbose,
+                         job=job, linkedBlobs=linkedBlobs,
+                         metricYamlDoc=yamlDoc)
 
-    af1Metric = Metric.fromYaml('AF1', yamlDoc=yamlDoc)
-    for specName in af1Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(1, matchedDataset, AM1,
-                       bandpass=filterName, specName=specName,
+    af1Metric = Metric.from_yaml('AF1', yaml_doc=yamlDoc)
+    for specName in af1Metric.get_spec_names(filter_name=filterName):
+        AFxMeasurement(1, matchedDataset, AM1, filterName, specName,
                        verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-        ADxMeasurement(1, matchedDataset, AM1,
-                       bandpass=filterName, specName=specName,
+        ADxMeasurement(1, matchedDataset, AM1, filterName, specName,
                        verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-    AM2 = AMxMeasurement(2, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
+    AM2 = AMxMeasurement(2, matchedDataset, filterName, verbose=verbose,
+                         job=job, linkedBlobs=linkedBlobs,
+                         metricYamlDoc=yamlDoc)
 
-    af2Metric = Metric.fromYaml('AF2', yamlDoc=yamlDoc)
-    for specName in af2Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(2, matchedDataset, AM2,
-                       bandpass=filterName, specName=specName,
+    af2Metric = Metric.from_yaml('AF2', yaml_doc=yamlDoc)
+    for specName in af2Metric.get_spec_names(filter_name=filterName):
+        AFxMeasurement(2, matchedDataset, AM2, filterName, specName,
                        verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-        ADxMeasurement(2, matchedDataset, AM2,
-                       bandpass=filterName, specName=specName,
+        ADxMeasurement(2, matchedDataset, AM2, filterName, specName,
                        verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-    AM3 = AMxMeasurement(3, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
+    AM3 = AMxMeasurement(3, matchedDataset, filterName, verbose=verbose,
+                         job=job, linkedBlobs=linkedBlobs,
+                         metricYamlDoc=yamlDoc)
 
-    af3Metric = Metric.fromYaml('AF3', yamlDoc=yamlDoc)
-    for specName in af3Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(3, matchedDataset, AM3,
-                       bandpass=filterName, specName=specName,
+    af3Metric = Metric.from_yaml('AF3', yaml_doc=yamlDoc)
+    for specName in af3Metric.get_spec_names(filter_name=filterName):
+        AFxMeasurement(3, matchedDataset, AM3, filterName, specName,
                        verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
-        ADxMeasurement(3, matchedDataset, AM3,
-                       bandpass=filterName, specName=specName,
+        ADxMeasurement(3, matchedDataset, AM3, filterName, specName,
                        verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+                       job=job, linkedBlobs=linkedBlobs,
+                       metricYamlDoc=yamlDoc)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePlot:
         if AM1.value:
-            plotAMx(job.getMeasurement('AM1'),
-                    job.getMeasurement('AF1', specName='design'),
+            plotAMx(job.get_measurement('AM1'),
+                    job.get_measurement('AF1', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
         if AM2.value:
-            plotAMx(job.getMeasurement('AM2'),
-                    job.getMeasurement('AF2', specName='design'),
+            plotAMx(job.get_measurement('AM2'),
+                    job.get_measurement('AF2', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
         if AM3.value:
-            plotAMx(job.getMeasurement('AM3'),
-                    job.getMeasurement('AF3', specName='design'),
+            plotAMx(job.get_measurement('AM3'),
+                    job.get_measurement('AF3', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
 
-        plotPA1(job.getMeasurement('PA1'), outputPrefix=outputPrefix)
+        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
 
         plotAnalyticPhotometryModel(matchedDataset, photomModel,
                                     outputPrefix=outputPrefix)
@@ -295,16 +298,17 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
         wrapper = TextWrapper(width=65)
 
         for metricName in orderedMetrics:
-            metric = Metric.fromYaml(metricName, yamlDoc=yamlDoc)
+            metric = Metric.from_yaml(metricName, yaml_doc=yamlDoc)
             print(bcolors.HEADER + '{name} - {reference}'.format(
                 name=metric.name, reference=metric.reference))
             print(wrapper.fill(bcolors.ENDC + '{description}'.format(
                 description=metric.description).strip()))
 
-            for specName in metric.getSpecNames(bandpass=filterName):
+            for specName in metric.get_spec_names(filter_name=filterName):
                 try:
-                    m = job.getMeasurement(metricName, specName=specName,
-                                           bandpass=filterName)
+                    m = job.get_measurement(metricName,
+                                            spec_name=specName,
+                                            filter_name=filterName)
                 except RuntimeError:
                     print('\tSkipped {specName:12s} no spec'.format(
                         specName=specName))
@@ -315,8 +319,8 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                         specName=specName))
                     continue
 
-                spec = metric.getSpec(specName, bandpass=filterName)
-                passed = m.checkSpec(specName)
+                spec = metric.get_spec(specName, filter_name=filterName)
+                passed = m.check_spec(specName)
                 if passed:
                     prefix = bcolors.OKBLUE + '\tPassed '
                 else:
@@ -324,7 +328,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                 infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f} {units}'.format(
                     specName=specName,
                     meas=m.value,
-                    op=metric._operatorStr,  # FIXME make public attribute
+                    op=metric.operator_str,
                     spec=spec.value,
                     units=spec.units)
                 print(prefix + infoStr + bcolors.ENDC)

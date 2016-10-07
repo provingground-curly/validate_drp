@@ -22,7 +22,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 
-from ..base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase, Metric
 
 
 class AFxMeasurement(MeasurementBase):
@@ -40,7 +40,7 @@ class AFxMeasurement(MeasurementBase):
         the annulus.
     bandpass : str
         Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    specName : str
+    spec_name : str
         Name of a specification level to measure against (e.g., design,
         minimum, stretch).
     verbose : bool, optional
@@ -105,7 +105,7 @@ class AFxMeasurement(MeasurementBase):
     units = ''
     label = 'AFx'
 
-    def __init__(self, x, matchedDataset, amx, bandpass, specName,
+    def __init__(self, x, matchedDataset, amx, filter_name, spec_name,
                  verbose=False, job=None,
                  linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
         MeasurementBase.__init__(self)
@@ -113,19 +113,19 @@ class AFxMeasurement(MeasurementBase):
         if x not in [1, 2, 3]:
             raise ValueError('AFx x should be 1, 2, or 3.')
         self.label = 'AF{0:d}'.format(x)
-        self.specName = specName
-        self.bandpass = bandpass
+        self.spec_name = spec_name
+        self.filter_name = filter_name
 
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
+        self.metric = Metric.from_yaml(self.label,
+                                       yaml_doc=metricYamlDoc,
+                                       yaml_path=metricYamlPath)
 
         # register input parameters for serialization
         # note that matchedDataset is treated as a blob, separately
-        self.registerParameter('D', datum=amx.parameters['D'])
-        self.registerParameter('annulus', datum=amx.parameters['annulus'])
-        self.registerParameter('magRange', datum=amx.parameters['magRange'])
-        self.registerParameter('AMx', datum=amx.datum)
+        self.register_parameter('D', datum=amx.parameters['D'])
+        self.register_parameter('annulus', datum=amx.parameters['annulus'])
+        self.register_parameter('magRange', datum=amx.parameters['magRange'])
+        self.register_parameter('AMx', datum=amx.datum)
 
         self.matchedDataset = matchedDataset
 
@@ -135,10 +135,11 @@ class AFxMeasurement(MeasurementBase):
             for name, blob in linkedBlobs.items():
                 setattr(self, name, blob)
 
-        adx = getattr(self.metric.getSpec(specName, bandpass=self.bandpass),
+        adx = getattr(self.metric.get_spec(spec_name,
+                                           filter_name=self.filter_name),
                       'AD{0:d}'.format(x))\
-            .getSpec(specName, bandpass=self.bandpass)
-        self.registerParameter('ADx', datum=adx.datum)
+            .get_spec(spec_name, filter_name=self.filter_name)
+        self.register_parameter('ADx', datum=adx.datum)
 
         if amx.value:
             self.value = 100. * np.mean(amx.rmsDistMas > amx.value + self.ADx)
@@ -147,4 +148,4 @@ class AFxMeasurement(MeasurementBase):
             self.value = None
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)
