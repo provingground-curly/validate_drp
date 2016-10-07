@@ -31,7 +31,7 @@ from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
-from .calcsrd import AMxMeasurement, AFxMeasurement
+from .calcsrd import AMxMeasurement, AFxMeasurement, ADxMeasurement
 
 
 __all__ = ['run', 'runOneFilter']
@@ -189,11 +189,17 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
+        adxName = 'AD{0:d}'.format(x)
+
         AMxMeasurement(metrics[amxName], matchedDataset, filterName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
         for specName in metrics[afxName].get_spec_names(filter_name=filterName):
             AFxMeasurement(metrics[afxName], matchedDataset,
+                           job.get_measurement(amxName), filterName, specName,
+                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+
+            ADxMeasurement(metrics[adxName], matchedDataset,
                            job.get_measurement(amxName), filterName, specName,
                            job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
