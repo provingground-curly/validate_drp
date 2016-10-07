@@ -86,32 +86,32 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
         outputPrefix = repoNameToPrefix(repo)
 
     jobs = {}
-    for filt in allFilters:
+    for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
-        thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filt)
-        theseVisitDataIds = [v for v in dataIds if v['filter'] == filt]
+        thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
+        theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
         job = runOneFilter(repo, theseVisitDataIds,
                            outputPrefix=thisOutputPrefix,
-                           verbose=verbose, filterName=filt,
+                           verbose=verbose, filterName=filterName,
                            **kwargs)
-        jobs[filt] = job
+        jobs[filterName] = job
 
-    for filt, job in jobs.items():
+    for filterName, job in jobs.items():
         print('')
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filt) + bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-        for specName in job.availableSpecLevels:
+        for specName in job.spec_levels:
             passed = True
 
             measurementCount = 0
             failCount = 0
-            for m in job._measurements:
-                if m.value is None:
+            for m in job.measurements:
+                if m.quantity is None:
                     continue
                 measurementCount += 1
-                if not m.checkSpec(specName):
+                if not m.check_spec(specName):
                     passed = False
                     failCount += 1
 
@@ -167,6 +167,11 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
+    # Cache the YAML definitions of metrics (optional)
+    yamlPath = os.path.join(getPackageDir('validate_drp'),
+                            'metrics.yaml')
+    with open(yamlPath) as f:
+        yamlDoc = yaml.load(f)
 
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
@@ -180,6 +185,7 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                           'AM1', 'AM2', 'AM3',
                           'AF1', 'AF2', 'AF3',
                           'AD1', 'AD2', 'AD3']
+
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER +
               '{band} band metric measurements'.format(band=filterName) +
@@ -195,32 +201,32 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
             print(wrapper.fill(bcolors.ENDC + '{description}'.format(
                 description=metric.description).strip()))
 
-            for specName in metric.getSpecNames(bandpass=filterName):
+            for specName in metric.get_spec_names(filter_name=filterName):
                 try:
-                    m = job.getMeasurement(metricName, specName=specName,
-                                           bandpass=filterName)
+                    m = job.get_measurement(metricName,
+                                            spec_name=specName,
+                                            filter_name=filterName)
                 except RuntimeError:
                     print('\tSkipped {specName:12s} no spec'.format(
                         specName=specName))
                     continue
 
-                if m.value is None:
+                if m.quantity is None:
                     print('\tSkipped {specName:12s} no measurement'.format(
                         specName=specName))
                     continue
 
-                spec = metric.getSpec(specName, bandpass=filterName)
-                passed = m.checkSpec(specName)
+                spec = metric.get_spec(specName, filter_name=filterName)
+                passed = m.check_spec(specName)
                 if passed:
                     prefix = bcolors.OKBLUE + '\tPassed '
                 else:
                     prefix = bcolors.FAIL + '\tFailed '
-                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f} {units}'.format(
+                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f}'.format(
                     specName=specName,
-                    meas=m.value,
-                    op=metric._operatorStr,  # FIXME make public attribute
-                    spec=spec.value,
-                    units=spec.units)
+                    meas=m.quantity,
+                    op=metric.operator_str,
+                    spec=spec.quantity)
                 print(prefix + infoStr + bcolors.ENDC)
 
     return job
