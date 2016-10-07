@@ -33,6 +33,8 @@ from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
                       PA1Measurement, PA2Measurement, PF1Measurement)
+from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
+                   plotAstrometryErrorModel)
 
 
 __all__ = ['run', 'runOneFilter']
@@ -221,6 +223,32 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        job=job, linkedBlobs=linkedBlobs)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
+
+    if makePlot:
+        if job.get_measurement('AM1').quantity is not None:
+            plotAMx(job.get_measurement('AM1'),
+                    job.get_measurement('AF1', spec_name='design'),
+                    filterName, amxSpecName='design',
+                    outputPrefix=outputPrefix)
+        if job.get_measurement('AM2').quantity is not None:
+            plotAMx(job.get_measurement('AM2'),
+                    job.get_measurement('AF2', spec_name='design'),
+                    filterName, amxSpecName='design',
+                    outputPrefix=outputPrefix)
+        if job.get_measurement('AM3').quantity is not None:
+            plotAMx(job.get_measurement('AM3'),
+                    job.get_measurement('AF3', spec_name='design'),
+                    filterName, amxSpecName='design',
+                    outputPrefix=outputPrefix)
+
+        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
+
+        plotPhotometryErrorModel(matchedDataset, photomModel,
+                                 filterName=filterName,
+                                 outputPrefix=outputPrefix)
+
+        plotAstrometryErrorModel(matchedDataset, astromModel,
+                                 outputPrefix=outputPrefix)
 
     if makePrint:
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
