@@ -63,7 +63,6 @@ class PA2Measurement(MeasurementBase):
     metric = None
     value = None
     units = 'mmag'
-    label = 'PA2'
 
     def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
                  linkedBlobs=None, job=None, verbose=False):

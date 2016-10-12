@@ -108,14 +108,12 @@ class AMxMeasurement(MeasurementBase):
     metric = None
     value = None
     units = 'milliarcsecond'
-    label = 'AMx'
 
     def __init__(self, metric, matchedDataset, filter_name, width=2.,
                  magRange=None, job=None, linkedBlobs=None, verbose=False):
         MeasurementBase.__init__(self)
 
         self.metric = metric
-        self.label = self.metric.name
         self.filter_name = filter_name
 
         # Register blob

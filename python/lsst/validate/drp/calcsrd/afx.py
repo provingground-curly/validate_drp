@@ -97,14 +97,12 @@ class AFxMeasurement(MeasurementBase):
     metric = None
     value = None
     units = ''
-    label = 'AFx'
 
     def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
                  verbose=False, job=None, linkedBlobs=None):
         MeasurementBase.__init__(self)
 
         self.metric = metric
-        self.label = self.metric.name
         self.spec_name = spec_name
         self.filter_name = filter_name
 

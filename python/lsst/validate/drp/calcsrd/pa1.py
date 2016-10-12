@@ -97,7 +97,6 @@ class PA1Measurement(MeasurementBase):
     metric = None
     value = None
     units = 'mmag'
-    label = 'PA1'
 
     def __init__(self, metric, matchedDataset, filter_name,
                  numRandomShuffles=50, verbose=False, job=None,
