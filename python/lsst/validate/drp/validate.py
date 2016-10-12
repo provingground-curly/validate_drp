@@ -193,65 +193,72 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     job = Job()
 
-    PA1 = PA1Measurement(metrics['PA1'], matchedDataset, filterName,
-                         job=job, linkedBlobs=linkedBlobs,
-                         verbose=verbose)
+    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs,
+                   verbose=verbose)
 
     for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
         PA2Measurement(metrics['PA2'], matchedDataset,
-                       pa1=PA1, filter_name=filterName,
+                       pa1=job.get_measurement('PA1'), filter_name=filterName,
                        spec_name=specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
     for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
-        PF1Measurement(metrics['PF1'], matchedDataset, PA1, filterName,
-                       specName, verbose=verbose,
+        PF1Measurement(metrics['PF1'], matchedDataset,
+                       job.get_measurement('PA1'),
+                       filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    AM1 = AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
-                         job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     for specName in metrics['AF1'].get_spec_names(filter_name=filterName):
-        AFxMeasurement(metrics['AF1'], matchedDataset, AM1, filterName, specName,
+        AFxMeasurement(metrics['AF1'], matchedDataset,
+                       job.get_measurement('AM1'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(metrics['AD1'], matchedDataset, AM1, filterName, specName,
+        ADxMeasurement(metrics['AD1'], matchedDataset,
+                       job.get_measurement('AM1'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    AM2 = AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
-                         job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     for specName in metrics['AF2'].get_spec_names(filter_name=filterName):
-        AFxMeasurement(metrics['AF2'], matchedDataset, AM2, filterName, specName,
+        AFxMeasurement(metrics['AF2'], matchedDataset,
+                       job.get_measurement('AM2'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(metrics['AD2'], matchedDataset, AM2, filterName, specName,
+        ADxMeasurement(metrics['AD2'], matchedDataset,
+                       job.get_measurement('AM2'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    AM3 = AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
-                         job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     for specName in metrics['AF3'].get_spec_names(filter_name=filterName):
-        AFxMeasurement(metrics['AF3'], matchedDataset, AM3, filterName, specName,
+        AFxMeasurement(metrics['AF3'], matchedDataset,
+                       job.get_measurement('AM3'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(metrics['AD3'], matchedDataset, AM3, filterName, specName,
+        ADxMeasurement(metrics['AD3'], matchedDataset,
+                       job.get_measurement('AM3'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePlot:
-        if AM1.value:
+        if job.get_measurement('AM1').value:
             plotAMx(job.get_measurement('AM1'),
                     job.get_measurement('AF1', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
-        if AM2.value:
+        if job.get_measurement('AM2').value:
             plotAMx(job.get_measurement('AM2'),
                     job.get_measurement('AF2', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
-        if AM3.value:
+        if job.get_measurement('AM3').value:
             plotAMx(job.get_measurement('AM3'),
                     job.get_measurement('AF3', spec_name='design'),
                     filterName, amxSpecName='design',
