@@ -22,7 +22,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 
-from lsst.validate.base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 
 
 class ADxMeasurement(MeasurementBase):
@@ -31,9 +31,8 @@ class ADxMeasurement(MeasurementBase):
 
     Parameters
     ----------
-    x : int
-        Variant of AMx metric (x=1, 2, 3), which in turn sets the radius
-        of the annulus for selecting pairs of stars.
+    metric : `lsst.validate.base.Metric`
+        AD1, AD2, or AD3 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
     amx : :class:`lsst.validate.drp.calcsrd.AMxMeasurement`
         And AMx measurement, providing the median astrometric scatter in
@@ -52,11 +51,6 @@ class ADxMeasurement(MeasurementBase):
         A `dict` of additional blobs (subclasses of BlobBase) that
         can provide additional context to the measurement, though aren't
         direct dependencies of the computation (e.g., `matchedDataset).
-
-    Raises
-    ------
-    ValueError
-        If `x` isn't in [1, 2, 3].
 
     Notes
     -----
@@ -105,21 +99,14 @@ class ADxMeasurement(MeasurementBase):
     units = ''
     label = 'ADx'
 
-    def __init__(self, x, matchedDataset, amx, filter_name, spec_name,
-                 verbose=False, job=None,
-                 linkedBlobs=None,
-                 metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
+                 job=None, linkedBlobs=None, verbose=False):
         MeasurementBase.__init__(self)
 
-        if x not in [1, 2, 3]:
-            raise ValueError('ADx x should be 1, 2, or 3.')
-        self.label = 'AD{0:d}'.format(x)
+        self.metric = metric
+        self.label = metric.name
         self.filter_name = filter_name
         self.spec_name = spec_name
-
-        self.metric = Metric.from_yaml(self.label,
-                                       yaml_doc=metricYamlDoc,
-                                       yaml_path=metricYamlPath)
 
         # register input parameters for serialization
         # note that matchedDataset is treated as a blob, separately
@@ -137,11 +124,12 @@ class ADxMeasurement(MeasurementBase):
                 setattr(self, name, blob)
 
         # AFx's value at this spec level and filter must be known to measure
-        afx = getattr(self.metric.get_spec(spec_name,
-                                           filter_name=self.filter_name),
-                      'AF{0:d}'.format(x))\
-            .get_spec(spec_name, filter_name=self.filter_name)
-        self.register_parameter('AFx', datum=afx.datum)
+        self.register_parameter(
+            'AFx',
+            datum=self.metric.get_spec_dependency(
+                self.spec_name,
+                'AF{0:d}'.format(self.metric.parameters['x'].value),
+                filter_name=self.filter_name))
 
         if amx.value:
             # No more than AFx of values will deviate by more than the

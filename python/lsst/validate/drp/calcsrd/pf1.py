@@ -22,7 +22,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 
-from lsst.validate.base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 
 
 class PF1Measurement(MeasurementBase):
@@ -31,6 +31,8 @@ class PF1Measurement(MeasurementBase):
 
     Parameters
     ----------
+    metric : `lsst.validate.base.Metric`
+        A PF1 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
     pa1 : PA1Measurement
         A PA1 measurement instance.
@@ -63,15 +65,12 @@ class PF1Measurement(MeasurementBase):
     units = 'mmag'
     label = 'PF1'
 
-    def __init__(self, matchedDataset, pa1, filter_name, spec_name, verbose=False,
-                 linkedBlobs=None, job=None,
-                 metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
+                 linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)
         self.filter_name = filter_name
         self.spec_name = spec_name  # spec-dependent measure because of PF1 dep
-        self.metric = Metric.from_yaml(self.label,
-                                       yaml_doc=metricYamlDoc,
-                                       yaml_path=metricYamlPath)
+        self.metric = metric
 
         pa2spec = self.metric.get_spec(spec_name, filter_name=self.filter_name).\
             PA2.get_spec(spec_name, filter_name=self.filter_name)

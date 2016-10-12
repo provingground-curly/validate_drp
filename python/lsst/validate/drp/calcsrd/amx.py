@@ -22,7 +22,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 
-from lsst.validate.base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 from ..util import radiansToMilliarcsec, calcRmsDistances
 
 
@@ -33,9 +33,8 @@ class AMxMeasurement(MeasurementBase):
 
     Parameters
     ----------
-    x : int
-        Variant of AMx metric (x=1, 2, 3), which in turn sets the radius
-        of the annulus for selecting pairs of stars.
+    metric : `lsst.validate.base.Metric`
+        An AM1, AM2 or AM3 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
     filter_name : str
         filter_name (filter name) used in this measurement (e.g., `'r'`).
@@ -63,11 +62,6 @@ class AMxMeasurement(MeasurementBase):
         RMS of distance repeatability between stellar pairs.
     blob : AMxBlob
         Blob with by-products from this measurement.
-
-    Raises
-    ------
-    ValueError
-        If `x` isn't in [1, 2, 3].
 
     Notes
     -----
@@ -116,17 +110,12 @@ class AMxMeasurement(MeasurementBase):
     units = 'milliarcsecond'
     label = 'AMx'
 
-    def __init__(self, x, matchedDataset, filter_name, width=2., magRange=None,
-                 verbose=False, job=None,
-                 linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, filter_name, width=2.,
+                 magRange=None, job=None, linkedBlobs=None, verbose=False):
         MeasurementBase.__init__(self)
 
-        if x not in [1, 2, 3]:
-            raise ValueError('AMx x should be 1, 2, or 3.')
-        self.label = 'AM{0:d}'.format(x)
-        self.metric = Metric.from_yaml(self.label,
-                                       yaml_doc=metricYamlDoc,
-                                       yaml_path=metricYamlPath)
+        self.metric = metric
+        self.label = self.metric.name
         self.filter_name = filter_name
 
         # Register blob

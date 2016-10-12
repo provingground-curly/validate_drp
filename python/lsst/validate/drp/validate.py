@@ -54,7 +54,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwargs):
+def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False, **kwargs):
     """Main executable.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
@@ -68,6 +68,10 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
+    metrics : `dict` or `collections.OrderedDict`
+        Dictionary of `lsst.validate.base.Metric` instances. Typically this is
+        data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
+        `lsst.validate.base.load_metrics`.
     outputPrefix : str, optional
         Specify the beginning filename for output files.
         The name of each filter will be appended to outputPrefix.
@@ -96,7 +100,7 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
         # Do this here so that each outputPrefix will have a different name for each filter.
         thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
         theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
-        job = runOneFilter(repo, theseVisitDataIds,
+        job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
                            verbose=verbose, filterName=filterName,
                            **kwargs)
@@ -130,7 +134,7 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
                 print(bcolors.FAIL + msg + bcolors.ENDC)
 
 
-def runOneFilter(repo, visitDataIds, brightSnr=100,
+def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  medianAstromscatterRef=25, medianPhotoscatterRef=25, matchRef=500,
                  makePrint=True, makePlot=True, makeJson=True,
                  filterName=None, outputPrefix=None,
@@ -152,6 +156,10 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
+    metrics : `dict` or `collections.OrderedDict`
+        Dictionary of `lsst.validate.base.Metric` instances. Typically this is
+        data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
+        `lsst.validate.base.load_metrics`.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
     medianAstromscatterRef : float, optional
@@ -174,12 +182,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
         Output additional information on the analysis steps.
 
     """
-    # Cache the YAML definitions of metrics (optional)
-    yamlPath = os.path.join(getPackageDir('validate_drp'),
-                            'metrics.yaml')
-    with open(yamlPath) as f:
-        yamlDoc = yaml.load(f)
-
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
 
@@ -191,71 +193,50 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
     job = Job()
 
-    PA1 = PA1Measurement(matchedDataset, filterName, verbose=verbose,
+    PA1 = PA1Measurement(metrics['PA1'], matchedDataset, filterName,
                          job=job, linkedBlobs=linkedBlobs,
-                         metricYamlDoc=yamlDoc)
+                         verbose=verbose)
 
-    pa2Metric = Metric.from_yaml('PA2', yaml_doc=yamlDoc)
-    for specName in pa2Metric.get_spec_names(filter_name=filterName):
-        PA2Measurement(matchedDataset, pa1=PA1, filter_name=filterName,
+    for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
+        PA2Measurement(metrics['PA2'], matchedDataset,
+                       pa1=PA1, filter_name=filterName,
                        spec_name=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+                       job=job, linkedBlobs=linkedBlobs)
 
-    pf1Metric = Metric.from_yaml('PF1', yaml_doc=yamlDoc)
-    for specName in pf1Metric.get_spec_names(filter_name=filterName):
-        PF1Measurement(matchedDataset, PA1, filterName,
+    for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
+        PF1Measurement(metrics['PF1'], matchedDataset, PA1, filterName,
                        specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+                       job=job, linkedBlobs=linkedBlobs)
 
-    AM1 = AMxMeasurement(1, matchedDataset, filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs,
-                         metricYamlDoc=yamlDoc)
+    AM1 = AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
+                         job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    af1Metric = Metric.from_yaml('AF1', yaml_doc=yamlDoc)
-    for specName in af1Metric.get_spec_names(filter_name=filterName):
-        AFxMeasurement(1, matchedDataset, AM1, filterName, specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+    for specName in metrics['AF1'].get_spec_names(filter_name=filterName):
+        AFxMeasurement(metrics['AF1'], matchedDataset, AM1, filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(1, matchedDataset, AM1, filterName, specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+        ADxMeasurement(metrics['AD1'], matchedDataset, AM1, filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    AM2 = AMxMeasurement(2, matchedDataset, filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs,
-                         metricYamlDoc=yamlDoc)
+    AM2 = AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
+                         job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    af2Metric = Metric.from_yaml('AF2', yaml_doc=yamlDoc)
-    for specName in af2Metric.get_spec_names(filter_name=filterName):
-        AFxMeasurement(2, matchedDataset, AM2, filterName, specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+    for specName in metrics['AF2'].get_spec_names(filter_name=filterName):
+        AFxMeasurement(metrics['AF2'], matchedDataset, AM2, filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(2, matchedDataset, AM2, filterName, specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+        ADxMeasurement(metrics['AD2'], matchedDataset, AM2, filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    AM3 = AMxMeasurement(3, matchedDataset, filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs,
-                         metricYamlDoc=yamlDoc)
+    AM3 = AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
+                         job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    af3Metric = Metric.from_yaml('AF3', yaml_doc=yamlDoc)
-    for specName in af3Metric.get_spec_names(filter_name=filterName):
-        AFxMeasurement(3, matchedDataset, AM3, filterName, specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+    for specName in metrics['AF3'].get_spec_names(filter_name=filterName):
+        AFxMeasurement(metrics['AF3'], matchedDataset, AM3, filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(3, matchedDataset, AM3, filterName, specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs,
-                       metricYamlDoc=yamlDoc)
+        ADxMeasurement(metrics['AD3'], matchedDataset, AM3, filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
@@ -285,10 +266,6 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
                                     outputPrefix=outputPrefix)
 
     if makePrint:
-        orderedMetrics = ['PA1', 'PF1', 'PA2',
-                          'AM1', 'AM2', 'AM3',
-                          'AF1', 'AF2', 'AF3',
-                          'AD1', 'AD2', 'AD3']
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER +
               '{band} band metric measurements'.format(band=filterName) +
@@ -297,8 +274,8 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
         wrapper = TextWrapper(width=65)
 
-        for metricName in orderedMetrics:
-            metric = Metric.from_yaml(metricName, yaml_doc=yamlDoc)
+        for metricName in metrics:
+            metric = metrics[metricName]
             print(bcolors.HEADER + '{name} - {reference}'.format(
                 name=metric.name, reference=metric.reference))
             print(wrapper.fill(bcolors.ENDC + '{description}'.format(

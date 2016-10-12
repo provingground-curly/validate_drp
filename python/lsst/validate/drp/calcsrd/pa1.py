@@ -23,7 +23,7 @@ from __future__ import print_function, absolute_import
 import numpy as np
 
 import lsst.pipe.base as pipeBase
-from lsst.validate.base import MeasurementBase, Metric
+from lsst.validate.base import MeasurementBase
 from ..util import getRandomDiffRmsInMas, computeWidths
 
 
@@ -33,6 +33,8 @@ class PA1Measurement(MeasurementBase):
 
     Parameters
     ----------
+    metric : `lsst.validate.base.Metric`
+        A PA1 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
     filter_name : str
         filter_name (filter name) used in this measurement (e.g., `'r'`)
@@ -97,14 +99,12 @@ class PA1Measurement(MeasurementBase):
     units = 'mmag'
     label = 'PA1'
 
-    def __init__(self, matchedDataset, filter_name,
+    def __init__(self, metric, matchedDataset, filter_name,
                  numRandomShuffles=50, verbose=False, job=None,
-                 linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
+                 linkedBlobs=None):
         MeasurementBase.__init__(self)
         self.filter_name = filter_name
-        self.metric = Metric.from_yaml(self.label,
-                                       yaml_doc=metricYamlDoc,
-                                       yaml_path=metricYamlPath)
+        self.metric = metric
 
         # register input parameters for serialization
         # note that matchedDataset is treated as a blob, separately
