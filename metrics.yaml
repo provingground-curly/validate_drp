@@ -13,28 +13,28 @@ PA1:
   specs:
     - level: design
       value: 5.0
-      units: mmag
-      filters: [g, r, i]
+      unit: mmag
+      filter_names: [g, r, i]
     - level: design
       value: 7.5
-      units: mmag
-      filters: [u, z, y]
+      unit: mmag
+      filter_names: [u, z, y]
     - level: minimum
       value: 8.0
-      units: mmag
-      filters: [g, r, i]
+      unit: mmag
+      filter_names: [g, r, i]
     - level: minimum
       value: 12.0
-      units: mmag
-      filters: [u, z, y]
+      unit: mmag
+      filter_names: [u, z, y]
     - level: stretch
       value: 3.0
-      units: mmag
-      filters: [g, r, i]
+      unit: mmag
+      filter_names: [g, r, i]
     - level: stretch
       value: 4.5
-      units: mmag
-      filters: [u, z, y]
+      unit: mmag
+      filter_names: [u, z, y]
 
 PF1:
   reference:
@@ -47,17 +47,17 @@ PF1:
   specs:
     - level: design
       value: 10.0
-      units: ''
+      unit: ''
       dependencies:
         - PA2
     - level: minimum
       value: 20.0
-      units: ''
+      unit: ''
       dependencies:
         - PA2
     - level: stretch
       value: 5.0
-      units: ''
+      unit: ''
       dependencies:
         - PA2
 
@@ -73,38 +73,38 @@ PA2:
   specs:
     - level: design
       value: 15.0
-      units: mmag
-      filters: [g, r, i]
+      unit: mmag
+      filter_names: [g, r, i]
       dependencies:
         - PF1
     - level: design
       value: 22.5
-      units: mmag
-      filters: [u, z, y]
+      unit: mmag
+      filter_names: [u, z, y]
       dependencies:
         - PF1
     - level: minimum
       value: 15.0
-      units: mmag
-      filters: [g, r, i]
+      unit: mmag
+      filter_names: [g, r, i]
       dependencies:
         - PF1
     - level: minimum
       value: 22.5
-      units: mmag
-      filters: [u, z, y]
+      unit: mmag
+      filter_names: [u, z, y]
       dependencies:
         - PF1
     - level: stretch
       value: 10.0
-      units: mmag
-      filters: [g, r, i]
+      unit: mmag
+      filter_names: [g, r, i]
       dependencies:
         - PF1
     - level: stretch
       value: 15.0
-      units: mmag
-      filters: [u, z, y]
+      unit: mmag
+      filter_names: [u, z, y]
       dependencies:
         - PF1
 
@@ -118,21 +118,21 @@ AM1:
     with separations of D=5 arcmin (repeatability) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 5.0, units: arcmin}
-    x: {value: 1, units: ''}
+    D: {value: 5.0, unit: arcmin}
+    x: {value: 1, unit: ''}
   specs:
     - level: design
       value: 10.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
     - level: minimum
       value: 20.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
     - level: stretch
       value: 5.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
 
 AM2:
   reference:
@@ -144,21 +144,21 @@ AM2:
     with separations of D=20 arcmin (repeatability) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 20.0, units: arcmin}
-    x: {value: 2, units: ''}
+    D: {value: 20.0, unit: arcmin}
+    x: {value: 2, unit: ''}
   specs:
     - level: design
       value: 10.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
     - level: minimum
       value: 20.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
     - level: stretch
       value: 5.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
 
 AM3:
   reference:
@@ -170,21 +170,21 @@ AM3:
     with separations of D=200. arcmin (repeatability) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 200.0, units: arcmin}
-    x: {value: 2, units: ''}
+    D: {value: 200.0, unit: arcmin}
+    x: {value: 2, unit: ''}
   specs:
     - level: design
       value: 15.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
     - level: minimum
       value: 30.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
     - level: stretch
       value: 10.0
-      units: mmag
-      filters: [r, i]
+      unit: mmag
+      filter_names: [r, i]
 
 AF1:
   reference:
@@ -196,25 +196,25 @@ AF1:
     ADx milliarcsec (see AMx) (%)
   operator: "<="
   parameters:
-    D: {value: 5.0, units: arcmin}
-    x: {value: 1, units: ''}
+    D: {value: 5.0, unit: arcmin}
+    x: {value: 1, unit: ''}
   specs:
     - level: design
       value: 10.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD1
     - level: minimum
       value: 20.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD1
     - level: stretch
       value: 5.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD1
 
@@ -228,25 +228,25 @@ AF2:
     ADx milliarcsec (see AMx) (%)
   operator: "<="
   parameters:
-    D: {value: 20.0, units: arcmin}
-    x: {value: 2, units: ''}
+    D: {value: 20.0, unit: arcmin}
+    x: {value: 2, unit: ''}
   specs:
     - level: design
       value: 10.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD2
     - level: minimum
       value: 20.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD2
     - level: stretch
       value: 5.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD2
 
@@ -260,25 +260,25 @@ AF3:
     ADx milliarcsec (see AMx) (%)
   operator: "<="
   parameters:
-    D: {value: 200.0, units: arcmin}
-    x: {value: 3, units: ''}
+    D: {value: 200.0, unit: arcmin}
+    x: {value: 3, unit: ''}
   specs:
     - level: design
       value: 10.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD3
     - level: minimum
       value: 20.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD3
     - level: stretch
       value: 5.0
-      units: ''
-      filters: [r, i]
+      unit: ''
+      filter_names: [r, i]
       dependencies:
         - AD3
 
@@ -292,25 +292,25 @@ AD1:
     this from the median (see AMx, AFx) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 5.0, units: arcmin}
-    x: {value: 1, units: ''}
+    D: {value: 5.0, unit: arcmin}
+    x: {value: 1, unit: ''}
   specs:
     - level: design
       value: 20.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF1
     - level: minimum
       value: 40.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF1
     - level: stretch
       value: 10.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF1
 
@@ -324,25 +324,25 @@ AD2:
     this from the median (see AMx, AFx) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 20.0, units: arcmin}
-    x: {value: 2, units: ''}
+    D: {value: 20.0, unit: arcmin}
+    x: {value: 2, unit: ''}
   specs:
     - level: design
       value: 20.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF2
     - level: minimum
       value: 40.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF2
     - level: stretch
       value: 10.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF2
 
@@ -356,24 +356,24 @@ AD3:
     this from the median (see AMx, AFx) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 200.0, units: arcmin}
-    x: {value: 3, units: ''}
+    D: {value: 200.0, unit: arcmin}
+    x: {value: 3, unit: ''}
   specs:
     - level: design
       value: 30.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF3
     - level: minimum
       value: 50.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF3
     - level: stretch
       value: 20.0
-      units: milliarcsecond
-      filters: [r, i]
+      unit: milliarcsecond
+      filter_names: [r, i]
       dependencies:
         - AF3
