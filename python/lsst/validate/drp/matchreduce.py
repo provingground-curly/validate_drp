@@ -25,6 +25,7 @@ from __future__ import print_function, absolute_import
 from scipy.optimize import curve_fit
 
 import numpy as np
+import astropy.units as u
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
@@ -52,34 +53,34 @@ class MatchedMultiVisitDataset(BlobBase):
 
     Parameters
     ----------
-    repo : string
+    repo : `str`
         The repository.  This is generally the directory on disk
         that contains the repository and mapper.
-    dataIds : list of dict
+    dataIds : `list` of `dict`
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
     matchRadius :  afwGeom.Angle(), optional
         Radius for matching. Default is 1 arcsecond.
-    safeSnr : float, optional
+    safeSnr : `float`, optional
         Minimum median SNR for a match to be considered "safe".
-    verbose : bool, optional
+    verbose : `bool`, optional
         Output additional information on the analysis steps.
 
     Attributes
     ----------
     filterName : `str`
         Name of filter used for all observations.
-    mag : ndarray
+    mag : `astropy.units.Quantity`
         Mean PSF magnitudes of stars over multiple visits (magnitudes).
-    magerr : ndarray
+    magerr : `astropy.units.Quantity`
         Median 1-sigma uncertainty of PSF magnitudes over multiple visits
         (magnitudes).
-    magrms
+    magrms : `astropy.units.Quantity`
         RMS of PSF magnitudes over multiple visits (magnitudes).
-    snr
+    snr : `astropy.units.Quantity`
         Median signal-to-noise ratio of PSF magnitudes over multiple visits
-        (magnitudes).
-    dist
+        (dimensionless).
+    dist : `astropy.units.Quantity`
         RMS of sky coordinates of stars over multiple visits (milliarcseconds).
     goodMatches
         all good matches, as an afw.table.GroupView;
@@ -118,36 +119,30 @@ class MatchedMultiVisitDataset(BlobBase):
         # Extract single filter
         self.register_datum(
             'filterName',
-            value=set([dId['filter'] for dId in dataIds]).pop(),
-            units='',
+            quantity=set([dId['filter'] for dId in dataIds]).pop(),
             description='Filter name')
 
         # Register datums stored by this blob; will be set later
         self.register_datum(
             'mag',
-            units='mag',
             label='{band}'.format(band=self.filterName),
             description='Mean PSF magnitudes of stars over multiple visits')
         self.register_datum(
             'magrms',
-            units='mag',
             label='RMS({band})'.format(band=self.filterName),
             description='RMS of PSF magnitudes over multiple visits')
         self.register_datum(
             'magerr',
-            units='mag',
             label='sigma({band})'.format(band=self.filterName),
             description='Median 1-sigma uncertainty of PSF magnitudes over '
                         'multiple visits')
         self.register_datum(
             'snr',
-            units='',
             label='SNR({band})'.format(band=self.filterName),
             description='Median signal-to-noise ratio of PSF magnitudes over '
                         'multiple visits')
         self.register_datum(
             'dist',
-            units='milliarcsecond',
             label='d',
             description='RMS of sky coordinates of stars over multiple visits')
 
@@ -310,13 +305,13 @@ class MatchedMultiVisitDataset(BlobBase):
         safeMatches = goodMatches.where(safeFilter)
 
         # Pass field=psfMagKey so np.mean just gets that as its input
-        self.snr = goodMatches.aggregate(np.median, field=psfSnrKey)  # SNR
-        self.mag = goodMatches.aggregate(np.mean, field=psfMagKey)  # mag
-        self.magrms = goodMatches.aggregate(np.std, field=psfMagKey)  # mag
-        self.magerr = goodMatches.aggregate(np.median, field=psfMagErrKey)
+        self.snr = goodMatches.aggregate(np.median, field=psfSnrKey) * u.Unit('')
+        self.mag = goodMatches.aggregate(np.mean, field=psfMagKey) * u.mag
+        self.magrms = goodMatches.aggregate(np.std, field=psfMagKey) * u.mag
+        self.magerr = goodMatches.aggregate(np.median, field=psfMagErrKey) * u.mag
         # positionRms knows how to query a group so we give it the whole thing
         # by going with the default `field=None`.
-        self.dist = goodMatches.aggregate(positionRms)
+        self.dist = goodMatches.aggregate(positionRms) * u.milliarcsecond
 
         # These attributes are not serialized
         self.goodMatches = goodMatches
