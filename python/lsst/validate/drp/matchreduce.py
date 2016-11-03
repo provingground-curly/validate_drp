@@ -40,9 +40,9 @@ from .util import (getCcdKeyName, averageRaDecFromCat)
 
 
 __all__ = ['MatchedMultiVisitDataset', 'AnalyticAstrometryModel',
-           'AnalyticPhotometryModel', 'isExtended', 'magNormDiff',
-           'fitExp', 'fitAstromErrModel', 'fitPhotErrModel',
-           'positionRms', 'astromErrModel', 'photErrModel']
+           'isExtended', 'magNormDiff',
+           'fitExp', 'fitAstromErrModel',
+           'positionRms', 'astromErrModel']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -318,127 +318,6 @@ class MatchedMultiVisitDataset(BlobBase):
         self.safeMatches = safeMatches
 
 
-class AnalyticPhotometryModel(BlobBase):
-    """Serializable analytic photometry error model for multi-visit catalogs.
-
-    This model is originally presented in http://arxiv.org/abs/0805.2366v4
-    (Eq 4, 5):
-
-    .. math::
-
-       \sigma_1^2 &= \sigma_\mathrm{sys}^2 + \sigma_\mathrm{rand}^2 \\
-       x &= 10^{0.4(m-m_5)} \\
-       \sigma_\mathrm{rand}^2 &= (0.04 - \gamma) x + \gamma x^2~[\mathrm{mag}^2]
-
-    Parameters
-    ----------
-    matchedMultiVisitDataset : `MatchedMultiVisitDataset`
-        A dataset containing matched statistics for stars across multiple
-        visits.
-    brightSnr : float, optional
-        Minimum SNR for a star to be considered "bright".
-    medianRef : float, optional
-        Median reference astrometric scatter in millimagnitudes
-    matchRef : int, optional
-        Should match at least matchRef stars.
-
-    Attributes
-    ----------
-    brightSnr : float
-        Threshold in SNR for bright sources used in this  model.
-    sigmaSys : float
-        Systematic error floor.
-    gamma : float
-        Proxy for sky brightness and read noise.
-    m5 : float
-        5-sigma photometric depth (magnitudes).
-    photRms : float
-        RMS photometric scatter for 'good' stars (millimagnitudes).
-
-    Notes
-    -----
-    The scatter and match defaults are appropriate to SDSS are stored here.
-    For SDSS, stars with mag < 19.5 should be completely well measured.
-    This limit is a band-dependent statement most appropriate to r.
-    """
-
-    name = 'AnalyticPhotometryModel'
-
-    def __init__(self, matchedMultiVisitDataset, brightSnr=100, medianRef=100,
-                 matchRef=500):
-        BlobBase.__init__(self)
-
-        self.register_datum(
-            'brightSnr',
-            units='',
-            label='Bright SNR',
-            description='Threshold in SNR for bright sources used in this '
-                        'model')
-        self.register_datum(
-            'sigmaSys',
-            units='mag',
-            label='sigma(sys)',
-            description='Systematic error floor')
-        self.register_datum(
-            'gamma',
-            units='',
-            label='gamma',
-            description='Proxy for sky brightness and read noise')
-        self.register_datum(
-            'm5',
-            units='mag',
-            label='m5',
-            description='5-sigma depth')
-        self.register_datum(
-            'photScatter',
-            units='mmag',
-            label='RMS',
-            description='RMS photometric scatter for good stars')
-
-        # FIXME add a description field to blobs?
-        # self._doc['doc'] \
-        #     = "Photometric uncertainty model from " \
-        #       "http://arxiv.org/abs/0805.2366v4 (Eq 4, 5): " \
-        #       "sigma_1^2 = sigma_sys^2 + sigma_rand^2, " \
-        #       "sigma_rand^2 = (0.04 - gamma) * x + gamma * x^2 [mag^2] " \
-        #       "where x = 10**(0.4*(m-m_5))"
-
-        self._compute(
-            matchedMultiVisitDataset.snr,
-            matchedMultiVisitDataset.mag,
-            matchedMultiVisitDataset.magerr * 1000.,
-            matchedMultiVisitDataset.magrms * 1000.,
-            matchedMultiVisitDataset.dist,
-            len(matchedMultiVisitDataset.goodMatches),
-            brightSnr=brightSnr,
-            medianRef=medianRef,
-            matchRef=matchRef)
-
-    def _compute(self, snr, mag, mmagErr, mmagrms, dist, nMatch,
-                 brightSnr=100,
-                 medianRef=100, matchRef=500):
-
-        self.brightSnr = brightSnr
-
-        bright = np.where(np.asarray(snr) > self.brightSnr)
-        self.photScatter = np.median(np.asarray(mmagrms)[bright])
-        print("Photometric scatter (median) - SNR > %.1f : %.1f %s" %
-              (self.brightSnr, self.photScatter, "mmag"))
-
-        fit_params = fitPhotErrModel(mag[bright], mmagErr[bright])
-        self.sigmaSys = fit_params['sigmaSys']
-        self.gamma = fit_params['gamma']
-        self.m5 = fit_params['m5']
-
-        if self.photScatter > medianRef:
-            print('Median photometric scatter %.3f %s is larger than '
-                  'reference : %.3f %s '
-                  % (self.photScatter, "mmag", medianRef, "mag"))
-        if nMatch < matchRef:
-            print("Number of matched sources %d is too small (shoud be > %d)"
-                  % (nMatch, matchRef))
-
-
 class AnalyticAstrometryModel(BlobBase):
     """Serializable model of astronometry errors across multiple visits.
 
@@ -624,30 +503,6 @@ def fitAstromErrModel(snr, dist):
     return params
 
 
-def fitPhotErrModel(mag, mmag_err):
-    """Fit model of photometric error from LSST Overview paper
-
-    Parameters
-    ----------
-    mag : list or numpy.array
-        Magnitude
-    mmag_err : list or numpy.array
-        Magnitude uncertainty or variation in *mmag*.
-
-    Returns
-    -------
-    dict
-        The fit results for sigmaSys, gamma, and m5 along with their Units.
-    """
-    mag_err = mmag_err / 1000
-    fit_params, fit_param_covariance = \
-        curve_fit(photErrModel, mag, mag_err, p0=[0.01, 0.039, 24.35])
-
-    params = {'sigmaSys': fit_params[0], 'gamma': fit_params[1], 'm5': fit_params[2],
-              'sigmaSysUnits': 'mmag', 'gammaUnits': '', 'm5Units': 'mag'}
-    return params
-
-
 def positionRms(cat):
     """Calculate the RMS for RA, Dec for a set of observations an object.
 
@@ -702,37 +557,3 @@ def astromErrModel(snr, theta=1000, sigmaSys=10, C=1, **kwargs):
         Units will be those of theta + sigmaSys.
     """
     return C*theta/snr + sigmaSys
-
-
-def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):
-    """Fit model of photometric error from LSST Overview paper
-    http://arxiv.org/abs/0805.2366v4
-
-    Photometric errors described by
-    Eq. 4
-    sigma_1^2 = sigma_sys^2 + sigma_rand^2
-
-    Eq. 5
-    sigma_rand^2 = (0.04 - gamma) * x + gamma * x^2 [mag^2]
-    where x = 10**(0.4*(m-m_5))
-
-    Parameters
-    ----------
-    mag : list or numpy.array
-        Magnitude
-    sigmaSq : float
-        Limiting systematics floor [mag]
-    gamma : float
-        proxy for sky brightness and readout noise
-    m5 : float
-        5-sigma depth [mag]
-
-    Returns
-    -------
-    numpy.array
-        Result of noise estimation function
-    """
-    x = 10**(0.4*(mag - m5))
-    sigmaRandSq = (0.04 - gamma) * x + gamma * x**2
-    sigmaSq = sigmaSys**2 + sigmaRandSq
-    return np.sqrt(sigmaSq)
