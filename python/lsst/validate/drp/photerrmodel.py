@@ -83,7 +83,7 @@ def fitPhotErrModel(mag, mag_err):
     ----------
     mag : `astropy.units.Quantity`
         Magnitude.
-    mmag_err : `astropy.units.Quantity`
+    mag_err : `astropy.units.Quantity`
         Magnitude uncertainty or variation.
 
     Returns
@@ -100,18 +100,40 @@ def fitPhotErrModel(mag, mag_err):
     --------
     `photErrModel`
     """
+    # if not isinstance(mag, u.Quantity):
+    #     mag = mag * u.mag
+    # if not isinstance(mag_err, u.Quantity):
+    #     mag_err = mag_err * u.mag
+
+    # p0 = [0.01 * u.mag,  # sigmaSys
+    #       0.039 * u.Unit(''),  # gamma
+    #       24.35 * u.mag]  # m5
+
+    # fit_params, fit_param_covariance = curve_fit(
+    #     photErrModel, mag, mag_err, p0=p0)
+
+    # params = {
+    #     'sigmaSys': fit_params[0],
+    #     'gamma': fit_params[1],
+    #     'm5': fit_params[2],
+    # }
+    if isinstance(mag, u.Quantity):
+        mag = mag.to(u.mag).value
+    if isinstance(mag_err, u.Quantity):
+        mag_err = mag_err.to(u.mag).value
+
+    p0 = [0.01,  # sigmaSys (mag)
+          0.039,  # gamma ('')
+          24.35]  # m5 (mag)
+
     fit_params, fit_param_covariance = curve_fit(
-        photErrModel,
-        mag.to(u.mag).value,
-        mag_err.to(u.mag).value,
-        p0=[0.01, 0.039, 24.35])
+        photErrModel, mag, mag_err, p0=p0)
 
     params = {
         'sigmaSys': fit_params[0] * u.mag,
         'gamma': fit_params[1] * u.Unit(''),
         'm5': fit_params[2] * u.mag,
     }
-
     return params
 
 
@@ -167,28 +189,23 @@ class PhotometricErrorModel(BlobBase):
 
         self.register_datum(
             'brightSnr',
-            units='',
             label='Bright SNR',
             description='Threshold in SNR for bright sources used in this '
                         'model')
         self.register_datum(
             'sigmaSys',
-            units='mag',
             label='sigma(sys)',
             description='Systematic error floor')
         self.register_datum(
             'gamma',
-            units='',
             label='gamma',
             description='Proxy for sky brightness and read noise')
         self.register_datum(
             'm5',
-            units='mag',
             label='m5',
             description='5-sigma depth')
         self.register_datum(
             'photScatter',
-            units='mmag',
             label='RMS',
             description='RMS photometric scatter for good stars')
 
@@ -200,6 +217,10 @@ class PhotometricErrorModel(BlobBase):
         #       "sigma_rand^2 = (0.04 - gamma) * x + gamma * x^2 [mag^2] " \
         #       "where x = 10**(0.4*(m-m_5))"
 
+        if not isinstance(medianRef, u.Quantity):
+            medianRef = medianRef * u.mmag
+        if not isinstance(brightSnr, u.Quantity):
+            brightSnr = brightSnr * u.Unit('')
         self._compute(
             matchedMultiVisitDataset.snr,
             matchedMultiVisitDataset.mag,
@@ -207,24 +228,18 @@ class PhotometricErrorModel(BlobBase):
             matchedMultiVisitDataset.magrms,
             matchedMultiVisitDataset.dist,
             len(matchedMultiVisitDataset.goodMatches),
-            brightSnr=brightSnr,
-            medianRef=medianRef,
-            matchRef=matchRef)
+            brightSnr,
+            medianRef,
+            matchRef)
 
     def _compute(self, snr, mag, magErr, magRms, dist, nMatch,
-                 brightSnr=100,
-                 medianRef=100, matchRef=500):
-
-        if not isinstance(brightSnr, u.Quantity):
-            brightSnr = brightSnr * u.Unit('')
+                 brightSnr, medianRef, matchRef):
         self.brightSnr = brightSnr
 
         bright = np.where(snr > self.brightSnr)
         self.photScatter = np.median(magRms[bright])
-        print("Photometric scatter (median) - SNR > %.1f : %.1f %s" %
-              (self.brightSnr.value,
-               self.photScatter.to(u.mmag).value,
-               "mmag"))
+        print('Photometric scatter (median) - SNR > {0:.1f} : {1:.1f}'.format(
+              self.brightSnr, self.photScatter.to(u.mmag)))
 
         fit_params = fitPhotErrModel(mag[bright], magErr[bright])
         self.sigmaSys = fit_params['sigmaSys']
@@ -232,9 +247,10 @@ class PhotometricErrorModel(BlobBase):
         self.m5 = fit_params['m5']
 
         if self.photScatter > medianRef:
-            print('Median photometric scatter %.3f %s is larger than '
-                  'reference : %.3f %s '
-                  % (self.photScatter, "mmag", medianRef, "mag"))
+            msg = 'Median photometric scatter {0:.3f} is larger than ' \
+                  'reference : {1:.3f}'
+            print(msg.format(self.photScatter, medianRef))
         if nMatch < matchRef:
-            print("Number of matched sources %d is too small (shoud be > %d)"
-                  % (nMatch, matchRef))
+            msg = 'Number of matched sources {0:d} is too small ' \
+                  '(should be > %d)'
+            print(msg.format(nMatch, matchRef))

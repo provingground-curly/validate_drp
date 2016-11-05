@@ -318,113 +318,6 @@ class MatchedMultiVisitDataset(BlobBase):
         self.safeMatches = safeMatches
 
 
-class AnalyticAstrometryModel(BlobBase):
-    """Serializable model of astronometry errors across multiple visits.
-
-    .. math::
-
-       \mathrm{astromRms} = C \theta / \mathrm{SNR} + \sigma_\mathrm{sys}
-
-    Parameters
-    ----------
-    matchedMultiVisitDataset : `MatchedMultiVisitDataset`
-        A dataset containing matched statistics for stars across multiple
-        visits.
-    brightSnr : float, optional
-        Minimum SNR for a star to be considered "bright".
-    medianRef : float, optional
-        Median reference astrometric scatter in millimagnitudes
-    matchRef : int, optional
-        Should match at least matchRef stars.
-
-    Attributes
-    ----------
-    brightSnr : float
-        Threshold SNR for bright sources used in this model.
-    C : float
-        Model scaling factor.
-    theta : float
-        Seeing (milliarcsecond).
-    sigmaSys : float
-        Systematic error floor (milliarcsecond).
-    astromRms : float
-        Astrometric scatter (RMS) for good stars (milliarcsecond).
-
-    Notes
-    -----
-    The scatter and match defaults are appropriate to SDSS are the defaults
-      for `medianRef` and `matchRef`
-    For SDSS, stars with mag < 19.5 should be completely well measured.
-    """
-
-    name = 'AnalyticAstronmetryModel'
-
-    def __init__(self, matchedMultiVisitDataset, brightSnr=100,
-                 medianRef=100, matchRef=500):
-        BlobBase.__init__(self)
-
-        # FIXME add description field to blobs
-        # self._doc['doc'] \
-        #     = "Astrometric astrometry model: mas = C*theta/SNR + sigmaSys"
-
-        self._compute(
-            matchedMultiVisitDataset.snr,
-            matchedMultiVisitDataset.dist,
-            len(matchedMultiVisitDataset.goodMatches),
-            brightSnr=brightSnr, medianRef=medianRef, matchRef=matchRef)
-
-    def _compute(self, snr, dist, nMatch,
-                 brightSnr=100,
-                 medianRef=100, matchRef=500):
-        print('Median value of the astrometric scatter - all magnitudes: '
-              '%.3f %s' % (np.median(dist), "mas"))
-
-        bright = np.where(np.asarray(snr) > brightSnr)
-        astromScatter = np.median(np.asarray(dist)[bright])
-        print("Astrometric scatter (median) - snr > %.1f : %.1f %s" %
-              (brightSnr, astromScatter, "mas"))
-
-        fit_params = fitAstromErrModel(snr[bright], dist[bright])
-
-        if astromScatter > medianRef:
-            print('Median astrometric scatter %.1f %s is larger than '
-                  'reference : %.1f %s ' %
-                  (astromScatter, "mas", medianRef, "mas"))
-        if nMatch < matchRef:
-            print("Number of matched sources %d is too small (shoud be > %d)" % (nMatch, matchRef))
-
-        self.register_datum(
-            'brightSnr',
-            value=brightSnr,
-            units='',
-            label='Bright SNR',
-            description='Threshold in SNR for bright sources used in this '
-                        'model')
-        self.register_datum(
-            'C',
-            value=fit_params['C'],
-            units='',
-            description='Scaling factor')
-        self.register_datum(
-            'theta',
-            value=fit_params['theta'],
-            units='milliarcsecond',
-            label='theta',
-            description='Seeing')
-        self.register_datum(
-            'sigmaSys',
-            value=fit_params['sigmaSys'],
-            units='milliarcsecond',
-            label='sigma(sys)',
-            description='Systematic error floor')
-        self.register_datum(
-            'astromRms',
-            value=astromScatter,
-            units='milliarcsecond',
-            label='RMS',
-            description='Astrometric scatter (RMS) for good stars')
-
-
 def isExtended(source, extendedKey, extendedThreshold=1.0):
     """Is the source extended attribute above the threshold.
 
@@ -480,29 +373,6 @@ def fitExp(x, y, y_err, deg=2):
     return fit_params
 
 
-def fitAstromErrModel(snr, dist):
-    """Fit model of astrometric error from LSST Overview paper
-
-    Parameters
-    ----------
-    snr : list or numpy.array
-        Signal-to-noise ratio of photometric observations
-    dist : list or numpy.array
-        Scatter in measured positions [mas]
-
-    Returns
-    -------
-    dict
-        The fit results for C, theta, sigmaSys along with their Units.
-    """
-    fit_params, fit_param_covariance = \
-        curve_fit(astromErrModel, snr, dist, p0=[1, 0.01])
-
-    params = {'C': 1, 'theta': fit_params[0], 'sigmaSys': fit_params[1],
-              'cUnits': '', 'thetaUnits': 'mas', 'sigmaSysUnits': 'mas'}
-    return params
-
-
 def positionRms(cat):
     """Calculate the RMS for RA, Dec for a set of observations an object.
 
@@ -527,33 +397,3 @@ def positionRms(cat):
     pos_rms = afwGeom.radToMas(pos_rms)  # milliarcsec
 
     return pos_rms
-
-
-def astromErrModel(snr, theta=1000, sigmaSys=10, C=1, **kwargs):
-    """Calculate expected astrometric uncertainty based on SNR.
-
-    mas = C*theta/SNR + sigmaSys
-
-    Parameters
-    ----------
-    snr : list or numpy.array
-        S/N of photometric measurements
-    theta : float or numpy.array, optional
-        Seeing
-    sigmaSys : float
-        Systematic error floor
-    C : float
-        Scaling factor
-
-    theta and sigmaSys must be given in the same units.
-    Typically choices might be any of arcsec, milli-arcsec, or radians
-    The default values are reasonable astronominal values in milliarcsec.
-    But the only thing that matters is that they're the same.
-
-    Returns
-    -------
-    np.array
-        Expected astrometric uncertainty.
-        Units will be those of theta + sigmaSys.
-    """
-    return C*theta/snr + sigmaSys

@@ -32,12 +32,13 @@ from lsst.utils import getPackageDir
 from lsst.validate.base import Metric, Job
 
 from .util import repoNameToPrefix
-from .matchreduce import (MatchedMultiVisitDataset, AnalyticPhotometryModel,
-                          AnalyticAstrometryModel)
-from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
-                      AMxMeasurement, AFxMeasurement, ADxMeasurement)
-from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
-                   plotAnalyticAstrometryModel)
+from .matchreduce import MatchedMultiVisitDataset
+from .photerrmodel import PhotometricErrorModel
+from .astromerrmodel import AstrometricErrorModel
+# from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
+#                       AMxMeasurement, AFxMeasurement, ADxMeasurement)
+# from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
+#                    plotAnalyticAstrometryModel)
 
 
 __all__ = ['run', 'runOneFilter']
@@ -187,134 +188,134 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               verbose=verbose)
-    photomModel = AnalyticPhotometryModel(matchedDataset)
-    astromModel = AnalyticAstrometryModel(matchedDataset)
-    linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
+    photomModel = PhotometricErrorModel(matchedDataset)
+    astromModel = AstrometricErrorModel(matchedDataset)
+    # linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
 
-    job = Job()
+    job = Job(blobs=[matchedDataset, photomModel, astromModel])
 
-    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs,
-                   verbose=verbose)
+    # PA1Measurement(metrics['PA1'], matchedDataset, filterName,
+    #                job=job, linkedBlobs=linkedBlobs,
+    #                verbose=verbose)
 
-    for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
-        PA2Measurement(metrics['PA2'], matchedDataset,
-                       pa1=job.get_measurement('PA1'), filter_name=filterName,
-                       spec_name=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+    # for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
+    #     PA2Measurement(metrics['PA2'], matchedDataset,
+    #                    pa1=job.get_measurement('PA1'), filter_name=filterName,
+    #                    spec_name=specName, verbose=verbose,
+    #                    job=job, linkedBlobs=linkedBlobs)
 
-    for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
-        PF1Measurement(metrics['PF1'], matchedDataset,
-                       job.get_measurement('PA1'),
-                       filterName, specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+    # for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
+    #     PF1Measurement(metrics['PF1'], matchedDataset,
+    #                    job.get_measurement('PA1'),
+    #                    filterName, specName, verbose=verbose,
+    #                    job=job, linkedBlobs=linkedBlobs)
 
-    AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    # AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
+    #                job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    for specName in metrics['AF1'].get_spec_names(filter_name=filterName):
-        AFxMeasurement(metrics['AF1'], matchedDataset,
-                       job.get_measurement('AM1'), filterName, specName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    # for specName in metrics['AF1'].get_spec_names(filter_name=filterName):
+    #     AFxMeasurement(metrics['AF1'], matchedDataset,
+    #                    job.get_measurement('AM1'), filterName, specName,
+    #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(metrics['AD1'], matchedDataset,
-                       job.get_measurement('AM1'), filterName, specName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    #     ADxMeasurement(metrics['AD1'], matchedDataset,
+    #                    job.get_measurement('AM1'), filterName, specName,
+    #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    # AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
+    #                job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    for specName in metrics['AF2'].get_spec_names(filter_name=filterName):
-        AFxMeasurement(metrics['AF2'], matchedDataset,
-                       job.get_measurement('AM2'), filterName, specName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    # for specName in metrics['AF2'].get_spec_names(filter_name=filterName):
+    #     AFxMeasurement(metrics['AF2'], matchedDataset,
+    #                    job.get_measurement('AM2'), filterName, specName,
+    #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(metrics['AD2'], matchedDataset,
-                       job.get_measurement('AM2'), filterName, specName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    #     ADxMeasurement(metrics['AD2'], matchedDataset,
+    #                    job.get_measurement('AM2'), filterName, specName,
+    #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    # AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
+    #                job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    for specName in metrics['AF3'].get_spec_names(filter_name=filterName):
-        AFxMeasurement(metrics['AF3'], matchedDataset,
-                       job.get_measurement('AM3'), filterName, specName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    # for specName in metrics['AF3'].get_spec_names(filter_name=filterName):
+    #     AFxMeasurement(metrics['AF3'], matchedDataset,
+    #                    job.get_measurement('AM3'), filterName, specName,
+    #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        ADxMeasurement(metrics['AD3'], matchedDataset,
-                       job.get_measurement('AM3'), filterName, specName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    #     ADxMeasurement(metrics['AD3'], matchedDataset,
+    #                    job.get_measurement('AM3'), filterName, specName,
+    #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    job.write_json(outputPrefix.rstrip('_') + '.json')
+    # job.write_json(outputPrefix.rstrip('_') + '.json')
 
-    if makePlot:
-        if job.get_measurement('AM1').value:
-            plotAMx(job.get_measurement('AM1'),
-                    job.get_measurement('AF1', spec_name='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
-        if job.get_measurement('AM2').value:
-            plotAMx(job.get_measurement('AM2'),
-                    job.get_measurement('AF2', spec_name='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
-        if job.get_measurement('AM3').value:
-            plotAMx(job.get_measurement('AM3'),
-                    job.get_measurement('AF3', spec_name='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
+    # if makePlot:
+    #     if job.get_measurement('AM1').value:
+    #         plotAMx(job.get_measurement('AM1'),
+    #                 job.get_measurement('AF1', spec_name='design'),
+    #                 filterName, amxSpecName='design',
+    #                 outputPrefix=outputPrefix)
+    #     if job.get_measurement('AM2').value:
+    #         plotAMx(job.get_measurement('AM2'),
+    #                 job.get_measurement('AF2', spec_name='design'),
+    #                 filterName, amxSpecName='design',
+    #                 outputPrefix=outputPrefix)
+    #     if job.get_measurement('AM3').value:
+    #         plotAMx(job.get_measurement('AM3'),
+    #                 job.get_measurement('AF3', spec_name='design'),
+    #                 filterName, amxSpecName='design',
+    #                 outputPrefix=outputPrefix)
 
-        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
+    #     plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
 
-        plotAnalyticPhotometryModel(matchedDataset, photomModel,
-                                    outputPrefix=outputPrefix)
+    #     plotAnalyticPhotometryModel(matchedDataset, photomModel,
+    #                                 outputPrefix=outputPrefix)
 
-        plotAnalyticAstrometryModel(matchedDataset, astromModel,
-                                    outputPrefix=outputPrefix)
+    #     plotAnalyticAstrometryModel(matchedDataset, astromModel,
+    #                                 outputPrefix=outputPrefix)
 
-    if makePrint:
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER +
-              '{band} band metric measurements'.format(band=filterName) +
-              bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    # if makePrint:
+    #     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    #     print(bcolors.BOLD + bcolors.HEADER +
+    #           '{band} band metric measurements'.format(band=filterName) +
+    #           bcolors.ENDC)
+    #     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-        wrapper = TextWrapper(width=65)
+    #     wrapper = TextWrapper(width=65)
 
-        for metricName in metrics:
-            metric = metrics[metricName]
-            print(bcolors.HEADER + '{name} - {reference}'.format(
-                name=metric.name, reference=metric.reference))
-            print(wrapper.fill(bcolors.ENDC + '{description}'.format(
-                description=metric.description).strip()))
+    #     for metricName in metrics:
+    #         metric = metrics[metricName]
+    #         print(bcolors.HEADER + '{name} - {reference}'.format(
+    #             name=metric.name, reference=metric.reference))
+    #         print(wrapper.fill(bcolors.ENDC + '{description}'.format(
+    #             description=metric.description).strip()))
 
-            for specName in metric.get_spec_names(filter_name=filterName):
-                try:
-                    m = job.get_measurement(metricName,
-                                            spec_name=specName,
-                                            filter_name=filterName)
-                except RuntimeError:
-                    print('\tSkipped {specName:12s} no spec'.format(
-                        specName=specName))
-                    continue
+    #         for specName in metric.get_spec_names(filter_name=filterName):
+    #             try:
+    #                 m = job.get_measurement(metricName,
+    #                                         spec_name=specName,
+    #                                         filter_name=filterName)
+    #             except RuntimeError:
+    #                 print('\tSkipped {specName:12s} no spec'.format(
+    #                     specName=specName))
+    #                 continue
 
-                if m.value is None:
-                    print('\tSkipped {specName:12s} no measurement'.format(
-                        specName=specName))
-                    continue
+    #             if m.value is None:
+    #                 print('\tSkipped {specName:12s} no measurement'.format(
+    #                     specName=specName))
+    #                 continue
 
-                spec = metric.get_spec(specName, filter_name=filterName)
-                passed = m.check_spec(specName)
-                if passed:
-                    prefix = bcolors.OKBLUE + '\tPassed '
-                else:
-                    prefix = bcolors.FAIL + '\tFailed '
-                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f} {units}'.format(
-                    specName=specName,
-                    meas=m.value,
-                    op=metric.operator_str,
-                    spec=spec.value,
-                    units=spec.units)
-                print(prefix + infoStr + bcolors.ENDC)
+    #             spec = metric.get_spec(specName, filter_name=filterName)
+    #             passed = m.check_spec(specName)
+    #             if passed:
+    #                 prefix = bcolors.OKBLUE + '\tPassed '
+    #             else:
+    #                 prefix = bcolors.FAIL + '\tFailed '
+    #             infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f} {units}'.format(
+    #                 specName=specName,
+    #                 meas=m.value,
+    #                 op=metric.operator_str,
+    #                 spec=spec.value,
+    #                 units=spec.units)
+    #             print(prefix + infoStr + bcolors.ENDC)
 
     return job
