@@ -39,10 +39,8 @@ from lsst.validate.base import BlobBase
 from .util import (getCcdKeyName, averageRaDecFromCat)
 
 
-__all__ = ['MatchedMultiVisitDataset', 'AnalyticAstrometryModel',
-           'isExtended', 'magNormDiff',
-           'fitExp', 'fitAstromErrModel',
-           'positionRms', 'astromErrModel']
+__all__ = ['MatchedMultiVisitDataset',
+           'isExtended', 'magNormDiff', 'fitExp', 'positionRms']
 
 
 class MatchedMultiVisitDataset(BlobBase):
