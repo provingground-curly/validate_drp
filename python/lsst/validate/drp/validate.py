@@ -35,6 +35,7 @@ from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
+from .calcsrd import AMxMeasurement
 # from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
 #                       AMxMeasurement, AFxMeasurement, ADxMeasurement)
 # from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
@@ -119,7 +120,7 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
             measurementCount = 0
             failCount = 0
             for m in job.measurements:
-                if m.value is None:
+                if m.quantity is None:
                     continue
                 measurementCount += 1
                 if not m.check_spec(specName):
@@ -190,7 +191,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
     astromModel = AstrometricErrorModel(matchedDataset)
-    # linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
+    linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
 
@@ -210,8 +211,9 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     #                    filterName, specName, verbose=verbose,
     #                    job=job, linkedBlobs=linkedBlobs)
 
-    # AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
-    #                job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    job.register_measurement(
+        AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
+                       linkedBlobs=linkedBlobs, verbose=verbose))
 
     # for specName in metrics['AF1'].get_spec_names(filter_name=filterName):
     #     AFxMeasurement(metrics['AF1'], matchedDataset,
@@ -222,8 +224,9 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     #                    job.get_measurement('AM1'), filterName, specName,
     #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    # AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
-    #                job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    job.register_measurement(
+        AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
+                       linkedBlobs=linkedBlobs, verbose=verbose))
 
     # for specName in metrics['AF2'].get_spec_names(filter_name=filterName):
     #     AFxMeasurement(metrics['AF2'], matchedDataset,
@@ -234,8 +237,9 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     #                    job.get_measurement('AM2'), filterName, specName,
     #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    # AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
-    #                job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    job.register_measurement(
+        AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
+                       linkedBlobs=linkedBlobs, verbose=verbose))
 
     # for specName in metrics['AF3'].get_spec_names(filter_name=filterName):
     #     AFxMeasurement(metrics['AF3'], matchedDataset,
@@ -246,7 +250,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     #                    job.get_measurement('AM3'), filterName, specName,
     #                    job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    # job.write_json(outputPrefix.rstrip('_') + '.json')
+    job.write_json(outputPrefix.rstrip('_') + '.json')
 
     # if makePlot:
     #     if job.get_measurement('AM1').value:
