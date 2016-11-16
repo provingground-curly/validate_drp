@@ -123,15 +123,15 @@ AM1:
   specs:
     - level: design
       value: 10.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
     - level: minimum
       value: 20.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
     - level: stretch
       value: 5.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
 
 AM2:
@@ -149,15 +149,15 @@ AM2:
   specs:
     - level: design
       value: 10.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
     - level: minimum
       value: 20.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
     - level: stretch
       value: 5.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
 
 AM3:
@@ -175,15 +175,15 @@ AM3:
   specs:
     - level: design
       value: 15.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
     - level: minimum
       value: 30.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
     - level: stretch
       value: 10.0
-      unit: mmag
+      unit: marcsec
       filter_names: [r, i]
 
 AF1:
