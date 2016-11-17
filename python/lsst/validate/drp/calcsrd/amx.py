@@ -167,7 +167,7 @@ class AMxMeasurement(MeasurementBase):
             print('No stars found that are {0:.1f}--{1:.1f} apart.'.format(
                   self.annulus[0], self.annulus[1]))
             self.rmsDistMas = None
-            self.quantity = 5 * u.arcmin  # FIXME
+            self.quantity = None
         else:
             self.rmsDistMas = np.asarray(radiansToMilliarcsec(rmsDistances)) \
                 * u.milliarcsecond
