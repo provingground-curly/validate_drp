@@ -21,6 +21,7 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
 
@@ -95,11 +96,9 @@ class AFxMeasurement(MeasurementBase):
     """
 
     metric = None
-    value = None
-    units = ''
 
     def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
-                 verbose=False, job=None, linkedBlobs=None):
+                 verbose=False, linkedBlobs=None):
         MeasurementBase.__init__(self)
 
         self.metric = metric
@@ -125,14 +124,12 @@ class AFxMeasurement(MeasurementBase):
             'ADx',
             datum=self.metric.get_spec_dependency(
                 self.spec_name,
-                'AD{0:d}'.format(self.metric.parameters['x'].value),
+                'AD{0:d}'.format(self.metric.x.quantity),
                 filter_name=self.filter_name))
 
-        if amx.value:
-            self.value = 100. * np.mean(amx.rmsDistMas > amx.value + self.ADx)
+        if amx.quantity:
+            v = 100. * np.mean(amx.rmsDistMas > amx.quantity + self.ADx) * u.Unit('')
+            self.quantity = v
         else:
             # FIXME previously would raise ValidateErrorNoStars
-            self.value = None
-
-        if job:
-            job.register_measurement(self)
+            self.quantity = None

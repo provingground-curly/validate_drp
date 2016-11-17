@@ -119,7 +119,7 @@ AM1:
   operator: "<="
   parameters:
     D: {value: 5.0, unit: arcmin}
-    x: {value: 1, unit: ''}
+    x: {value: 1}
   specs:
     - level: design
       value: 10.0
@@ -145,7 +145,7 @@ AM2:
   operator: "<="
   parameters:
     D: {value: 20.0, unit: arcmin}
-    x: {value: 2, unit: ''}
+    x: {value: 2}
   specs:
     - level: design
       value: 10.0
@@ -171,7 +171,7 @@ AM3:
   operator: "<="
   parameters:
     D: {value: 200.0, unit: arcmin}
-    x: {value: 2, unit: ''}
+    x: {value: 3}
   specs:
     - level: design
       value: 15.0
@@ -197,7 +197,7 @@ AF1:
   operator: "<="
   parameters:
     D: {value: 5.0, unit: arcmin}
-    x: {value: 1, unit: ''}
+    x: {value: 1}
   specs:
     - level: design
       value: 10.0
@@ -229,7 +229,7 @@ AF2:
   operator: "<="
   parameters:
     D: {value: 20.0, unit: arcmin}
-    x: {value: 2, unit: ''}
+    x: {value: 2}
   specs:
     - level: design
       value: 10.0
@@ -261,7 +261,7 @@ AF3:
   operator: "<="
   parameters:
     D: {value: 200.0, unit: arcmin}
-    x: {value: 3, unit: ''}
+    x: {value: 3}
   specs:
     - level: design
       value: 10.0
@@ -293,7 +293,7 @@ AD1:
   operator: "<="
   parameters:
     D: {value: 5.0, unit: arcmin}
-    x: {value: 1, unit: ''}
+    x: {value: 1}
   specs:
     - level: design
       value: 20.0
@@ -325,7 +325,7 @@ AD2:
   operator: "<="
   parameters:
     D: {value: 20.0, unit: arcmin}
-    x: {value: 2, unit: ''}
+    x: {value: 2}
   specs:
     - level: design
       value: 20.0
@@ -357,7 +357,7 @@ AD3:
   operator: "<="
   parameters:
     D: {value: 200.0, unit: arcmin}
-    x: {value: 3, unit: ''}
+    x: {value: 3}
   specs:
     - level: design
       value: 30.0
