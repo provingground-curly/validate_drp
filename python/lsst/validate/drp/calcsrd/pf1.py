@@ -21,6 +21,7 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
 
@@ -61,8 +62,6 @@ class PF1Measurement(MeasurementBase):
     """
 
     metric = None
-    value = None
-    units = 'mmag'
 
     def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
                  linkedBlobs=None, job=None, verbose=False):
@@ -73,7 +72,7 @@ class PF1Measurement(MeasurementBase):
 
         pa2spec = self.metric.get_spec(spec_name, filter_name=self.filter_name).\
             PA2.get_spec(spec_name, filter_name=self.filter_name)
-        self.register_parameter('pa2', datum=pa2spec)
+        self.register_parameter('pa2', datum=pa2spec.datum)
 
         self.matchedDataset = matchedDataset
 
@@ -86,8 +85,7 @@ class PF1Measurement(MeasurementBase):
         # Use first random sample from original PA1 measurement
         magDiffs = pa1.magDiff[0, :]
 
-        # FIXME should this be np.abs(magDiffs) (see pa2)?
-        self.value = 100 * np.mean(np.asarray(magDiffs) > self.pa2)
+        self.quantity = 100 * np.mean(np.abs(magDiffs) > self.pa2) * u.Unit('')
 
         if job:
             job.register_measurement(self)
