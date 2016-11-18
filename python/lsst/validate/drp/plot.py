@@ -525,7 +525,10 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     ----------
     amx : `AMxMeasurement`
     afx : `AFxMeasurement`
-    outputPrefix : str, optional
+    amxSpecName : `str`, optional
+        Name of the AMx specification to reference in the plot.
+        Default: ``'design'``.
+    outputPrefix : `str`, optional
         Prefix to use for filename of plot file.  Will also be used in plot
         titles. E.g., ``outputPrefix='Cfht_output_r_'`` will result in a file
         named ``'Cfht_output_r_AM1_D_5_arcmin_17.0-21.5.png'``
@@ -534,14 +537,13 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     fig = plt.figure(figsize=(10, 6))
     ax1 = fig.add_subplot(1, 1, 1)
 
-    histLabelTemplate = 'D: [{inner:.1f}-{outer:.1f}] {annulusUnits}\n'\
+    histLabelTemplate = 'D: [{inner.value:.1f}{inner.unit:latex}-{outer.value:.1f}{outer.unit:latex}]\n'\
                         'Mag: [{magBright:.1f}-{magFaint:.1f}]'
     ax1.hist(amx.rmsDistMas, bins=25, range=(0.0, 100.0),
              histtype='stepfilled',
              label=histLabelTemplate.format(
-                 inner=amx.annulus[0].value,
-                 outer=amx.annulus[1].value,
-                 annulusUnits=amx.parameters['annulus'].latex_unit,
+                 inner=amx.annulus[0],
+                 outer=amx.annulus[1],
                  magBright=amx.magRange[0],
                  magFaint=amx.magRange[1]))
 
@@ -578,20 +580,21 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
                 0, 1, linewidth=2, color='green',
                 label=afxLabel)
 
-    title = '{metric} Astrometric Repeatability over {D:d} {units}'.format(
+    title = '{metric} Astrometric Repeatability over {D.value:.0f}{D.unit:latex}'.format(
         metric=amx.label,
-        D=int(amx.D.value),
-        units=amx.parameters['D'].latex_unit)
+        D=amx.D)
     ax1.set_title(title)
     ax1.set_xlim(0.0, 100.0)
     ax1.set_xlabel(
-        '{rmsDistMas.label} (rmsDistMas.latex_unit)'.format(
+        '{rmsDistMas.label} ({rmsDistMas.latex_unit})'.format(
             rmsDistMas=amx.extras['rmsDistMas']))
     ax1.set_ylabel('# pairs / bin')
 
     ax1.legend(loc='upper right', fontsize=16)
 
-    plotPath = '{prefix}{metric}_D_{D:d}_{Dunits}_{magBright}_{magFaint}.{ext}'.format(
+    pathFormat = '{prefix}{metric}_D_{D:d}_{Dunits}_' + \
+                 '{magBright.value}_{magFaint.value}_{magFaint.unit}.{ext}'
+    plotPath = pathFormat.format(
         prefix=outputPrefix,
         metric=amx.label,
         D=int(amx.D.value),
@@ -600,5 +603,6 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
         magFaint=amx.magRange[1],
         ext='png')
 
+    plt.tight_layout()  # fix padding
     plt.savefig(plotPath, dpi=300)
     plt.close(fig)
