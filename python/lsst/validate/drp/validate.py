@@ -273,49 +273,48 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     #     plotAnalyticAstrometryModel(matchedDataset, astromModel,
     #                                 outputPrefix=outputPrefix)
 
-    # if makePrint:
-    #     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    #     print(bcolors.BOLD + bcolors.HEADER +
-    #           '{band} band metric measurements'.format(band=filterName) +
-    #           bcolors.ENDC)
-    #     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    if makePrint:
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER +
+              '{band} band metric measurements'.format(band=filterName) +
+              bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-    #     wrapper = TextWrapper(width=65)
+        wrapper = TextWrapper(width=65)
 
-    #     for metricName in metrics:
-    #         metric = metrics[metricName]
-    #         print(bcolors.HEADER + '{name} - {reference}'.format(
-    #             name=metric.name, reference=metric.reference))
-    #         print(wrapper.fill(bcolors.ENDC + '{description}'.format(
-    #             description=metric.description).strip()))
+        for metricName in metrics:
+            metric = metrics[metricName]
+            print(bcolors.HEADER + '{name} - {reference}'.format(
+                name=metric.name, reference=metric.reference))
+            print(wrapper.fill(bcolors.ENDC + '{description}'.format(
+                description=metric.description).strip()))
 
-    #         for specName in metric.get_spec_names(filter_name=filterName):
-    #             try:
-    #                 m = job.get_measurement(metricName,
-    #                                         spec_name=specName,
-    #                                         filter_name=filterName)
-    #             except RuntimeError:
-    #                 print('\tSkipped {specName:12s} no spec'.format(
-    #                     specName=specName))
-    #                 continue
+            for specName in metric.get_spec_names(filter_name=filterName):
+                try:
+                    m = job.get_measurement(metricName,
+                                            spec_name=specName,
+                                            filter_name=filterName)
+                except RuntimeError:
+                    print('\tSkipped {specName:12s} no spec'.format(
+                        specName=specName))
+                    continue
 
-    #             if m.value is None:
-    #                 print('\tSkipped {specName:12s} no measurement'.format(
-    #                     specName=specName))
-    #                 continue
+                if m.quantity is None:
+                    print('\tSkipped {specName:12s} no measurement'.format(
+                        specName=specName))
+                    continue
 
-    #             spec = metric.get_spec(specName, filter_name=filterName)
-    #             passed = m.check_spec(specName)
-    #             if passed:
-    #                 prefix = bcolors.OKBLUE + '\tPassed '
-    #             else:
-    #                 prefix = bcolors.FAIL + '\tFailed '
-    #             infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f} {units}'.format(
-    #                 specName=specName,
-    #                 meas=m.value,
-    #                 op=metric.operator_str,
-    #                 spec=spec.value,
-    #                 units=spec.units)
-    #             print(prefix + infoStr + bcolors.ENDC)
+                spec = metric.get_spec(specName, filter_name=filterName)
+                passed = m.check_spec(specName)
+                if passed:
+                    prefix = bcolors.OKBLUE + '\tPassed '
+                else:
+                    prefix = bcolors.FAIL + '\tFailed '
+                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f}'.format(
+                    specName=specName,
+                    meas=m.quantity,
+                    op=metric.operator_str,
+                    spec=spec.quantity)
+                print(prefix + infoStr + bcolors.ENDC)
 
     return job
