@@ -37,8 +37,7 @@ from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
                       AMxMeasurement, AFxMeasurement, ADxMeasurement)
-# from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
-#                    plotAnalyticAstrometryModel)
+from .plot import (plotAMx, )
 
 
 __all__ = ['run', 'runOneFilter']
@@ -248,12 +247,12 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
-    # if makePlot:
-    #     if job.get_measurement('AM1').value:
-    #         plotAMx(job.get_measurement('AM1'),
-    #                 job.get_measurement('AF1', spec_name='design'),
-    #                 filterName, amxSpecName='design',
-    #                 outputPrefix=outputPrefix)
+    if makePlot:
+        if job.get_measurement('AM1').quantity is not None:
+            plotAMx(job.get_measurement('AM1'),
+                    job.get_measurement('AF1', spec_name='design'),
+                    filterName, amxSpecName='design',
+                    outputPrefix=outputPrefix)
     #     if job.get_measurement('AM2').value:
     #         plotAMx(job.get_measurement('AM2'),
     #                 job.get_measurement('AF2', spec_name='design'),

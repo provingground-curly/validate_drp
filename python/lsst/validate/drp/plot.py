@@ -26,7 +26,9 @@ from __future__ import print_function, division
 import matplotlib.pylab as plt
 import numpy as np
 import scipy.stats
-from .matchreduce import fitExp, expModel, astromErrModel, photErrModel
+from .matchreduce import fitExp, expModel
+from .astromerrmodel import astromErrModel
+from .photerrmodel import photErrModel
 
 
 __all__ = ['plotOutlinedLinesHorizontal', 'plotOutlinedLinesVertical',
@@ -512,18 +514,6 @@ def plotPA1(pa1, outputPrefix=""):
     plt.close(fig)
 
 
-def plotAM1(*args, **kwargs):
-    return plotAMx(*args, x=1, **kwargs)
-
-
-def plotAM2(*args, **kwargs):
-    return plotAMx(*args, x=2, **kwargs)
-
-
-def plotAM3(*args, **kwargs):
-    return plotAMx(*args, x=3, **kwargs)
-
-
 def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     """Plot a histogram of the RMS in relative distance between pairs of
     stars.
@@ -541,13 +531,6 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
         named ``'Cfht_output_r_AM1_D_5_arcmin_17.0-21.5.png'``
         for an ``AMx.name=='AM1'`` and ``AMx.magRange==[17, 21.5]``.
     """
-
-    # percentOver = 100*AMx.fractionOver
-
-    # AMxAsDict = AMx.getDict()
-    # AMxAsDict['AMxADx'] = AMxAsDict['AMx_spec']+AMxAsDict['ADx_spec']
-    # AMxAsDict['percentOver'] = percentOver
-
     fig = plt.figure(figsize=(10, 6))
     ax1 = fig.add_subplot(1, 1, 1)
 
@@ -556,9 +539,9 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     ax1.hist(amx.rmsDistMas, bins=25, range=(0.0, 100.0),
              histtype='stepfilled',
              label=histLabelTemplate.format(
-                 inner=amx.annulus[0],
-                 outer=amx.annulus[1],
-                 annulusUnits=amx.parameters['annulus'].latex_units,
+                 inner=amx.annulus[0].value,
+                 outer=amx.annulus[1].value,
+                 annulusUnits=amx.parameters['annulus'].latex_unit,
                  magBright=amx.magRange[0],
                  magFaint=amx.magRange[1]))
 
@@ -567,49 +550,43 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     else:
         amxStatus = 'failed'
     amxLabel = 'Median RMS\n' + \
-               '{amx} measured: {amxValue:.1f} {amxUnits} ({status})'.format(
-                   amx=amx.label,
-                   amxValue=amx.value,
-                   amxUnits=amx.latex_units,
+               '{amx.label} measured: {amx.quantity:.1f} ({status})'.format(
+                   amx=amx,
                    status=amxStatus)
-    ax1.axvline(amx.value, 0, 1, linewidth=2, color='black',
+    ax1.axvline(amx.quantity.value, 0, 1, linewidth=2, color='black',
                 label=amxLabel)
 
     amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
-    amxSpecLabel = '{name} {specname}: {value:.0f} {units}'.format(
-        name=amx.label,
-        specname=amxSpecName,
-        value=amxSpec.value,
-        units=amxSpec.latex_units)
-    ax1.axvline(amxSpec.value, 0, 1, linewidth=2, color='red',
+    amxSpecLabel = '{amx.label} {specname}: {amx.quantity:.0f}'.format(
+        amx=amx,
+        specname=amxSpecName)
+    ax1.axvline(amxSpec.quantity.value, 0, 1, linewidth=2, color='red',
                 label=amxSpecLabel)
 
     if afx.check_spec(afx.spec_name):
         afxStatus = 'passed'
     else:
         afxStatus = 'failed'
-    afxLabelTemplate = '{afx} {specname}: {afxSpec}%\n' + \
-                       '{afx} measured: {afxValue:.1f}% ({status})'
+    afxLabelTemplate = '{afx.label} {afx.spec_name}: {afxSpec}%\n' + \
+                       '{afx.label} measured: {afx.quantity:.1f}% ({status})'
     afxLabel = afxLabelTemplate.format(
-        afx=afx.label,
-        specname=afx.spec_name,
-        afxSpec=afx.metric.get_spec(afx.spec_name, filter_name=filterName).value,
-        afxValue=afx.value,
+        afx=afx,
+        afxSpec=afx.metric.get_spec(afx.spec_name, filter_name=filterName).quantity,
         status=afxStatus)
 
-    ax1.axvline(amx.value + afx.ADx,
+    ax1.axvline((amx.quantity + afx.ADx).value,
                 0, 1, linewidth=2, color='green',
                 label=afxLabel)
 
     title = '{metric} Astrometric Repeatability over {D:d} {units}'.format(
         metric=amx.label,
-        D=int(amx.D),
-        units=amx.parameters['D'].latex_units)
+        D=int(amx.D.value),
+        units=amx.parameters['D'].latex_unit)
     ax1.set_title(title)
     ax1.set_xlim(0.0, 100.0)
-    ax1.set_xlabel('{label} ({units})'.format(
-        label=amx.extras['rmsDistMas'].label,
-        units=amx.extras['rmsDistMas'].latex_units))
+    ax1.set_xlabel(
+        '{rmsDistMas.label} (rmsDistMas.latex_unit)'.format(
+            rmsDistMas=amx.extras['rmsDistMas']))
     ax1.set_ylabel('# pairs / bin')
 
     ax1.legend(loc='upper right', fontsize=16)
@@ -617,8 +594,8 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     plotPath = '{prefix}{metric}_D_{D:d}_{Dunits}_{magBright}_{magFaint}.{ext}'.format(
         prefix=outputPrefix,
         metric=amx.label,
-        D=int(amx.D),
-        Dunits=amx.parameters['D'].units,
+        D=int(amx.D.value),
+        Dunits=amx.parameters['D'].unit,
         magBright=amx.magRange[0],
         magFaint=amx.magRange[1],
         ext='png')
