@@ -21,6 +21,7 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
 
@@ -95,8 +96,6 @@ class ADxMeasurement(MeasurementBase):
     """
 
     metric = None
-    value = None
-    units = ''
 
     def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
                  job=None, linkedBlobs=None, verbose=False):
@@ -126,19 +125,22 @@ class ADxMeasurement(MeasurementBase):
             'AFx',
             datum=self.metric.get_spec_dependency(
                 self.spec_name,
-                'AF{0:d}'.format(self.metric.parameters['x'].value),
+                'AF{0:d}'.format(self.metric.x.quantity),
                 filter_name=self.filter_name))
 
-        if amx.value:
+        if amx.quantity is not None:
             # No more than AFx of values will deviate by more than the
             # AMx (50th) + AFx percentiles
             # To compute ADx, use measured AMx and spec for AFx.
-            percentileAtAfx = np.percentile(amx.rmsDistMas, 100. - self.AFx)
-            percentileAtAmx = np.percentile(amx.rmsDistMas, amx.value)
-            self.value = percentileAtAfx - percentileAtAmx
+            afxAtPercentile = np.percentile(
+                amx.rmsDistMas.to(u.marcsec),
+                100. - self.AFx) * u.marcsec
+            self.quantity = afxAtPercentile - amx.quantity
         else:
             # FIXME previously would raise ValidateErrorNoStars
-            self.value = None
+            self.quantity = None
+
+        print('ADx', self.quantity)
 
         if job:
             job.register_measurement(self)
