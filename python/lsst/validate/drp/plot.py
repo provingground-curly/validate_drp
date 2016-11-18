@@ -464,8 +464,8 @@ def plotPA1(pa1, outputPrefix=""):
     Parameters
     ----------
     pa1 : `PA1Measurement`
-        A `PA1Measurement` object.
-    outputPrefix : str, optional
+        A PA1 object.
+    outputPrefix : `str`, optional
         Prefix to use for filename of plot file.  Will also be used in plot
         titles. E.g., outputPrefix='Cfht_output_r_' will result in a file
         named ``'Cfht_output_r_AM1_D_5_arcmin_17.0-21.5.png'``
@@ -479,10 +479,10 @@ def plotPA1(pa1, outputPrefix=""):
                 pa1.magDiff[0],
                 s=10, color=color['bright'], linewidth=0)
     # index 0 because we show only the first sample from multiple trials
-    ax1.axhline(+pa1.rms[0], color=color['rms'], linewidth=3)
-    ax1.axhline(-pa1.rms[0], color=color['rms'], linewidth=3)
-    ax1.axhline(+pa1.iqr[0], color=color['iqr'], linewidth=3)
-    ax1.axhline(-pa1.iqr[0], color=color['iqr'], linewidth=3)
+    ax1.axhline(+pa1.rms[0].value, color=color['rms'], linewidth=3)
+    ax1.axhline(-pa1.rms[0].value, color=color['rms'], linewidth=3)
+    ax1.axhline(+pa1.iqr[0].value, color=color['iqr'], linewidth=3)
+    ax1.axhline(-pa1.iqr[0].value, color=color['iqr'], linewidth=3)
 
     ax2 = fig.add_subplot(1, 2, 2, sharey=ax1)
     ax2.hist(pa1.magDiff[0], bins=25, range=diffRange,
@@ -490,26 +490,23 @@ def plotPA1(pa1, outputPrefix=""):
              normed=True, color=color['bright'])
     ax2.set_xlabel("relative # / bin")
 
+    labelTemplate = r'PA1({label}) = {q.value:4.2f} {q.unit:latex}'
     yv = np.linspace(diffRange[0], diffRange[1], 100)
     ax2.plot(scipy.stats.norm.pdf(yv, scale=pa1.rms[0]), yv,
              marker='', linestyle='-', linewidth=3, color=color['rms'],
-             label=r"PA1(RMS) = %4.2f %s" % (pa1.rms[0],
-                                             pa1.extras['rms'].latex_units))
+             label=labelTemplate.format(label='RMS', q=pa1.rms[0]))
     ax2.plot(scipy.stats.norm.pdf(yv, scale=pa1.iqr[0]), yv,
              marker='', linestyle='-', linewidth=3, color=color['iqr'],
-             label=r"PA1(IQR) = %4.2f %s" % (pa1.iqr[0],
-                                             pa1.extras['iqr'].latex_units))
+             label=labelTemplate.format(label='IQR', q=pa1.iqr[0]))
     ax2.set_ylim(*diffRange)
     ax2.legend()
-    # ax1.set_ylabel(u"12-pixel aperture magnitude diff (mmag)")
-    # ax1.set_xlabel(u"12-pixel aperture magnitude")
     ax1.set_xlabel("psf magnitude")
-    ax1.set_ylabel(r"psf magnitude diff (%s)" % pa1.extras['magDiff'].latex_units)
+    ax1.set_ylabel(r"psf magnitude diff ({0.unit:latex})".format(pa1.extras['magDiff'].quantity))
     for label in ax2.get_yticklabels():
         label.set_visible(False)
 
-    plt.suptitle("PA1: %s" % outputPrefix.rstrip('_'))
-    plotPath = "%s%s" % (outputPrefix, "PA1.png")
+    plt.tight_layout()  # fix padding
+    plotPath = ''.join((outputPrefix, "PA1.png"))
     plt.savefig(plotPath, format="png")
     plt.close(fig)
 
