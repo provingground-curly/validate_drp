@@ -123,7 +123,6 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
                 if m.quantity is None:
                     continue
                 measurementCount += 1
-                print(m.metric.name, m.quantity)
                 if not m.check_spec(specName):
                     passed = False
                     failCount += 1
@@ -212,43 +211,37 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     #                    filterName, specName, verbose=verbose,
     #                    job=job, linkedBlobs=linkedBlobs)
 
-    job.register_measurement(
-        AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
-                       linkedBlobs=linkedBlobs, verbose=verbose))
+    AMxMeasurement(metrics['AM1'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     for specName in metrics['AF1'].get_spec_names(filter_name=filterName):
-        job.register_measurement(
-            AFxMeasurement(metrics['AF1'], matchedDataset,
-                           job.get_measurement('AM1'), filterName, specName,
-                           linkedBlobs=linkedBlobs, verbose=verbose))
+        AFxMeasurement(metrics['AF1'], matchedDataset,
+                       job.get_measurement('AM1'), filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
         ADxMeasurement(metrics['AD1'], matchedDataset,
                        job.get_measurement('AM1'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    job.register_measurement(
-        AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
-                       linkedBlobs=linkedBlobs, verbose=verbose))
+    AMxMeasurement(metrics['AM2'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     for specName in metrics['AF2'].get_spec_names(filter_name=filterName):
-        job.register_measurement(
-            AFxMeasurement(metrics['AF2'], matchedDataset,
-                           job.get_measurement('AM2'), filterName, specName,
-                           linkedBlobs=linkedBlobs, verbose=verbose))
+        AFxMeasurement(metrics['AF2'], matchedDataset,
+                       job.get_measurement('AM2'), filterName, specName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
         ADxMeasurement(metrics['AD2'], matchedDataset,
                        job.get_measurement('AM2'), filterName, specName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    job.register_measurement(
-        AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
-                       linkedBlobs=linkedBlobs, verbose=verbose))
+    AMxMeasurement(metrics['AM3'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     for specName in metrics['AF3'].get_spec_names(filter_name=filterName):
-        job.register_measurement(
-            AFxMeasurement(metrics['AF3'], matchedDataset,
-                           job.get_measurement('AM3'), filterName, specName,
-                           linkedBlobs=linkedBlobs, verbose=verbose))
+        AFxMeasurement(metrics['AF3'], matchedDataset,
+                       job.get_measurement('AM3'), filterName, specName,
+                       linkedBlobs=linkedBlobs, verbose=verbose)
 
         ADxMeasurement(metrics['AD3'], matchedDataset,
                        job.get_measurement('AM3'), filterName, specName,

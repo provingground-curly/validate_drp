@@ -106,7 +106,7 @@ class AMxMeasurement(MeasurementBase):
     metric = None
 
     def __init__(self, metric, matchedDataset, filter_name, width=2.,
-                 magRange=None, linkedBlobs=None, verbose=False):
+                 magRange=None, linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)
 
         self.metric = metric
@@ -172,3 +172,6 @@ class AMxMeasurement(MeasurementBase):
             self.rmsDistMas = np.asarray(radiansToMilliarcsec(rmsDistances)) \
                 * u.milliarcsecond
             self.quantity = np.median(self.rmsDistMas)
+
+        if job:
+            job.register_measurement(self)

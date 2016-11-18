@@ -140,7 +140,5 @@ class ADxMeasurement(MeasurementBase):
             # FIXME previously would raise ValidateErrorNoStars
             self.quantity = None
 
-        print('ADx', self.quantity)
-
         if job:
             job.register_measurement(self)

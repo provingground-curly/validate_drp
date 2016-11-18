@@ -98,7 +98,7 @@ class AFxMeasurement(MeasurementBase):
     metric = None
 
     def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
-                 verbose=False, linkedBlobs=None):
+                 job=None, linkedBlobs=None, verbose=False):
         MeasurementBase.__init__(self)
 
         self.metric = metric
@@ -133,3 +133,6 @@ class AFxMeasurement(MeasurementBase):
         else:
             # FIXME previously would raise ValidateErrorNoStars
             self.quantity = None
+
+        if job:
+            job.register_measurement(self)
