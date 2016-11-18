@@ -61,8 +61,6 @@ class PA2Measurement(MeasurementBase):
     """
 
     metric = None
-    value = None
-    units = 'mmag'
 
     def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
                  linkedBlobs=None, job=None, verbose=False):
@@ -73,7 +71,7 @@ class PA2Measurement(MeasurementBase):
 
         pf1spec = self.metric.get_spec(spec_name, filter_name=self.filter_name).\
             PF1.get_spec(spec_name, filter_name=self.filter_name)
-        self.register_parameter('pf1', datum=pf1spec)
+        self.register_parameter('pf1', datum=pf1spec.datum)
 
         self.matchedDataset = matchedDataset
 
@@ -87,7 +85,7 @@ class PA2Measurement(MeasurementBase):
         magDiffs = pa1.magDiff[0, :]
 
         pf1Percentile = 100. - self.pf1
-        self.value = np.percentile(np.abs(magDiffs), pf1Percentile)
+        self.quantity = np.percentile(np.abs(magDiffs), pf1Percentile) * magDiffs.unit
 
         if job:
             job.register_measurement(self)
