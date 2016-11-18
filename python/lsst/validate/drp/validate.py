@@ -35,9 +35,8 @@ from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
-from .calcsrd import AMxMeasurement, AFxMeasurement, ADxMeasurement
-# from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
-#                       AMxMeasurement, AFxMeasurement, ADxMeasurement)
+from .calcsrd import (PA1Measurement,
+                      AMxMeasurement, AFxMeasurement, ADxMeasurement)
 # from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
 #                    plotAnalyticAstrometryModel)
 
@@ -195,9 +194,9 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
 
-    # PA1Measurement(metrics['PA1'], matchedDataset, filterName,
-    #                job=job, linkedBlobs=linkedBlobs,
-    #                verbose=verbose)
+    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs,
+                   verbose=verbose)
 
     # for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
     #     PA2Measurement(metrics['PA2'], matchedDataset,

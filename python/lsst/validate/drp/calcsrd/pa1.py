@@ -21,6 +21,7 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
 import lsst.pipe.base as pipeBase
 from lsst.validate.base import MeasurementBase
@@ -107,25 +108,26 @@ class PA1Measurement(MeasurementBase):
 
         # register input parameters for serialization
         # note that matchedDataset is treated as a blob, separately
-        self.register_parameter('numRandomShuffles', value=numRandomShuffles,
-                                units='', label='shuffles',
+        self.register_parameter('numRandomShuffles',
+                                numRandomShuffles,
+                                label='shuffles',
                                 description='Number of random shuffles')
 
         # register measurement extras
         self.register_extra(
-            'rms', units='mmag', label='RMS',
+            'rms', label='RMS',
             description='Photometric repeatability RMS of stellar pairs for '
                         'each random sampling')
         self.register_extra(
-            'iqr', units='mmag', label='IQR',
+            'iqr', label='IQR',
             description='Photometric repeatability IQR of stellar pairs for '
                         'each random sample')
         self.register_extra(
-            'magDiff', units='mmag', label='Delta mag',
+            'magDiff', label='Delta mag',
             description='Photometric repeatability differences magnitudes for '
                         'stellar pairs for each random sample')
         self.register_extra(
-            'magMean', units='mag', label='mag',
+            'magMean', label='mag',
             description='Mean magnitude of pairs of stellar sources matched '
                         'across visits, for each random sample.')
 
@@ -142,12 +144,12 @@ class PA1Measurement(MeasurementBase):
         pa1Samples = [self._calc_PA1_sample(matches, magKey)
                       for n in range(numRandomShuffles)]
 
-        self.rms = np.array([pa1.rms for pa1 in pa1Samples])
-        self.iqr = np.array([pa1.iqr for pa1 in pa1Samples])
-        self.magDiff = np.array([pa1.magDiffs for pa1 in pa1Samples])
-        self.magMean = np.array([pa1.magMean for pa1 in pa1Samples])
+        self.rms = np.array([pa1.rms for pa1 in pa1Samples]) * u.mmag
+        self.iqr = np.array([pa1.iqr for pa1 in pa1Samples]) * u.mmag
+        self.magDiff = np.array([pa1.magDiffs for pa1 in pa1Samples]) * u.mmag
+        self.magMean = np.array([pa1.magMean for pa1 in pa1Samples]) * u.mag
 
-        self.value = np.mean(self.iqr)
+        self.quantity = np.mean(self.iqr)
 
         if job:
             job.register_measurement(self)
@@ -157,6 +159,4 @@ class PA1Measurement(MeasurementBase):
         magMean = groupView.aggregate(np.mean, field=magKey)
         rmsPA1, iqrPA1 = computeWidths(magDiffs)
         return pipeBase.Struct(rms=rmsPA1, iqr=iqrPA1,
-                               rmsUnits='mmag', iqrUnits='mmag',
-                               magDiffs=magDiffs, magMean=magMean,
-                               magDiffsUnits='mmag', magMeanUnits='mag')
+                               magDiffs=magDiffs, magMean=magMean,)
