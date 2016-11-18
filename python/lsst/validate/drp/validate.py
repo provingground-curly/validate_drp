@@ -253,16 +253,16 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                     job.get_measurement('AF1', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
-    #     if job.get_measurement('AM2').value:
-    #         plotAMx(job.get_measurement('AM2'),
-    #                 job.get_measurement('AF2', spec_name='design'),
-    #                 filterName, amxSpecName='design',
-    #                 outputPrefix=outputPrefix)
-    #     if job.get_measurement('AM3').value:
-    #         plotAMx(job.get_measurement('AM3'),
-    #                 job.get_measurement('AF3', spec_name='design'),
-    #                 filterName, amxSpecName='design',
-    #                 outputPrefix=outputPrefix)
+        if job.get_measurement('AM2').quantity is not None:
+            plotAMx(job.get_measurement('AM2'),
+                    job.get_measurement('AF2', spec_name='design'),
+                    filterName, amxSpecName='design',
+                    outputPrefix=outputPrefix)
+        if job.get_measurement('AM3').quantity is not None:
+            plotAMx(job.get_measurement('AM3'),
+                    job.get_measurement('AF3', spec_name='design'),
+                    filterName, amxSpecName='design',
+                    outputPrefix=outputPrefix)
 
     #     plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
 
