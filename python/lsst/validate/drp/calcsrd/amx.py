@@ -24,7 +24,7 @@ import numpy as np
 import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
-from ..util import radiansToMilliarcsec, calcRmsDistances
+from ..util import averageRaDecFromCat
 
 
 class AMxMeasurement(MeasurementBase):
@@ -154,7 +154,7 @@ class AMxMeasurement(MeasurementBase):
             matches,
             self.annulus.to(u.arcmin).value,
             magRange=self.magRange.to(u.mag).value,
-            verbose=verbose)[0]
+            verbose=verbose)
 
         if len(rmsDistances) == 0:
             # raise ValidateErrorNoStars(
@@ -173,3 +173,167 @@ class AMxMeasurement(MeasurementBase):
 
         if job:
             job.register_measurement(self)
+
+
+def calcRmsDistances(groupView, annulus, magRange, verbose=False):
+    """Calculate the RMS distance of a set of matched objects over visits.
+
+    Parameters
+    ----------
+    groupView : lsst.afw.table.GroupView
+        GroupView object of matched observations from MultiMatch.
+    annulus : 2-element list or tuple of float
+        Distance range in which to compare object.  [arcmin]
+        E.g., `annulus=[19, 21]` would consider all objects
+        separated from each other between 19 and 21 arcminutes.
+    magRange : 2-element list or tuple of float
+        Magnitude range from which to select objects.
+        Default of `None` will result in all objects being considered.
+    verbose : bool, optional
+        Output additional information on the analysis steps.
+
+    Returns
+    -------
+    rmsDistMas : list
+        rmsDistMas
+    """
+
+    # First we make a list of the keys that we want the fields for
+    importantKeys = [groupView.schema.find(name).key for
+                     name in ['id', 'coord_ra', 'coord_dec',
+                              'object', 'visit', 'base_PsfFlux_mag']]
+
+    # Includes magRange through closure
+    def magInRange(cat):
+        mag = cat.get('base_PsfFlux_mag')
+        w, = np.where(np.isfinite(mag))
+        medianMag = np.median(mag[w])
+        return magRange[0] <= medianMag and medianMag < magRange[1]
+
+    groupViewInMagRange = groupView.where(magInRange)
+
+    # List of lists of id, importantValue
+    matchKeyOutput = [obj.get(key)
+                      for key in importantKeys
+                      for obj in groupViewInMagRange.groups]
+
+    jump = len(groupViewInMagRange)
+
+    ra = matchKeyOutput[1*jump:2*jump]
+    dec = matchKeyOutput[2*jump:3*jump]
+    visit = matchKeyOutput[4*jump:5*jump]
+
+    # Calculate the mean position of each object from its constituent visits
+    # `aggregate` calulates a quantity for each object in the groupView.
+    meanRa = groupViewInMagRange.aggregate(averageRaFromCat)
+    meanDec = groupViewInMagRange.aggregate(averageDecFromCat)
+
+    annulusRadians = arcminToRadians(annulus)
+
+    rmsDistances = list()
+    for obj1, (ra1, dec1, visit1) in enumerate(zip(meanRa, meanDec, visit)):
+        dist = sphDist(ra1, dec1, meanRa[obj1+1:], meanDec[obj1+1:])
+        objectsInAnnulus, = np.where((annulusRadians[0] <= dist) &
+                                     (dist < annulusRadians[1]))
+        for obj2 in objectsInAnnulus:
+            distances = matchVisitComputeDistance(
+                visit[obj1], ra[obj1], dec[obj1],
+                visit[obj2], ra[obj2], dec[obj2])
+            if not distances:
+                if verbose:
+                    print("No matching visits found for objs: %d and %d" %
+                          (obj1, obj2))
+                continue
+
+            finiteEntries, = np.where(np.isfinite(distances))
+            if len(finiteEntries) > 0:
+                rmsDist = np.std(np.array(distances)[finiteEntries])
+                rmsDistances.append(rmsDist)
+
+    return rmsDistances
+
+
+def sphDist(ra1, dec1, ra2, dec2):
+    """Calculate distance on the surface of a unit sphere.
+
+    Input and Output are in radians.
+
+    Notes
+    -----
+    Uses the Haversine formula to preserve accuracy at small angles.
+
+    Law of cosines approach doesn't work well for the typically very small
+    differences that we're looking at here.
+    """
+    # Haversine
+    dra = ra1-ra2
+    ddec = dec1-dec2
+    a = np.square(np.sin(ddec/2)) + \
+        np.cos(dec1)*np.cos(dec2)*np.square(np.sin(dra/2))
+    dist = 2 * np.arcsin(np.sqrt(a))
+
+    # This is what the law of cosines would look like
+#    dist = np.arccos(np.sin(dec1)*np.sin(dec2) + np.cos(dec1)*np.cos(dec2)*np.cos(ra1 - ra2))
+
+    # Could use afwCoord.angularSeparation()
+    #  but (a) that hasn't been made accessible through the Python interface
+    #  and (b) I'm not sure that it would be faster than the numpy interface.
+    #    dist = afwCoord.angularSeparation(ra1-ra2, dec1-dec2, np.cos(dec1), np.cos(dec2))
+
+    return dist
+
+
+def matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
+                              visit_obj2, ra_obj2, dec_obj2):
+    """Calculate obj1-obj2 distance for each visit in which both objects are seen.
+
+    For each visit shared between visit_obj1 and visit_obj2,
+    calculate the spherical distance between the obj1 and obj2.
+
+    Parameters
+    ----------
+    visit_obj1 : scalar, list, or numpy.array of int or str
+        List of visits for object 1.
+    ra_obj1 : scalar, list, or numpy.array of float
+        List of RA in each visit for object 1.
+    dec_obj1 : scalar, list or numpy.array of float
+        List of Dec in each visit for object 1.
+    visit_obj2 : list or numpy.array of int or str
+        List of visits for object 2.
+    ra_obj2 : list or numpy.array of float
+        List of RA in each visit for object 2.
+    dec_obj2 : list or numpy.array of float
+        List of Dec in each visit for object 2.
+
+    Results
+    -------
+    list of float
+        spherical distances (in radians) for matching visits.
+    """
+    distances = []
+    for i in range(len(visit_obj1)):
+        for j in range(len(visit_obj2)):
+            if (visit_obj1[i] == visit_obj2[j]):
+                if np.isfinite([ra_obj1[i], dec_obj1[i],
+                                ra_obj2[j], dec_obj2[j]]).all():
+                    distances.append(sphDist(ra_obj1[i], dec_obj1[i],
+                                             ra_obj2[j], dec_obj2[j]))
+    return distances
+
+
+def averageRaFromCat(cat):
+    meanRa, meanDec = averageRaDecFromCat(cat)
+    return meanRa
+
+
+def averageDecFromCat(cat):
+    meanRa, meanDec = averageRaDecFromCat(cat)
+    return meanDec
+
+
+def radiansToMilliarcsec(rad):
+    return np.rad2deg(rad)*3600*1000
+
+
+def arcminToRadians(arcmin):
+    return np.deg2rad(arcmin/60)
