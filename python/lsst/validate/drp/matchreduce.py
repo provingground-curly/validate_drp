@@ -40,7 +40,7 @@ from .util import (getCcdKeyName, averageRaDecFromCat)
 
 
 __all__ = ['MatchedMultiVisitDataset',
-           'isExtended', 'magNormDiff', 'fitExp', 'positionRms']
+           'magNormDiff', 'fitExp', 'positionRms']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -314,22 +314,6 @@ class MatchedMultiVisitDataset(BlobBase):
         # These attributes are not serialized
         self.goodMatches = goodMatches
         self.safeMatches = safeMatches
-
-
-def isExtended(source, extendedKey, extendedThreshold=1.0):
-    """Is the source extended attribute above the threshold.
-
-    Parameters
-    ----------
-    cat : collection with a .get method
-        for `extendedKey`
-    extendedKey
-        key to look up the extended object parameter from a schema.
-
-    Higher values of extendedness indicate a resolved object
-    that is larger than a point source.
-    """
-    return source.get(extendedKey) >= extendedThreshold
 
 
 def magNormDiff(cat):
