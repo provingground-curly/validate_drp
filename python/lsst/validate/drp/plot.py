@@ -25,6 +25,7 @@ from __future__ import print_function, division
 
 import matplotlib.pylab as plt
 import numpy as np
+import astropy.units as u
 import scipy.stats
 from .matchreduce import fitExp, expModel
 from .astromerrmodel import astromErrModel
@@ -35,7 +36,7 @@ __all__ = ['plotOutlinedLinesHorizontal', 'plotOutlinedLinesVertical',
            'plotOutlinedLines', 'plotOutlinedAxline',
            'plotAnalyticAstrometryModel', 'plotExpFit',
            'plotAstromErrModelFit', 'plotPhotErrModelFit',
-           'plotAnalyticPhotometryModel', 'plotPA1', 'plotAMx']
+           'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
 
 
 # Plotting defaults
@@ -290,11 +291,11 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
 
     x_model = np.linspace(*xlim, num=100)
     fit_model_mag_err = photErrModel(x_model,
-                                     sigmaSys=photomModel.sigmaSys,
-                                     gamma=photomModel.gamma,
-                                     m5=photomModel.m5)
-    fit_model_mmag_err = 1000*fit_model_mag_err
-    ax.plot(x_model, fit_model_mmag_err,
+                                     sigmaSys=photomModel.sigmaSys.to(u.mag).value,
+                                     gamma=photomModel.gamma.value,
+                                     m5=photomModel.m5.to(u.mag).value)
+    fit_model_mag_err = fit_model_mag_err * u.mag
+    ax.plot(x_model, fit_model_mag_err.to(u.mmag).value,
             color=color, linewidth=2,
             label='Model')
 
@@ -313,8 +314,8 @@ def plotMagerrFit(*args, **kwargs):
     plotExpFit(*args, **kwargs)
 
 
-def plotAnalyticPhotometryModel(dataset, photomModel,
-                                filterName='', outputPrefix=''):
+def plotPhotometryErrorModel(dataset, photomModel,
+                             filterName='', outputPrefix=''):
     """Plot photometric RMS for matched sources.
 
     Parameters
@@ -333,9 +334,9 @@ def plotAnalyticPhotometryModel(dataset, photomModel,
     bright, = np.where(dataset.snr > photomModel.brightSnr)
 
     numMatched = len(dataset.mag)
-    mmagRms = dataset.magrms * 1000.
+    mmagRms = dataset.magrms.to(u.mmag)
     mmagRmsHighSnr = mmagRms[bright]
-    mmagErr = dataset.magerr * 1000.
+    mmagErr = dataset.magerr.to(u.mmag)
     mmagErrHighSnr = mmagErr[bright]
 
     mmagrms_median = np.median(mmagRms)
@@ -351,17 +352,21 @@ def plotAnalyticPhotometryModel(dataset, photomModel,
                   color=color['bright'],
                   histtype='stepfilled', orientation='horizontal')
     plotOutlinedAxline(
-        ax[0][0].axhline, mmagrms_median,
+        ax[0][0].axhline,
+        mmagrms_median.value,
         color=color['all'],
-        label="Median RMS: {v:.1f} [mmag]".format(v=mmagrms_median))
+        label="Median RMS: {v:.1f}".format(v=mmagrms_median))
     plotOutlinedAxline(
-        ax[0][0].axhline, bright_mmagrms_median,
+        ax[0][0].axhline,
+        bright_mmagrms_median.value,
         color=color['bright'],
-        label="SNR > {snr:.0f}\nMedian RMS: {v:.1f} [{u}]".format(
+        label="SNR > {snr:.0f}\nMedian RMS: {v:.1f}".format(
             snr=photomModel.brightSnr,
-            v=bright_mmagrms_median, u='mmag'))
+            v=bright_mmagrms_median))
+
     ax[0][0].set_ylim([0, 500])
-    ax[0][0].set_ylabel("{0} [mmag]".format(dataset.datums['magrms'].label))
+    ax[0][0].set_ylabel("{magrms.label} [{mmagrms.unit:latex}]".format(
+        magrms=dataset.datums['magrms'], mmagrms=mmagRms))
     ax[0][0].legend(loc='upper right')
 
     ax[0][1].scatter(dataset.mag, mmagRms,
@@ -371,17 +376,20 @@ def plotAnalyticPhotometryModel(dataset, photomModel,
                      label='{label} > {value:.0f}'.format(
                          label=photomModel.datums['brightSnr'].label,
                          value=photomModel.brightSnr))
-
-    ax[0][1].set_xlabel("%s [mag]" % filterName)
-    ax[0][1].set_ylabel("RMS [mmag]")
+    ax[0][1].set_xlabel("{label} [{unit:latex}]".format(label=filterName,
+                                                        unit=dataset.mag.unit))
+    ax[0][1].set_ylabel("{label} [{unit:latex}]".format(label=dataset.datums['magrms'].label,
+                                                        unit=mmagRmsHighSnr.unit))
     ax[0][1].set_xlim([17, 24])
     ax[0][1].set_ylim([0, 500])
     ax[0][1].legend(loc='upper left')
     plotOutlinedAxline(
-        ax[0][1].axhline, mmagrms_median,
+        ax[0][1].axhline,
+        mmagrms_median.value,
         color=color['all'])
     plotOutlinedAxline(
-        ax[0][1].axhline, bright_mmagrms_median,
+        ax[0][1].axhline,
+        bright_mmagrms_median.value,
         color=color['bright'])
     matchCountTemplate = '\n'.join([
         'Matches:',
@@ -400,14 +408,20 @@ def plotAnalyticPhotometryModel(dataset, photomModel,
     ax[1][0].set_yscale('log')
     ax[1][0].plot([0, 1000], [0, 1000],
                   linestyle='--', color='black', linewidth=2)
-    ax[1][0].set_xlabel("RMS [mmag]")
-    ax[1][0].set_ylabel("Median Reported Magnitude Err [mmag]")
+    ax[1][0].set_xlabel("{label} [{unit:latex}]".format(
+        label=dataset.datums['magrms'].label,
+        unit=mmagRms.unit))
+    ax[1][0].set_ylabel("Median Reported Magnitude Err [{unit:latex}]".format(
+        unit=mmagErr.unit))
 
-    brightSnrInMmag = 2.5*np.log10(1 + (1/photomModel.brightSnr)) * 1000
-    ax[1][0].axhline(brightSnrInMmag, color='red', linewidth=4,
+    brightSnrMag = 2.5*np.log10(1 + (1/photomModel.brightSnr.value)) * u.mag
+    label = r'$SNR > {snr:.0f} \equiv \sigma <  {snrMag:0.1f}$'.format(
+        snr=photomModel.brightSnr,
+        snrMag=brightSnrMag.to(u.mmag))
+    ax[1][0].axhline(brightSnrMag.to(u.mmag).value,
+                     color='red', linewidth=4,
                      linestyle='dashed',
-                     label=r'$SNR > %.0f \equiv \sigma_\mathrm{mmag} <  %0.1f$'
-                     % (photomModel.brightSnr, brightSnrInMmag))
+                     label=label)
     ax[1][0].set_xlim([1, 500])
     ax[1][0].set_ylim([1, 500])
     ax[1][0].legend(loc='upper center')
@@ -419,32 +433,20 @@ def plotAnalyticPhotometryModel(dataset, photomModel,
                      mmagErrHighSnr,
                      s=10, color=color['bright'],
                      label=None)
-    ax[1][1].set_xlabel("%s [mag]" % filterName)
-    ax[1][1].set_ylabel("Median Reported Magnitude Err [mmag]")
+    ax[1][1].set_xlabel("{name} [{unit:latex}]".format(
+        name=filterName, unit=dataset.mag.unit))
+    ax[1][1].set_ylabel("Median Reported Magnitude Err [{unit:latex}]".format(
+        unit=mmagErr.unit))
     ax[1][1].set_xlim([17, 24])
     ax[1][1].set_ylim([1, 500])
-    ax[1][1].axhline(brightSnrInMmag, color='red', linewidth=4,
+    ax[1][1].axhline(brightSnrMag.to(u.mmag).value,
+                     color='red', linewidth=4,
                      linestyle='dashed',
                      label=None)
-    # label=r'$\sigma_\mathrm{mmag} < $ %0.1f' % (brightSnrInMmag))
 
-    # FIXME as originally implemented this makes the plot hard to interpret
-    # ax2 = ax[1][1].twinx()
-    # ax2.scatter(dataset.mag, dataset.snr,
-    #             color=color['all'], facecolor='none',
-    #             marker='.', label=None)
-    # ax2.scatter(np.asarray(dataset.mag)[bright],
-    #             np.asarray(dataset.snr)[bright],
-    #             color=color['bright'], facecolor='none',
-    #             marker='.', label=None)
-    # ax2.set_ylim(bottom=0)
-    # ax2.set_ylabel("SNR")
-    # ax2.axhline(photomModel.brightSnr,
-    #             color='red', linewidth=2, linestyle='dashed',
-    #             label=r'SNR > {0:.0f}'.format(float(photomModel.brightSnr)))
-
-    w, = np.where(mmagErr < 200)
-    plotPhotErrModelFit(dataset.mag[w], dataset.magerr[w] * 1000.,
+    w, = np.where(mmagErr < 200. * u.mmag)
+    plotPhotErrModelFit(dataset.mag[w].to(u.mag).value,
+                        dataset.magerr[w].to(u.mmag).value,
                         photomModel, ax=ax[1][1])
     ax[1][1].legend(loc='upper left')
 

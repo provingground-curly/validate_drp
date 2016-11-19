@@ -37,7 +37,7 @@ from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
                       AMxMeasurement, AFxMeasurement, ADxMeasurement)
-from .plot import (plotAMx, plotPA1)
+from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel)
 
 
 __all__ = ['run', 'runOneFilter']
@@ -266,8 +266,9 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
         plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
 
-    #     plotAnalyticPhotometryModel(matchedDataset, photomModel,
-    #                                 outputPrefix=outputPrefix)
+        plotPhotometryErrorModel(matchedDataset, photomModel,
+                                 filterName=filterName,
+                                 outputPrefix=outputPrefix)
 
     #     plotAnalyticAstrometryModel(matchedDataset, astromModel,
     #                                 outputPrefix=outputPrefix)
