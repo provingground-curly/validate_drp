@@ -192,6 +192,35 @@ def calcPa1(matches, magKey, numRandomShuffles=50):
     reject some outliers.  However, the IRQ is also less sensitive some
     realistic sources of scatter such as bad zero points, that the metric
     should include.
+
+    Examples
+    --------
+    Normally ``calcPa1`` is called by `PA1Measurement`, using data from
+    `lsst.validate.drp.matchreduce.MultiVisitMatchedDataset`. Here's an
+    example of how to call ``calcPa1`` directly given a Butler output
+    repository:
+
+    >>> import lsst.daf.persistence as dafPersist
+    >>> from lsst.afw.table import SourceCatalog, SchemaMapper, Field
+    >>> from lsst.afw.table import MultiMatch, SourceRecord, GroupView
+    >>> from lsst.validate.drp.calcsrd.pa1 import calcPa1
+    >>> repo = "CFHT/output"
+    >>> butler = dafPersist.Butler(repo)
+    >>> dataset = 'src'
+    >>> schema = butler.get(dataset + "_schema", immediate=True).schema
+    >>> mmatch = MultiMatch(newSchema,
+    >>>                     dataIdFormat={'visit': int, 'ccd': int},
+    >>>                     radius=matchRadius,
+    >>>                     RecordClass=SourceRecord)
+    >>> for vId in visitDataIds:
+    ...     cat = butler.get('src', vId)
+    ...     mmatch.add(catalog=cat, dataId=vId)
+    ...
+    >>> matchCat = mmatch.finish()
+    >>> allMatches = GroupView.build(matchCat)
+    >>> allMatches
+    >>> psfMagKey = allMatches.schema.find("base_PsfFlux_mag").key
+    >>> pa1 = calcPa1(allMatches, psfMagKey)
     """
     pa1Samples = [calcPa1Sample(matches, magKey)
                   for n in range(numRandomShuffles)]
@@ -234,6 +263,18 @@ def calcPa1Sample(matches, magKey):
           (mmag) for observed star across a randomly sampled pair of visits.
         - ``magMean``: array, shape ``(nMatches,)``, of mean magnitudes
           of stars observed across a randomly sampled pair of visits.
+
+    See also
+    --------
+    calcPa1 : A wrapper that repeatedly calls this function to build
+        the PA1 measurement.
+
+    Examples
+    --------
+    Normally ``calcPa1`` is called by `PA1Measurement`, using data from
+    `lsst.validate.drp.matchreduce.MultiVisitMatchedDataset`. Here's an
+    example of how to call ``calcPa1Sample`` directly given a Butler output
+    repository:
     """
     magDiffs = matches.aggregate(getRandomDiffRmsInMmags, field=magKey)
     magMean = matches.aggregate(np.mean, field=magKey)
