@@ -22,6 +22,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
+from astropy.coordinates import SkyCoord
 
 from lsst.validate.base import MeasurementBase
 from ..util import averageRaDecFromCat
@@ -154,8 +155,8 @@ class AMxMeasurement(MeasurementBase):
         matches = matchedDataset.safeMatches
         rmsDistances = calcRmsDistances(
             matches,
-            self.annulus.to(u.arcmin).value,
-            magRange=self.magRange.to(u.mag).value,
+            self.annulus,
+            magRange=self.magRange,
             verbose=verbose)
 
         if len(rmsDistances) == 0:
@@ -169,8 +170,7 @@ class AMxMeasurement(MeasurementBase):
             self.rmsDistMas = None
             self.quantity = None
         else:
-            self.rmsDistMas = np.asarray(radiansToMilliarcsec(rmsDistances)) \
-                * u.milliarcsecond
+            self.rmsDistMas = rmsDistances.to(u.marcsec)
             self.quantity = np.median(self.rmsDistMas)
 
         if job:
@@ -184,20 +184,19 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
     ----------
     groupView : lsst.afw.table.GroupView
         GroupView object of matched observations from MultiMatch.
-    annulus : 2-element list or tuple of float
-        Distance range in which to compare object.  [arcmin]
-        E.g., `annulus=[19, 21]` would consider all objects
-        separated from each other between 19 and 21 arcminutes.
-    magRange : 2-element list or tuple of float
+    annulus : length-2 `astropy.units.Quantity`
+        Distance range (i.e., arcmin) in which to compare objects.
+        E.g., `annulus=np.array([19, 21]) * u.arcmin` would consider all
+        objects separated from each other between 19 and 21 arcminutes.
+    magRange : length-2 `astropy.units.Quantity`
         Magnitude range from which to select objects.
-        Default of `None` will result in all objects being considered.
     verbose : bool, optional
         Output additional information on the analysis steps.
 
     Returns
     -------
-    rmsDistMas : list
-        rmsDistMas
+    rmsDistances : `astropy.units.Quantity`
+        RMS angular separations of a set of matched objects over visits.
     """
 
     # First we make a list of the keys that we want the fields for
@@ -205,12 +204,13 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
                      name in ['id', 'coord_ra', 'coord_dec',
                               'object', 'visit', 'base_PsfFlux_mag']]
 
-    # Includes magRange through closure
+    minMag, maxMag = magRange.to(u.mag).value
+
     def magInRange(cat):
         mag = cat.get('base_PsfFlux_mag')
         w, = np.where(np.isfinite(mag))
         medianMag = np.median(mag[w])
-        return magRange[0] <= medianMag and medianMag < magRange[1]
+        return minMag <= medianMag and medianMag < maxMag
 
     groupViewInMagRange = groupView.where(magInRange)
 
@@ -230,7 +230,7 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
     meanRa = groupViewInMagRange.aggregate(averageRaFromCat)
     meanDec = groupViewInMagRange.aggregate(averageDecFromCat)
 
-    annulusRadians = arcminToRadians(annulus)
+    annulusRadians = arcminToRadians(annulus.to(u.arcmin).value)
 
     rmsDistances = list()
     for obj1, (ra1, dec1, visit1) in enumerate(zip(meanRa, meanDec, visit)):
@@ -252,6 +252,8 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
                 rmsDist = np.std(np.array(distances)[finiteEntries])
                 rmsDistances.append(rmsDist)
 
+    # return quantity
+    rmsDistances = np.array(rmsDistances) * u.radian
     return rmsDistances
 
 
