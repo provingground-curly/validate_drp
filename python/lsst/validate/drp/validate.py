@@ -23,14 +23,9 @@ grading, and persistence.
 
 from __future__ import print_function, absolute_import
 
-import os
 from textwrap import TextWrapper
 
-import yaml
-
-from lsst.utils import getPackageDir
-from lsst.validate.base import Metric, Job
-
+from lsst.validate.base import Job
 from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
