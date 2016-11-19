@@ -22,7 +22,6 @@ for measurement classes, plotting functions, and JSON persistence.
 """
 
 from __future__ import print_function, absolute_import
-from scipy.optimize import curve_fit
 
 import numpy as np
 import astropy.units as u
@@ -39,8 +38,7 @@ from lsst.validate.base import BlobBase
 from .util import (getCcdKeyName, averageRaDecFromCat)
 
 
-__all__ = ['MatchedMultiVisitDataset',
-           'fitExp', 'positionRms']
+__all__ = ['MatchedMultiVisitDataset', 'positionRms']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -314,23 +312,6 @@ class MatchedMultiVisitDataset(BlobBase):
         # These attributes are not serialized
         self.goodMatches = goodMatches
         self.safeMatches = safeMatches
-
-
-def expModel(x, a, b, norm):
-    return a * np.exp(x/norm) + b
-
-
-def magerrModel(x, a, b):
-    return expModel(x, a, b, norm=5)
-
-
-def fitExp(x, y, y_err, deg=2):
-    """Fit an exponential quadratic to x, y, y_err.
-    """
-    fit_params, fit_param_covariance = \
-        curve_fit(expModel, x, y, p0=[1, 0.02, 5], sigma=y_err)
-
-    return fit_params
 
 
 def positionRms(cat):
