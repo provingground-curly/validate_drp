@@ -20,12 +20,14 @@
 
 from __future__ import print_function, absolute_import
 
+import math
+
 import numpy as np
+import scipy.stats
 import astropy.units as u
 
 import lsst.pipe.base as pipeBase
 from lsst.validate.base import MeasurementBase
-from ..util import getRandomDiffRmsInMas, computeWidths
 
 
 class PA1Measurement(MeasurementBase):
@@ -156,3 +158,102 @@ class PA1Measurement(MeasurementBase):
         rmsPA1, iqrPA1 = computeWidths(magDiffs)
         return pipeBase.Struct(rms=rmsPA1, iqr=iqrPA1,
                                magDiffs=magDiffs, magMean=magMean,)
+
+
+def getRandomDiffRmsInMas(array):
+    """Calculate the RMS difference in mmag between a random pairs of magnitudes.
+
+    Input
+    -----
+    array : list or np.array
+        Magnitudes from which to select the pair  [mag]
+
+    Returns
+    -------
+    float
+        RMS difference
+
+    Notes
+    -----
+    The LSST SRD recommends computing repeatability from a histogram of
+    magnitude differences for the same star measured on two visits
+    (using a median over the magDiffs to reject outliers).
+    Because we have N>=2 measurements for each star, we select a random
+    pair of visits for each star.  We divide each difference by sqrt(2)
+    to obtain RMS about the (unknown) mean magnitude,
+    instead of obtaining just the RMS difference.
+
+    See Also
+    --------
+    getRandomDiff : Get the difference
+
+    Examples
+    --------
+    >>> mag = [24.2, 25.5]
+    >>> rms = getRandomDiffRmsInMas(mag)
+    >>> print(rms)
+    212.132034
+    """
+    # For scalars, math.sqrt is several times faster than numpy.sqrt.
+    return (1000/math.sqrt(2)) * getRandomDiff(array)
+
+
+def getRandomDiff(array):
+    """Get the difference between two randomly selected elements of an array.
+
+    Input
+    -----
+    array : list or np.array
+
+    Returns
+    -------
+    float or int
+        Difference between two random elements of the array.
+
+    Notes
+    -----
+    * As implemented the returned value is the result of subtracting
+        two elements of the input array.  In all of the imagined uses
+        that's going to be a scalar (float, maybe int).
+        In principle, however the code as implemented returns the result
+        of subtracting two elements of the array, which could be any
+        arbitrary object that is the result of the subtraction operator
+        applied to two elements of the array.
+    * This is not the most efficient way to extract a pair,
+        but it's the easiest to write.
+    * Shuffling works correctly for low N (even N=2), where a naive
+        random generation of entries would result in duplicates.
+    * In principle it might be more efficient to shuffle the indices,
+        then extract the difference.  But this probably only would make a
+        difference for arrays whose elements were objects that were
+        substantially larger than a float.  And that would only make
+        sense for objects that had a subtraction operation defined.
+    """
+    copy = array.copy()
+    np.random.shuffle(copy)
+    return copy[0] - copy[1]
+
+
+def computeWidths(array):
+    """Compute the RMS and the scaled inter-quartile range of an array.
+
+    Input
+    -----
+    array : list or np.array
+
+    Returns
+    -------
+    float, float
+        RMS and scaled inter-quartile range (IQR).
+
+    Notes
+    -----
+    We estimate the width of the histogram in two ways:
+       using a simple RMS,
+       using the interquartile range (IQR)
+    The IQR is scaled by the IQR/RMS ratio for a Gaussian such that it
+       if the array is Gaussian distributed, then the scaled IQR = RMS.
+    """
+    rmsSigma = math.sqrt(np.mean(array**2))
+    iqrSigma = np.subtract.reduce(np.percentile(array, [75, 25])) / (scipy.stats.norm.ppf(0.75)*2)
+    return rmsSigma, iqrSigma
