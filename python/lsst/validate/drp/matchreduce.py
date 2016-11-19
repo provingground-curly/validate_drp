@@ -40,7 +40,7 @@ from .util import (getCcdKeyName, averageRaDecFromCat)
 
 
 __all__ = ['MatchedMultiVisitDataset',
-           'magNormDiff', 'fitExp', 'positionRms']
+           'fitExp', 'positionRms']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -314,28 +314,6 @@ class MatchedMultiVisitDataset(BlobBase):
         # These attributes are not serialized
         self.goodMatches = goodMatches
         self.safeMatches = safeMatches
-
-
-def magNormDiff(cat):
-    """Calculate the normalized mag/mag_err difference from the mean for a
-    set of observations of an objection.
-
-    Parameters
-    ----------
-    cat : collection with a .get method
-         for flux, flux+"-"
-
-    Returns
-    -------
-    pos_median : float
-        median diff of positions in milliarcsec.
-    """
-    mag = cat.get('base_PsfFlux_mag')
-    magerr = cat.get('base_PsfFlux_magerr')
-    mag_avg = np.mean(mag)
-    normDiff = (mag - mag_avg) / magerr
-
-    return normDiff
 
 
 def expModel(x, a, b, norm):
