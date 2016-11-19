@@ -134,7 +134,6 @@ class PA1Measurement(MeasurementBase):
                         'across visits, for each random sample.')
 
         self.matchedDataset = matchedDataset
-
         # Add external blob so that links will be persisted with
         # the measurement
         if linkedBlobs is not None:
@@ -143,7 +142,7 @@ class PA1Measurement(MeasurementBase):
 
         matches = matchedDataset.safeMatches
         magKey = matchedDataset.magKey
-        pa1Samples = [self._calc_PA1_sample(matches, magKey)
+        pa1Samples = [calcPa1Sample(matches, magKey)
                       for n in range(numRandomShuffles)]
 
         self.rms = np.array([pa1.rms for pa1 in pa1Samples]) * u.mmag
@@ -156,26 +155,47 @@ class PA1Measurement(MeasurementBase):
         if job:
             job.register_measurement(self)
 
-    def _calc_PA1_sample(self, groupView, magKey):
-        magDiffs = groupView.aggregate(getRandomDiffRmsInMas, field=magKey)
-        magMean = groupView.aggregate(np.mean, field=magKey)
-        rmsPA1, iqrPA1 = computeWidths(magDiffs)
-        return pipeBase.Struct(rms=rmsPA1, iqr=iqrPA1,
-                               magDiffs=magDiffs, magMean=magMean,)
+
+def calcPa1Sample(groupView, magKey):
+    """Compute photometric repeatability metrics for a random sample of stars
+    matched between two visits.
+
+    Parameters
+    ----------
+    groupView : `lsst.afw.table.GroupView`
+        `~lsst.afw.table.GroupView` of stars matched between two visits.
+    magKey : `lsst.afw.table` key
+        Magnitude column key in the ``groupView``.
+
+    Returns
+    -------
+    metrics : `lsst.pipe.base.Struct`
+        Metrics of pairs of stars matched between two visits. Fields are:
+
+        - ``rms``
+        - ``iqr``
+        - ``magDiffs`
+        - ``magMean``
+    """
+    magDiffs = groupView.aggregate(getRandomDiffRmsInMmags, field=magKey)
+    magMean = groupView.aggregate(np.mean, field=magKey)
+    rmsPA1, iqrPA1 = computeWidths(magDiffs)
+    return pipeBase.Struct(rms=rmsPA1, iqr=iqrPA1,
+                           magDiffs=magDiffs, magMean=magMean,)
 
 
-def getRandomDiffRmsInMas(array):
-    """Calculate the RMS difference in mmag between a random pairs of magnitudes.
+def getRandomDiffRmsInMmags(array):
+    """Calculate the RMS difference in mmag between a random pairs of stars.
 
-    Input
-    -----
-    array : list or np.array
+    Parameters
+    ----------
+    array : `list` or `numpy.ndarray`
         Magnitudes from which to select the pair  [mag]
 
     Returns
     -------
-    float
-        RMS difference
+    rmsMmags : `float`
+        RMS difference in mmag.
 
     Notes
     -----
@@ -194,7 +214,7 @@ def getRandomDiffRmsInMas(array):
     Examples
     --------
     >>> mag = [24.2, 25.5]
-    >>> rms = getRandomDiffRmsInMas(mag)
+    >>> rms = getRandomDiffRmsInMmags(mag)
     >>> print(rms)
     212.132034
     """
@@ -205,9 +225,10 @@ def getRandomDiffRmsInMas(array):
 def getRandomDiff(array):
     """Get the difference between two randomly selected elements of an array.
 
-    Input
-    -----
-    array : list or np.array
+    Parameters
+    ----------
+    array : `list` or `numpy.ndarray`
+        Input datset.
 
     Returns
     -------
@@ -216,22 +237,26 @@ def getRandomDiff(array):
 
     Notes
     -----
-    * As implemented the returned value is the result of subtracting
-        two elements of the input array.  In all of the imagined uses
-        that's going to be a scalar (float, maybe int).
-        In principle, however the code as implemented returns the result
-        of subtracting two elements of the array, which could be any
-        arbitrary object that is the result of the subtraction operator
-        applied to two elements of the array.
-    * This is not the most efficient way to extract a pair,
-        but it's the easiest to write.
-    * Shuffling works correctly for low N (even N=2), where a naive
-        random generation of entries would result in duplicates.
-    * In principle it might be more efficient to shuffle the indices,
-        then extract the difference.  But this probably only would make a
-        difference for arrays whose elements were objects that were
-        substantially larger than a float.  And that would only make
-        sense for objects that had a subtraction operation defined.
+
+    - As implemented the returned value is the result of subtracting
+      two elements of the input array.  In all of the imagined uses
+      that's going to be a scalar (float, maybe int).
+      In principle, however the code as implemented returns the result
+      of subtracting two elements of the array, which could be any
+      arbitrary object that is the result of the subtraction operator
+      applied to two elements of the array.
+
+    - This is not the most efficient way to extract a pair,
+      but it's the easiest to write.
+
+    - Shuffling works correctly for low N (even N=2), where a naive
+      random generation of entries would result in duplicates.
+
+    - In principle it might be more efficient to shuffle the indices,
+      then extract the difference.  But this probably only would make a
+      difference for arrays whose elements were objects that were
+      substantially larger than a float.  And that would only make
+      sense for objects that had a subtraction operation defined.
     """
     copy = array.copy()
     np.random.shuffle(copy)
@@ -241,22 +266,27 @@ def getRandomDiff(array):
 def computeWidths(array):
     """Compute the RMS and the scaled inter-quartile range of an array.
 
-    Input
-    -----
-    array : list or np.array
+    Parameters
+    ----------
+    array : `list` or `numpy.ndarray`
+        Array.
 
     Returns
     -------
-    float, float
-        RMS and scaled inter-quartile range (IQR).
+    rms : `float`
+        RMS
+    iqr : `float`
+        Scaled inter-quartile range (IQR, see *Notes*).
 
     Notes
     -----
     We estimate the width of the histogram in two ways:
-       using a simple RMS,
-       using the interquartile range (IQR)
+
+    - using a simple RMS,
+    - using the interquartile range (IQR)
+
     The IQR is scaled by the IQR/RMS ratio for a Gaussian such that it
-       if the array is Gaussian distributed, then the scaled IQR = RMS.
+    if the array is Gaussian distributed, then the scaled IQR = RMS.
     """
     rmsSigma = math.sqrt(np.mean(array**2))
     iqrSigma = np.subtract.reduce(np.percentile(array, [75, 25])) / (scipy.stats.norm.ppf(0.75)*2)
