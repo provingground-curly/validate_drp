@@ -65,36 +65,11 @@ class PA1Measurement(MeasurementBase):
     magMean : ndarray
         Mean magnitude of stars seen across visits, for each random sample.
 
-    Notes
-    -----
-    We calculate differences for 50 different random realizations of the
-    measurement pairs, to provide some estimate of the uncertainty on our RMS
-    estimates due to the random shuffling.  This estimate could be stated and
-    calculated from a more formally derived motivation but in practice 50
-    should be sufficient.
-
-    The LSST Science Requirements Document (LPM-17), or SRD, characterizes the
-    photometric repeatability by putting a requirement on the median RMS of
-    measurements of non-variable bright stars.  This quantity is PA1, with a
-    design, minimum, and stretch goals of (5, 8, 3) millimag following LPM-17
-    as of 2011-07-06, available at http://ls.st/LPM-17.
-
-    This present routine calculates this quantity in two different ways:
-
-    1. RMS
-    2. interquartile range (IQR)
-
-    and also returns additional quantities of interest:
-
-    - the pair differences of observations of stars,
-    - the mean magnitude of each star
-
-    While the SRD specifies that we should just compute the RMS directly, the
-    current filter doesn't screen out variable stars as carefully as the SRD
-    specifies, so using a more robust estimator like the IQR allows us to
-    reject some outliers.  However, the IRQ is also less sensitive some
-    realistic sources of scatter such as bad zero points, that the metric
-    should include.
+    See also
+    --------
+    calcPa1: Computes statistics of magnitudes differences of stars across
+        multiple visits. This is the main computation function behind
+        the PA1 measurement.
     """
 
     def __init__(self, metric, matchedDataset, filter_name,
@@ -130,7 +105,6 @@ class PA1Measurement(MeasurementBase):
                         'across visits, for each random sample.')
 
         self.matchedDataset = matchedDataset
-
         # Add external blob so that links will be persisted with
         # the measurement
         if linkedBlobs is not None:
@@ -139,39 +113,146 @@ class PA1Measurement(MeasurementBase):
 
         matches = matchedDataset.safeMatches
         magKey = matchedDataset.magKey
-        pa1Samples = [self._calc_PA1_sample(matches, magKey)
-                      for n in range(numRandomShuffles)]
-
-        self.rms = np.array([pa1.rms for pa1 in pa1Samples]) * u.mmag
-        self.iqr = np.array([pa1.iqr for pa1 in pa1Samples]) * u.mmag
-        self.magDiff = np.array([pa1.magDiffs for pa1 in pa1Samples]) * u.mmag
-        self.magMean = np.array([pa1.magMean for pa1 in pa1Samples]) * u.mag
-
-        self.quantity = np.mean(self.iqr)
+        results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
+        self.rms = results['rms']
+        self.iqr = results['iqr']
+        self.magDiff = results['magDiff']
+        self.magMean = results['magMean']
+        self.quantity = results['PA1']
 
         if job:
             job.register_measurement(self)
 
-    def _calc_PA1_sample(self, groupView, magKey):
-        magDiffs = groupView.aggregate(getRandomDiffRmsInMas, field=magKey)
-        magMean = groupView.aggregate(np.mean, field=magKey)
-        rmsPA1, iqrPA1 = computeWidths(magDiffs)
-        return pipeBase.Struct(rms=rmsPA1, iqr=iqrPA1,
-                               magDiffs=magDiffs, magMean=magMean,)
 
+def calcPa1(matches, magKey, numRandomShuffles=50):
+    """Calculate the photometric repeatability of measurements across a set
+    of randomly selected pairs of visits.
 
-def getRandomDiffRmsInMas(array):
-    """Calculate the RMS difference in mmag between a random pairs of magnitudes.
-
-    Input
-    -----
-    array : list or np.array
-        Magnitudes from which to select the pair  [mag]
+    Parameters
+    ----------
+    matches : `lsst.afw.table.GroupView`
+        `~lsst.afw.table.GroupView` of stars matched between visits,
+        from MultiMatch, provided by
+        `lsst.validate.drp.matchreduce.MatchedMultiVisitDataset`.
+    magKey : `lsst.afw.table` schema key
+        Magnitude column key in the ``groupView``.
+        E.g., ``magKey = allMatches.schema.find("base_PsfFlux_mag").key``
+        where ``allMatches`` is the result of
+        `lsst.afw.table.MultiMatch.finish()`.
 
     Returns
     -------
-    float
-        RMS difference
+    statistics : `dict`
+        Statistics to compute PA1. Fields are:
+
+        - ``PA1``: scalar `~astropy.unit.Quantity` of mean ``iqr``. This is
+          formally the PA1 metric measurement.
+        - ``rms``: `~astropy.unit.Quantity` array in mmag of photometric
+          repeatability RMS across ``numRandomShuffles``.
+          Shape: ``(nRandomSamples,)``.
+        - ``iqr``: `~astropy.unit.Quantity` array in mmag of inter-quartile
+          range of photometric repeatability distribution.
+          Shape: ``(nRandomSamples,)``.
+        - ``magDiff``: `~astropy.unit.Quantity` array of magnitude differences
+          between pairs of stars. Shape: ``(nRandomSamples, nMatches)``.
+        - ``magMean``: `~astropy.unit.Quantity` array of mean magnitudes of
+          each pair of stars. Shape: ``(nRandomSamples, nMatches)``.
+
+    Notes
+    -----
+    We calculate differences for ``numRandomShuffles`` different random
+    realizations of the measurement pairs, to provide some estimate of the
+    uncertainty on our RMS estimates due to the random shuffling.  This
+    estimate could be stated and calculated from a more formally derived
+    motivation but in practice 50 should be sufficient.
+
+    The LSST Science Requirements Document (LPM-17), or SRD, characterizes the
+    photometric repeatability by putting a requirement on the median RMS of
+    measurements of non-variable bright stars.  This quantity is PA1, with a
+    design, minimum, and stretch goals of (5, 8, 3) millimag following LPM-17
+    as of 2011-07-06, available at http://ls.st/LPM-17.
+
+    This present routine calculates this quantity in two different ways:
+
+    1. RMS
+    2. interquartile range (IQR)
+
+    **The PA1 scalar measurement is the median of the IQR.**
+
+    This function also returns additional quantities of interest:
+
+    - the pair differences of observations of stars,
+    - the mean magnitude of each star
+
+    While the SRD specifies that we should just compute the RMS directly, the
+    current filter doesn't screen out variable stars as carefully as the SRD
+    specifies, so using a more robust estimator like the IQR allows us to
+    reject some outliers.  However, the IRQ is also less sensitive some
+    realistic sources of scatter such as bad zero points, that the metric
+    should include.
+    """
+    pa1Samples = [calcPa1Sample(matches, magKey)
+                  for n in range(numRandomShuffles)]
+
+    rms = np.array([pa1.rms for pa1 in pa1Samples]) * u.mmag
+    iqr = np.array([pa1.iqr for pa1 in pa1Samples]) * u.mmag
+    magDiff = np.array([pa1.magDiffs for pa1 in pa1Samples]) * u.mmag
+    magMean = np.array([pa1.magMean for pa1 in pa1Samples]) * u.mag
+    pa1 = np.mean(iqr)
+    return {'rms': rms, 'iqr': iqr, 'magDiff': magDiff, 'magMean': magMean,
+            'PA1': pa1}
+
+
+def calcPa1Sample(matches, magKey):
+    """Compute one realization of PA1 by randomly sampling pairs of
+    visits.
+
+    Parameters
+    ----------
+    matches : `lsst.afw.table.GroupView`
+        `~lsst.afw.table.GroupView` of stars matched between visits,
+        from MultiMatch, provided by
+        `lsst.validate.drp.matchreduce.MatchedMultiVisitDataset`.
+    magKey : `lsst.afw.table` schema key
+        Magnitude column key in the ``groupView``.
+        E.g., ``magKey = allMatches.schema.find("base_PsfFlux_mag").key``
+        where ``allMatches`` is the result of
+        `lsst.afw.table.MultiMatch.finish()`.
+
+    Returns
+    -------
+    metrics : `lsst.pipe.base.Struct`
+        Metrics of pairs of stars matched between two visits. Fields are:
+
+        - ``rms``: scalar RMS of differences of stars observed in this
+          randomly sampled pair of visits.
+        - ``iqr``: scalar inter-quartile range (IQR) of differences of stars
+          observed in a randomly sampled pair of visits.
+        - ``magDiffs`: array, shape ``(nMatches,)``, of magnitude differences
+          (mmag) for observed star across a randomly sampled pair of visits.
+        - ``magMean``: array, shape ``(nMatches,)``, of mean magnitudes
+          of stars observed across a randomly sampled pair of visits.
+    """
+    magDiffs = matches.aggregate(getRandomDiffRmsInMmags, field=magKey)
+    magMean = matches.aggregate(np.mean, field=magKey)
+    rmsPA1, iqrPA1 = computeWidths(magDiffs)
+    return pipeBase.Struct(rms=rmsPA1, iqr=iqrPA1,
+                           magDiffs=magDiffs, magMean=magMean,)
+
+
+def getRandomDiffRmsInMmags(array):
+    """Calculate the RMS difference in mmag between a random pairing of
+    visits of a star.
+
+    Parameters
+    ----------
+    array : `list` or `numpy.ndarray`
+        Magnitudes from which to select the pair [mag].
+
+    Returns
+    -------
+    rmsMmags : `float`
+        RMS difference in mmag from a random pair of visits.
 
     Notes
     -----
@@ -190,7 +271,7 @@ def getRandomDiffRmsInMas(array):
     Examples
     --------
     >>> mag = [24.2, 25.5]
-    >>> rms = getRandomDiffRmsInMas(mag)
+    >>> rms = getRandomDiffRmsInMmags(mag)
     >>> print(rms)
     212.132034
     """
@@ -201,9 +282,10 @@ def getRandomDiffRmsInMas(array):
 def getRandomDiff(array):
     """Get the difference between two randomly selected elements of an array.
 
-    Input
-    -----
-    array : list or np.array
+    Parameters
+    ----------
+    array : `list` or `numpy.ndarray`
+        Input datset.
 
     Returns
     -------
@@ -212,22 +294,26 @@ def getRandomDiff(array):
 
     Notes
     -----
-    * As implemented the returned value is the result of subtracting
-        two elements of the input array.  In all of the imagined uses
-        that's going to be a scalar (float, maybe int).
-        In principle, however the code as implemented returns the result
-        of subtracting two elements of the array, which could be any
-        arbitrary object that is the result of the subtraction operator
-        applied to two elements of the array.
-    * This is not the most efficient way to extract a pair,
-        but it's the easiest to write.
-    * Shuffling works correctly for low N (even N=2), where a naive
-        random generation of entries would result in duplicates.
-    * In principle it might be more efficient to shuffle the indices,
-        then extract the difference.  But this probably only would make a
-        difference for arrays whose elements were objects that were
-        substantially larger than a float.  And that would only make
-        sense for objects that had a subtraction operation defined.
+
+    - As implemented the returned value is the result of subtracting
+      two elements of the input array.  In all of the imagined uses
+      that's going to be a scalar (float, maybe int).
+      In principle, however the code as implemented returns the result
+      of subtracting two elements of the array, which could be any
+      arbitrary object that is the result of the subtraction operator
+      applied to two elements of the array.
+
+    - This is not the most efficient way to extract a pair,
+      but it's the easiest to write.
+
+    - Shuffling works correctly for low N (even N=2), where a naive
+      random generation of entries would result in duplicates.
+
+    - In principle it might be more efficient to shuffle the indices,
+      then extract the difference.  But this probably only would make a
+      difference for arrays whose elements were objects that were
+      substantially larger than a float.  And that would only make
+      sense for objects that had a subtraction operation defined.
     """
     copy = array.copy()
     np.random.shuffle(copy)
@@ -237,22 +323,27 @@ def getRandomDiff(array):
 def computeWidths(array):
     """Compute the RMS and the scaled inter-quartile range of an array.
 
-    Input
-    -----
-    array : list or np.array
+    Parameters
+    ----------
+    array : `list` or `numpy.ndarray`
+        Array.
 
     Returns
     -------
-    float, float
-        RMS and scaled inter-quartile range (IQR).
+    rms : `float`
+        RMS
+    iqr : `float`
+        Scaled inter-quartile range (IQR, see *Notes*).
 
     Notes
     -----
     We estimate the width of the histogram in two ways:
-       using a simple RMS,
-       using the interquartile range (IQR)
+
+    - using a simple RMS,
+    - using the interquartile range (IQR)
+
     The IQR is scaled by the IQR/RMS ratio for a Gaussian such that it
-       if the array is Gaussian distributed, then the scaled IQR = RMS.
+    if the array is Gaussian distributed, then the scaled IQR = RMS.
     """
     rmsSigma = math.sqrt(np.mean(array**2))
     iqrSigma = np.subtract.reduce(np.percentile(array, [75, 25])) / (scipy.stats.norm.ppf(0.75)*2)
