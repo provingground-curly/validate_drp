@@ -34,7 +34,7 @@ from .photerrmodel import photErrModel
 
 __all__ = ['plotOutlinedLinesHorizontal', 'plotOutlinedLinesVertical',
            'plotOutlinedLines', 'plotOutlinedAxline',
-           'plotAnalyticAstrometryModel', 'plotExpFit',
+           'plotAstrometryErrorModel', 'plotExpFit',
            'plotAstromErrModelFit', 'plotPhotErrModelFit',
            'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
 
@@ -99,7 +99,7 @@ def plotOutlinedAxline(axMethod, x, **kwargs):
     axMethod(x, **foregroundArgs)
 
 
-def plotAnalyticAstrometryModel(dataset, astromModel, outputPrefix=''):
+def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
     """Plot angular distance between matched sources from different exposures.
 
     Creates a file containing the plot with a filename beginning with
@@ -130,26 +130,26 @@ def plotAnalyticAstrometryModel(dataset, astromModel, outputPrefix=''):
                histtype='stepfilled', orientation='horizontal')
 
     ax[0].set_ylim([0., 500.])
-    ax[0].set_ylabel("Distance [{units}]".format(
-        units=dataset.datums['dist'].latex_units))
+    ax[0].set_ylabel("Distance [{unit:latex}]".format(unit=dataset.dist.unit))
     plotOutlinedAxline(
-        ax[0].axhline, dist_median,
+        ax[0].axhline,
+        dist_median.value,
         color=color['all'],
-        label="Median RMS: {v:.1f} [{u}]".format(
-            v=dist_median, u=dataset.datums['dist'].latex_units))
+        label="Median RMS: {v.value:.1f} {v.unit:latex}".format(v=dist_median))
     plotOutlinedAxline(
-        ax[0].axhline, bright_dist_median,
+        ax[0].axhline,
+        bright_dist_median.value,
         color=color['bright'],
-        label="SNR > {snr:.0f}\nMedian RMS: {v:.1f} [{u}]".format(
+        label="SNR > {snr:.0f}\nMedian RMS: {v.value:.1f} {v.unit:latex}".format(
             snr=astromModel.brightSnr,
-            v=bright_dist_median, u=dataset.datums['dist'].latex_units))
+            v=bright_dist_median))
     ax[0].legend(loc='upper right')
 
     ax[1].scatter(dataset.snr, dataset.dist,
                   s=10, color=color['all'], label='All')
     ax[1].scatter(dataset.snr[bright], dataset.dist[bright], s=10,
                   color=color['bright'],
-                  label='SNR > %.0f' % astromModel.brightSnr)
+                  label='SNR > {0:.0f}'.format(astromModel.brightSnr))
     ax[1].set_xlabel("SNR")
     ax[1].set_xscale("log")
     ax[1].set_ylim([0., 500.])
@@ -161,7 +161,7 @@ def plotAnalyticAstrometryModel(dataset, astromModel, outputPrefix=''):
                                                    nAll=numMatched),
                transform=ax[1].transAxes, ha='left', va='baseline')
 
-    w, = np.where(dataset.dist < 200)
+    w, = np.where(dataset.dist < 200 * u.marcsec)
     plotAstromErrModelFit(dataset.snr[w], dataset.dist[w], astromModel,
                           ax=ax[1])
 
@@ -169,14 +169,18 @@ def plotAnalyticAstrometryModel(dataset, astromModel, outputPrefix=''):
     ax[1].axvline(astromModel.brightSnr,
                   color='red', linewidth=4, linestyle='dashed')
     plotOutlinedAxline(
-        ax[0].axhline, dist_median,
+        ax[0].axhline,
+        dist_median.value,
         color=color['all'])
     plotOutlinedAxline(
-        ax[0].axhline, bright_dist_median,
+        ax[0].axhline,
+        bright_dist_median.value,
         color=color['bright'])
 
-    plt.suptitle("Astrometry Check : %s" % outputPrefix.rstrip('_'),
-                 fontsize=30)
+    # Using title rather than suptitle because I can't get the top padding
+    plt.title("Astrometry Check : %s" % outputPrefix.rstrip('_'),
+              fontsize=30)
+    plt.tight_layout()
     plotPath = outputPrefix+"check_astrometry.png"
     plt.savefig(plotPath, format="png")
     plt.close(fig)
@@ -241,24 +245,18 @@ def plotAstromErrModelFit(snr, dist, model,
                                        theta=model.theta,
                                        sigmaSys=model.sigmaSys,
                                        C=model.C)
-    # labelTemplate = r'$C, \theta, \sigma_{{\rm sys}}$ = ' + '\n' + \
-    #     '{C:.2g}, {theta:.4g}, {sigmaSys:.4g} [mas]'
-    # label = labelTemplate.format(theta=model['theta'].value,
-    #                              sigmaSys=model['sigmaSys'].value,
-    #                              C=model['C'].value)
     ax.plot(x_model, fit_model_mas_err,
             color=color, linewidth=2,
             label='Model')
 
     modelLabelTemplate = '\n'.join([
         r'$C = {C:.2g}$',
-        r'$\theta = {theta:.4g}$',
-        r'$\sigma_\mathrm{{sys}} = {sigmaSys:.2g}$ {sigmaSysUnits}'])
+        r'$\theta$ = {theta:.4g}',
+        r'$\sigma_\mathrm{{sys}}$ = {sigmaSys.value:.2g} {sigmaSys.unit:latex}'])
     modelLabel = modelLabelTemplate.format(
         C=model.C,
         theta=model.theta,
-        sigmaSys=model.sigmaSys,
-        sigmaSysUnits=model.datums['sigmaSys'].latex_units)
+        sigmaSys=model.sigmaSys)
     ax.text(0.6, 0.4, modelLabel,
             transform=ax.transAxes, va='baseline', ha='left', color=color)
     # Set the x limits back to their original values.
