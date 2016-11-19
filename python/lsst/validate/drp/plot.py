@@ -27,14 +27,12 @@ import matplotlib.pylab as plt
 import numpy as np
 import astropy.units as u
 import scipy.stats
-from .matchreduce import fitExp, expModel
 from .astromerrmodel import astromErrModel
 from .photerrmodel import photErrModel
 
 
-__all__ = ['plotOutlinedLinesHorizontal', 'plotOutlinedLinesVertical',
-           'plotOutlinedLines', 'plotOutlinedAxline',
-           'plotAstrometryErrorModel', 'plotExpFit',
+__all__ = ['plotOutlinedAxline',
+           'plotAstrometryErrorModel',
            'plotAstromErrModelFit', 'plotPhotErrModelFit',
            'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
 
@@ -50,38 +48,19 @@ color = {'all': 'grey', 'bright': 'blue',
          'iqr': 'green', 'rms': 'red'}
 
 
-def plotOutlinedLinesHorizontal(ax, *args, **kwargs):
-    """Plot horizontal lines outlined in white.
-
-    The motivation is to let horizontal lines stand out clearly
-    even against a cluttered background.
-    """
-    plotOutlinedLines(ax.axhline, *args, **kwargs)
-
-
-def plotOutlinedLinesVertical(ax, *args, **kwargs):
-    """Plot vertical lines outlined in white.
-
-    The motivation is to let horizontal lines stand out clearly even against a
-    cluttered background.
-    """
-    plotOutlinedLines(ax.axvline, *args, **kwargs)
-
-
-def plotOutlinedLines(ax_plot, x1, x2, x1_color=color['all'],
-                      x2_color=color['bright']):
-    """Plot horizontal lines outlined in white.
-
-    The motivation is to let horizontal lines stand out clearly even against a
-    cluttered background.
-    """
-    ax_plot(x1, color='white', linewidth=4)
-    ax_plot(x2, color='white', linewidth=4)
-    ax_plot(x1, color=x1_color, linewidth=3)
-    ax_plot(x2, color=x2_color, linewidth=3)
-
-
 def plotOutlinedAxline(axMethod, x, **kwargs):
+    """Plot an axis line with a white shadow for better contrast.
+
+    Parameters
+    ----------
+    axMethod : `matplotlib.pyplot.axhline` or `matplotlib.pyplot.axvline`
+        A horizontal or vertical axis line plotting function.
+    x : float
+        Axis coordinate
+    **kwargs :
+        Keyword arguments for `~matplotlib.pyplot.axhline` or
+        `~matplotlib.pyplot.axvline`.
+    """
     shadowArgs = dict(kwargs)
     foregroundArgs = dict(kwargs)
 
@@ -186,37 +165,6 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
     plt.close(fig)
 
 
-def plotExpFit(x, y, y_err, fit_params=None, deg=2, ax=None, verbose=False):
-    """Plot an exponential quadratic fit to x, y, y_err.
-
-    Parameters
-    ----------
-    fit_params : list or numpy.array
-        Fit parameters to display
-        If None, then will be fit.
-    """
-
-    if ax is None:
-        ax = plt.figure()
-        xlim = [1, 1e4]
-    else:
-        xlim = ax.get_xlim()
-
-    if fit_params is None:
-        fit_params = fitExp(x, y, y_err, deg=2)
-
-    x_model = np.linspace(*xlim, num=100)
-    fit_model = expModel(x_model, *fit_params)
-    label = '%.4g exp(mag/%.4g) + %.4g' % \
-            (fit_params[0], fit_params[2], fit_params[1])
-    if verbose:
-        print(fit_params)
-        print(label)
-
-    ax.plot(x_model, fit_model, color='red',
-            label=label)
-
-
 def plotAstromErrModelFit(snr, dist, model,
                           color='red', ax=None, verbose=True):
     """Plot model of photometric error from LSST Overview paper
@@ -306,10 +254,6 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
                                   m5=photomModel.m5)
     ax.text(0.1, 0.8, label, color=color,
             transform=ax.transAxes, ha='left', va='top')
-
-
-def plotMagerrFit(*args, **kwargs):
-    plotExpFit(*args, **kwargs)
 
 
 def plotPhotometryErrorModel(dataset, photomModel,
