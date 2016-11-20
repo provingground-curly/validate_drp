@@ -22,7 +22,6 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord
 
 from lsst.validate.base import MeasurementBase
 from ..util import averageRaDecFromCat
