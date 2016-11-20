@@ -300,14 +300,3 @@ def constructRunList(filter, visits, ccds, ccdKeyName='ccd'):
                for v in visits]
 
     return runList
-
-
-def calcOrNone(func, x, ErrorClass, **kwargs):
-    """Calculate the `func` and return result.  If it raises ErrorClass, return None."""
-    try:
-        out = func(x, **kwargs)
-    except ErrorClass as e:
-        print(e)
-        out = None
-
-    return out
