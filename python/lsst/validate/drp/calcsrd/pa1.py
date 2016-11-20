@@ -72,8 +72,6 @@ class PA1Measurement(MeasurementBase):
         the PA1 measurement.
     """
 
-    metric = None
-
     def __init__(self, metric, matchedDataset, filter_name,
                  numRandomShuffles=50, verbose=False, job=None,
                  linkedBlobs=None):

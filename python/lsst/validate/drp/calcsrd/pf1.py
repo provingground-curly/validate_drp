@@ -61,8 +61,6 @@ class PF1Measurement(MeasurementBase):
     LPM-17 as of 2011-07-06, available at http://ls.st/LPM-17.
     """
 
-    metric = None
-
     def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
                  linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)

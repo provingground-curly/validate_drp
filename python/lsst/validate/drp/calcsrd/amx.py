@@ -103,8 +103,6 @@ class AMxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    metric = None
-
     def __init__(self, metric, matchedDataset, filter_name, width=2.,
                  magRange=None, linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)

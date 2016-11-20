@@ -95,8 +95,6 @@ class AFxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    metric = None
-
     def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
                  job=None, linkedBlobs=None, verbose=False):
         MeasurementBase.__init__(self)
