@@ -96,29 +96,3 @@ if __name__ == "__main__":
     kwargs['metrics'] = metrics
 
     validate.run(args.repo, **kwargs)
-
-    # FIXME restore this functionality
-    # Only check against expectations if we were passed information about those expectations
-    # if args.configFile and 'requirements' in kwargs:
-    #     kpm_verbose = True
-    #     level = 'design'
-    #     if kpm_verbose:
-    #         print("=======================================================")
-    #         print("Comparison against *LSST SRD* '%s' requirements." % level)
-    #     passedSrd = validate.didThisRepoPassSrd(args.repo,
-    #                                             kwargs['dataIds'],
-    #                                             level=kwargs['level'],
-    #                                             verbose=kpm_verbose)
-
-    #     if kpm_verbose:
-    #         print("=======================================================")
-    #         print("Comparison against *current development* requirements.")
-    #     passedCurrent = validate.didThisRepoPass(args.repo,
-    #                                              kwargs['dataIds'],
-    #                                              args.configFile,
-    #                                              verbose=kpm_verbose)
-
-    #     if passedCurrent:
-    #         print("PASSED.  ALL MEASURED KEY PERFORMANCE METRICS PASSED CURRENT REQUIREMENTS.")
-    #     else:
-    #         print("FAILED.  NOT ALL KEY PERFORMANCE METRICS PASSED.")
