@@ -131,7 +131,6 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
 
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
-                 medianAstromscatterRef=25, medianPhotoscatterRef=25, matchRef=500,
                  makePrint=True, makePlot=True, makeJson=True,
                  filterName=None, outputPrefix=None,
                  verbose=False,
@@ -158,12 +157,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         `lsst.validate.base.load_metrics`.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
-    medianAstromscatterRef : float, optional
-        Expected astrometric RMS [mas] across visits.
-    medianPhotoscatterRef : float, optional
-        Expected photometric RMS [mmag] across visits.
-    matchRef : int, optional
-        Expectation of the number of stars that should be matched across visits.
     makePrint : bool, optional
         Print calculated quantities (to stdout).
     makePlot : bool, optional
