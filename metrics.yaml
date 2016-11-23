@@ -118,7 +118,7 @@ AM1:
     with separations of D=5 arcmin (repeatability) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 5.0, units: arcmin}
+    D: {value: 5.0, unit: arcmin}
     x: {value: 1}
   specs:
     - level: design
@@ -144,7 +144,7 @@ AM2:
     with separations of D=20 arcmin (repeatability) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 20.0, units: arcmin}
+    D: {value: 20.0, unit: arcmin}
     x: {value: 2}
   specs:
     - level: design
@@ -170,7 +170,7 @@ AM3:
     with separations of D=200. arcmin (repeatability) (milliarcsec).
   operator: "<="
   parameters:
-    D: {value: 200.0, units: arcmin}
+    D: {value: 200.0, unit: arcmin}
     x: {value: 3}
   specs:
     - level: design
