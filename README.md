@@ -1,23 +1,31 @@
-Validate an LSST DM processCcd.py output repository
-against a set of LSST Science Requirements Document Key Performance Metrics.
-Also assess expected analytic models for photometric and astrometric performance following the LSST Overview paper.
+# lsst.validate.drp
+
+**Validate an LSST DM processCcd.py output repository against a set of [LSST Science Requirements Document](https://ls.st/srd) Key Performance Metrics.**
+
+Also assess expected analytic models for photometric and astrometric performance following the [LSST Overview paper](http://arxiv.org/abs/0805.2366v4).
+
+`validate_drp` is part of the LSST Science Pipelines.
+You can learn how to install the Pipelines at https://pipelines.lsst.io/install/index.html.
+
+## Quick run with CFHT observations
 
 ```
 setup validate_drp
 validateDrp.py CFHT/output
 ```
 
-will produce output, plots, JSON files analyzing the processed data in `CFHT/output`.  Metrics will be separately calculated for each filter represented in the repository.
+This will analyse the processed data in a Butler repository called `CFHT/output` and produce metric printouts, plots, and JSON files. Metrics will be separately calculated for each filter represented in the repository.
 
 Replace `CFHT/output` with your favorite processed data repository and you will get reasonable output.
 
-One can run `validateDrp.py` in any of the following modes:
+You can run `validateDrp.py` in any of the following modes:
 
-1. use no configuration file (as above)
-2. pass a configuration file with just validation parameters (brightSnr, number of expected matches, ...) but no dataId specifications
-3. pass a configuration file that specifies validation parameters and the dataIds to process.  See examples below for use with a `--configFile`
+1. Use no configuration file (as above).
+2. Pass a configuration file with just validation parameters (such as `brightSnr`) but no `dataId` specifications.
+3. Pass a configuration file that specifies validation parameters and the `dataIds` to process.  See examples below for use with a `--configFile`
 
-------
+## Full processCcd examples
+
 This package also includes examples that run processCcd task on some
 CFHT data and DECam data
 and validate the astrometric and photometric repeatability of the results.
@@ -30,74 +38,87 @@ Pre-requisites: install and declare the following
 4. `validation_data_cfht` from https://github.com/lsst/validation_data_cfht
 5. `validation_data_decam` from https://github.com/lsst/validation_data_decam
 
-The `obs_decam`, `obs_cfht`, `validation_data_cfht`, `validation_data_decam`, `validate_drp` products are also buildable by the standard LSST DM stack tools: `lsstsw` or `eups distrib`.  But they (intentionally) aren't in the dependency tree of `lsst_apps`.  If you have a stack already installed with `lsst_apps`, you can install these in the same manner.  E.g.,
+The `obs_decam`, `obs_cfht`, `validation_data_cfht`, `validation_data_decam`, `validate_drp` products are also buildable by the standard LSST DM stack tools: `lsstsw` or `eups distrib`.  But they (intentionally) aren't in the dependency tree of `lsst_apps`.
+
+If you have a stack already [installed with `lsst_apps`](https://pipelines.lsst.io/install/index.html), you can install these in the same manner.
+
+Using [eups distrib](https://pipelines.lsst.io/install/newinstall.html):
 
 ```
 eups distrib install obs_decam obs_cfht validation_data_decam validation_data_cfht validate_drp
 ```
 
-XOR
+Alternatively, using [lsstsw](https://pipelines.lsst.io/install/lsstsw.html):
 
 ```
 rebuild -u obs_decam obs_cfht validation_data_decam validation_data_cfht validate_drp
 ```
 
-------
-To setup for a run with CFHT:
+### Example: CFHT
+
+To set up for a run with CFHT:
+
 ```
 setup pipe_tasks
 setup obs_cfht
 setup validation_data_cfht
 setup validate_drp
 ```
+
 As usual, if any of these packages are not declared current you will also need to specify a version or tag.
 
 `validation_data_cfht` contains both the test CFHT data and selected SDSS reference catalogs in astrometry.net format.
 
 Run the measurement algorithm processing and astrometry test with
+
 ```
 $VALIDATE_DRP_DIR/examples/runCfhtTest.sh
 ```
+
 This will create a repository in your current working directory called CFHT.
 
-The last line of the output will give the median astrometric scatter (in milliarcseconds) for stars with mag < 21.
+**Note:** You can, instead, run:
 
-------
+```
+examples/runCfhtQuickTest.sh
+```
+
+This quick test processes on a single CCD, which is useful for debugging.
+
+
+### Example: DECam
+
 To setup for a run with DECam:
+
 ```
 setup pipe_tasks
 setup obs_decam
 setup validation_data_decam
 setup validate_drp
 ```
+
 As usual, if any of these packages are not declared current you will also need to specify a version or tag.
 
 `validation_data_decam` contains both the test DECam data and selected SDSS reference catalogs in astrometry.net format.
 
 Run the measurement algorithm processing and astrometry test with
+
 ```
 $VALIDATE_DRP_DIR/examples/runDecamTest.sh
 ```
+
 This will create a repository in your current working directory called DECam.
 
-The last line of the output will give the median astrometric scatter (in milliarcseconds) for stars with mag < 21.
+**Note:** You can, instead, run:
 
-------
-There are also "Quick" versions to run one CCD for quick debugging and verification that things are running properly: `examples/runCfhtQuickTest.sh` and `examples/runDecamQuickTest.sh`.
-
-------
-Multiple filters can be processed by specifying a filter name for each visit.  See `examples/DecamCosmos.yaml` for an example.  In brief:
 ```
-# Visit - filter are matched pairs.
-visits: [176837, 176839, 176840, 176841, 176842, 176843, 176844, 176845, 176846,
-         177341, 177342, 177343, 177344, 177345, 177346,]
-filter: ['z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z',
-         'r', 'r', 'r', 'r', 'r', 'r', ]
-# ccd list is iterated through for each visit-filter pair
-ccdnum: [10, 11, 12, 13, 14, 15, 16, 17, 18]
+examples/runDecamQuickTest.sh
 ```
 
-------
+This quick test processes on a single CCD, which is useful for debugging.
+
+### Details on the processing
+
 While `examples/runCfhtTest.sh` and `examples/runDecamTest.sh` respectively do all of the processing and validation analysis, below are some examples of running the processing/measurement steps individually.  While these examples are from  the CFHT validation example, analogous commands would work for DECam.
 
 1. Make sure the astrometry.net environment variable is pointed to the right place for this validation set:
@@ -147,31 +168,103 @@ Once these basic steps are completed, then you can run any of the following:
 
 Note that the example validation test selects several of the CCDs and will fail if you just pass it a repository with 1 visit or just 1 CCD.
 
-Notes
------
+## Reference
+
+### validate.py commmand line usage
+
+`validateDrp.py` is the command line interface to `validate_drp`.
+
+```
+usage: validateDrp.py [-h] [--configFile CONFIGFILE]
+                      [--metricsFile METRICSFILE] [--verbose] [--noplot]
+                      [--level LEVEL]
+                      repo
+
+Calculate and plot validation Key Project Metrics from the LSST SRD.
+http://ls.st/LPM-17 Produces results to: STDOUT Summary of key metrics
+`REPONAME*.png` Plots of key metrics. Generated in current working directory.
+`REPONAME*.json` JSON serialization of each KPM. where REPONAME is based on the
+repository name but with path separators replaced with underscores. E.g.,
+`Cfht/output` -> `Cfht_output_`.
+
+positional arguments:
+  repo                  path to a repository containing the output of
+                        processCcd
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --configFile CONFIGFILE, -c CONFIGFILE
+                        YAML configuration file validation parameters and
+                        dataIds.
+  --metricsFile METRICSFILE
+                        Path of YAML file with LPM-17 metric definitions.
+  --verbose, -v         Display additional information about the analysis.
+  --noplot              Skip making plots of performance.
+  --level LEVEL         Level of SRD requirement to meet: "minimum", "design",
+                        "stretch"
+```
+
+### YAML configuration files (--configFile)
+
+You can configure `validateDrp.py` by assigning a YAML file's path to the `--configFile` command argument.
+See `validate_drp`'s `examples/` directory for examples.
+The fields are:
+
+- `brightSnr` (float): Only consider stars with a S/N high than this limit.
+- `visits` (array of ints): List of visit identifiers to process.
+- `filter` (array of strings, or string): Filter to process, or a filter name for each visit (see [Specifying multiple filters](#specifying-multiple-filters)).
+- `ccd` (array of ints): List of CCD chips to process from each visit.
+
+#### Specifying multiple filters
+
+Multiple filters can be processed by specifying a filter name for each visit.  See `examples/DecamCosmos.yaml` for an example.  In brief:
+
+```
+# Visit - filter are matched pairs.
+visits: [176837, 176839, 176840, 176841, 176842, 176843, 176844, 176845, 176846,
+         177341, 177342, 177343, 177344, 177345, 177346,]
+filter: ['z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z',
+         'r', 'r', 'r', 'r', 'r', 'r', ]
+# ccd list is iterated through for each visit-filter pair
+ccdnum: [10, 11, 12, 13, 14, 15, 16, 17, 18]
+```
+
+### metrics.yaml (--metricsFile)
+
+Metrics and their specification levels are defined in a YAML file.
+You can choose this file by assigning its path to `validateDrp.py`'s `--metricsFile` argument.
+By default, `validateDrp.py` uses the `metrics.yaml` file at the root of its repository.
+See the `validate_base` documentation for details on the file's schema.
+
+To add a custom specification level for an existing metric:
+
+1. Make a copy of `validate_drp`'s `metrics.yaml`.
+2. Add the new specification level (see the `validate_base` documentation, and also follow the existing YAML schema).
+3. Use this custom metric file to `validateDrp.py` with the `--metricsFile` argument.
+
+
+## Notes
+
 * Will likely not successfully run on more than 500 catalogs per band due to memory limits and inefficiencies in the current matching approach.
 * The astrometric and photometric error models are formally valid for individual images.  However, they are being applied here to the results from the set of images, which is implicitly looking at some sort of mean performance.
 E.g., the expected astrometric uncertainty is intimately related to the seeing of the image.  For collections of images where most have a similar seeing, these estimates are useful and reasonable.  However, if the data set analyzed consisted of a set of images distributed across a wide range of seeing values, then the fits here have less direct meaning.
 
+## Files
 
-
-Files of Interest:
-------------------
-* `bin.src/validateDrp.py`  : Analyze output data produced by processCcd.py
-* `config/cfhtConfig.py`  : empty config overrides for Cfht.  Edit to easily include config parameters in the examples.
-* `config/decamConfig.py` : empty config overrides for Decam.  Edit to easily include config parameters in the examples.
-* `examples/runCfhtTest.sh`  : CFHT Run initialization, ingest, measurement, and astrometry validation.
-* `examples/runDecamTest.sh` : DECam Run initialization, ingest, measurement, and astrometry validation.
-* `examples/runExample.sh`  : General example runner.
-* `examples/Cfht.yaml`   : CFHT YAML file with visits, ccd, paramaters for validateDrp.
-* `examples/Decam.yaml`   : DECam YAML file with visits, ccd, paramaters for validateDrp.
-* `examples/DecamCosmos.yaml`   : DECam COSMOS YAML file with visits, ccd, paramaters for validateDrp.
-* `python/lsst/validate/drp/base.py` : base routines for the module
-* `python/lsst/validate/drp/calcSrd.py` : calculate metrics defined by the LSST SRC.
-* `python/lsst/validate/drp/check.py` : coordination and calculation routines.
-* `python/lsst/validate/drp/io.py` : JSON input and output routines.
-* `python/lsst/validate/drp/plot.py` : plotting routines
-* `python/lsst/validate/drp/print.py` : printing routines
-* `python/lsst/validate/drp/srdSpec.py` : pipeBase Struct with SRD specifications.  Access routine helper.
-* `python/lsst/validate/drp/util.py` : utility routines
-* `README.md` : THIS FILE.  Guide and examples.
+* `bin.src/validateDrp.py`: Analyze output data produced by processCcd.py
+* `config/cfhtConfig.py`: empty config overrides for Cfht.  Edit to easily include config parameters in the examples.
+* `config/decamConfig.py`: empty config overrides for Decam.  Edit to easily include config parameters in the examples.
+* `examples/runCfhtTest.sh`: CFHT Run initialization, ingest, measurement, and astrometry validation.
+* `examples/runDecamTest.sh`: DECam Run initialization, ingest, measurement, and astrometry validation.
+* `examples/runExample.sh`: General example runner.
+* `examples/Cfht.yaml`: CFHT YAML file with visits, ccd, paramaters for validateDrp.
+* `examples/Decam.yaml`: DECam YAML file with visits, ccd, paramaters for validateDrp.
+* `examples/DecamCosmos.yaml`: DECam COSMOS YAML file with visits, ccd, paramaters for validateDrp.
+* `python/lsst/validate/drp/validate.py`: Main driver for metric measurements, plotting, and summary printouts.
+* `python/lsst/validate/drp/calcsrd`: Includes modules that calculate each metric
+* `python/lsst/validate/drp/matchreduce.py`: Matches star catalogs across mulitple visits; this catalog is used by metric measurements in cluding AMx, ADx, AFx, PA1, PA2 and PF1.
+* `python/lsst/validate/drp/astromerrmodel.py`: Model of astrometric errors.
+* `python/lsst/validate/drp/photerrmodel.py`: Model of photometric errors.
+* `python/lsst/validate/drp/plot.py`: Generate matplotlib visualizations metrics and error models.
+* `python/lsst/validate/drp/util.py`: Utility routines.
+* `README.md`: THIS FILE.  Guide and examples.
