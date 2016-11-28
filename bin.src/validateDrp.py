@@ -58,11 +58,8 @@ if __name__ == "__main__":
                         help='Path of YAML file with LPM-17 metric definitions.')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
                         help='Display additional information about the analysis.')
-    parser.add_argument('--plot', dest='makePlot', default=True,
-                        action='store_true',
-                        help='Make plots of performance.')
     parser.add_argument('--noplot', dest='makePlot',
-                        action='store_false',
+                        default=True, action='store_false',
                         help='Skip making plots of performance.')
     parser.add_argument('--level', type=str, default='design',
                         help='Level of SRD requirement to meet: "minimum", "design", "stretch"')
