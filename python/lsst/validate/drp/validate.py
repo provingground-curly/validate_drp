@@ -52,33 +52,33 @@ class bcolors:
 
 
 def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False, **kwargs):
-    """Main executable.
+    """Main entrypoint from ``validateDrp.py``.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
     Assesses results against SRD specs at specified `level`.
 
-    Inputs
-    ------
-    repo : string
+    Arguments
+    ---------
+    repo : `str`
         The repository.  This is generally the directory on disk
         that contains the repository and mapper.
-    dataIds : list of dict
-        List of `butler` data IDs of Image catalogs to compare to reference.
-        The `calexp` cpixel image is needed for the photometric calibration.
+    dataIds : `list` of `dict`
+        List of butler data IDs of Image catalogs to compare to reference.
+        The calexp cpixel image is needed for the photometric calibration.
     metrics : `dict` or `collections.OrderedDict`
         Dictionary of `lsst.validate.base.Metric` instances. Typically this is
         data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
         `lsst.validate.base.load_metrics`.
-    outputPrefix : str, optional
+    outputPrefix : `str`, optional
         Specify the beginning filename for output files.
         The name of each filter will be appended to outputPrefix.
-    level : str
-        The level of the specification to check: "design", "minimum", "stretch"
-    verbose : bool
+    level : `str`, optional
+        The level of the specification to check: "design", "minimum", "stretch".
+    verbose : `bool`
         Provide detailed output.
 
-    Outputs
-    -------
+    Notes
+    -----
     Names of plot files or JSON file are generated based on repository name,
     unless overriden by specifying `ouputPrefix`.
     E.g., Analyzing a repository "CFHT/output"
@@ -103,6 +103,10 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
                            **kwargs)
         jobs[filterName] = job
 
+    passedCurrent = True  # Trip to false for failure in the 'current' level
+    currentTestCount = 0
+    currentFailCount = 0
+
     for filterName, job in jobs.items():
         print('')
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
@@ -122,6 +126,12 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
                     passed = False
                     failCount += 1
 
+            if specName == level:
+                currentTestCount += measurementCount
+                currentFailCount += failCount
+                if not passed:
+                    passedCurrent = False
+
             if passed:
                 print('Passed {level:12s} {count:d} measurements'.format(
                     level=specName, count=measurementCount))
@@ -129,6 +139,21 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
                 msg = 'Failed {level:12s} {failCount} of {count:d} failed'.format(
                     level=specName, failCount=failCount, count=measurementCount)
                 print(bcolors.FAIL + msg + bcolors.ENDC)
+
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
+
+    # print summary against current spec level
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(level) + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    if passedCurrent:
+        print('PASSED ({count:d}/{count:d} measurements)'.format(
+            count=measurementCount))
+    else:
+        msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(
+            failCount=currentFailCount, count=measurementCount)
+        print(bcolors.FAIL + msg + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
