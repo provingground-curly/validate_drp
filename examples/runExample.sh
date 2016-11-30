@@ -81,9 +81,9 @@ makeRunList.py "${YAMLCONFIG}" > "${RUNLIST}"
 
 ${PROCESSCCD} "${INPUT}" --output "${OUTPUT}" \
     @"${RUNLIST}" \
-    --logdest "${WORKSPACE}"/processCcd.log \
     --configfile "${CONFIG_FILE}" \
-    -j $NUMPROC
+    -j $NUMPROC \
+    >& "${WORKSPACE}"/processCcd.log
 
 # Run astrometry check on src
 echo "validating"

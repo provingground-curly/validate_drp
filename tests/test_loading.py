@@ -25,12 +25,9 @@
 from __future__ import print_function
 
 import os
-import sys
-
 import unittest
 
 import lsst.utils
-import lsst.utils.tests as utilsTests
 
 from lsst.validate.drp import util
 
@@ -50,9 +47,6 @@ class LoadDataTestCase(unittest.TestCase):
     def testLoadingOfConfigFileParameters(self):
         pbStruct = util.loadDataIdsAndParameters(self.configFile)
         self.assertAlmostEqual(pbStruct.brightSnr, 100)
-        self.assertAlmostEqual(pbStruct.medianAstromscatterRef, 25)
-        self.assertAlmostEqual(pbStruct.medianPhotoscatterRef, 25)
-        self.assertAlmostEqual(pbStruct.matchRef, 5000)
 
     def testLoadingOfConfigFileDataIds(self):
         pbStruct = util.loadDataIdsAndParameters(self.configFile)
@@ -67,22 +61,10 @@ class LoadDataTestCase(unittest.TestCase):
         self.assertFalse(pbStruct.dataIds)
 
 
-def suite():
-    """Returns a suite containing all the test cases in this module."""
-
-    utilsTests.init()
-
-    suites = []
-    suites += unittest.makeSuite(LoadDataTestCase)
-    return unittest.TestSuite(suites)
-
-
-def run(shouldExit=False):
-    """Run the tests"""
-    utilsTests.run(suite(), shouldExit)
+def setup_module(module):
+    lsst.utils.tests.init()
 
 
 if __name__ == "__main__":
-    if "--display" in sys.argv:
-        display = True
-    run(True)
+    lsst.utils.tests.init()
+    unittest.main()
