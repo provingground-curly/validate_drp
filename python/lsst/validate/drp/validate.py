@@ -22,6 +22,7 @@ grading, and persistence.
 """
 
 from __future__ import print_function, absolute_import
+from builtins import object
 
 from textwrap import TextWrapper
 
@@ -40,7 +41,7 @@ from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
 __all__ = ['run', 'runOneFilter']
 
 
-class bcolors:
+class bcolors(object):
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
