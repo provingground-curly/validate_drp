@@ -19,6 +19,8 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
 from __future__ import print_function, absolute_import
+from builtins import zip
+from builtins import range
 
 import numpy as np
 import astropy.units as u
