@@ -1,3 +1,6 @@
+setupRequired(python)
+setupRequired(python_future)
+
 setupRequired(utils)
 setupRequired(daf_persistence)
 setupRequired(afw)

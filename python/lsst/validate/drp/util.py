@@ -20,6 +20,8 @@
 """Miscellaneous functions to support lsst.validate.drp."""
 
 from __future__ import print_function, division
+from builtins import zip
+from past.builtins import basestring
 
 import os
 
@@ -216,7 +218,7 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
     >>> print(dataIds)
     [{'filter': 'r', 'visit': 100, 'ccd': 10}, {'filter': 'r', 'visit': 100, 'ccd': 11}, {'filter': 'r', 'visit': 100, 'ccd': 12}, {'filter': 'r', 'visit': 200, 'ccd': 10}, {'filter': 'r', 'visit': 200, 'ccd': 11}, {'filter': 'r', 'visit': 200, 'ccd': 12}]
     """
-    if isinstance(filters, str):
+    if isinstance(filters, basestring):
         filters = [filters for _ in visits]
 
     assert len(filters) == len(visits)
