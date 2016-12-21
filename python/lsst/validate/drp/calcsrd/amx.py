@@ -21,9 +21,10 @@
 from __future__ import print_function, absolute_import
 
 import numpy as np
+import astropy.units as u
 
-from ..base import MeasurementBase, Metric
-from ..util import radiansToMilliarcsec, calcRmsDistances
+from lsst.validate.base import MeasurementBase
+from ..util import averageRaDecFromCat
 
 
 class AMxMeasurement(MeasurementBase):
@@ -33,21 +34,17 @@ class AMxMeasurement(MeasurementBase):
 
     Parameters
     ----------
-    x : int
-        Variant of AMx metric (x=1, 2, 3), which in turn sets the radius
-        of the annulus for selecting pairs of stars.
+    metric : `lsst.validate.base.Metric`
+        An AM1, AM2 or AM3 `~lsst.validate.base.Metric` instance.
     matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    specName : str
-        Name of a specification level to measure against (e.g., design,
-        minimum, stretch).
-    width : float
+    filter_name : `str`
+        filter_name (filter name) used in this measurement (e.g., ``'r'``).
+    width : `float` or `astropy.units.Quantity`, optional
         Width around fiducial distance to include. [arcmin]
-    magRange : 2-element list or tuple
+    magRange : 2-element `list`, `tuple`, or `numpy.ndarray`, optional
         brighter, fainter limits of the magnitude range to include.
-        E.g., `magRange=[17.5, 21.0]`
-    verbose : bool, optional
+        Default: ``[17.5, 21.5]`` mag.
+    verbose : `bool`, optional
         Output additional information on the analysis steps.
     job : :class:`lsst.validate.drp.base.Job`, optional
         If provided, the measurement will register itself with the Job
@@ -55,7 +52,7 @@ class AMxMeasurement(MeasurementBase):
     linkedBlobs : dict, optional
         A `dict` of additional blobs (subclasses of BlobBase) that
         can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+        direct dependencies of the computation (e.g., ``matchedDataset``).
 
     Attributes
     ----------
@@ -63,11 +60,6 @@ class AMxMeasurement(MeasurementBase):
         RMS of distance repeatability between stellar pairs.
     blob : AMxBlob
         Blob with by-products from this measurement.
-
-    Raises
-    ------
-    ValueError
-        If `x` isn't in [1, 2, 3].
 
     Notes
     -----
@@ -111,44 +103,45 @@ class AMxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    metric = None
-    value = None
-    units = 'milliarcsecond'
-    label = 'AMx'
-
-    def __init__(self, x, matchedDataset, bandpass, width=2., magRange=None,
-                 verbose=False, job=None,
-                 linkedBlobs=None, metricYamlDoc=None, metricYamlPath=None):
+    def __init__(self, metric, matchedDataset, filter_name, width=2.,
+                 magRange=None, linkedBlobs=None, job=None, verbose=False):
         MeasurementBase.__init__(self)
 
-        if x not in [1, 2, 3]:
-            raise ValueError('AMx x should be 1, 2, or 3.')
-        self.label = 'AM{0:d}'.format(x)
-        self.metric = Metric.fromYaml(self.label,
-                                      yamlDoc=metricYamlDoc,
-                                      yamlPath=metricYamlPath)
-        DSpec = self.metric.D
+        self.metric = metric
+        self.filter_name = filter_name
 
-        # Register measurement parameters for serialization
-        self.registerParameter('D', datum=DSpec)
-        self.registerParameter('width', units='arcsecond',
-                               label='Width', description='Width of annulus')
-        self.registerParameter('annulus', units='arcsecond',
-                               label='annulus radii',
-                               description='Inner and outer radii of '
-                                           'selection annulus.')
-        self.registerParameter('magRange', units='mag',
-                               description='Stellar magnitude selection '
-                                           'range.')
+        # Register blob
+        self.matchedDataset = matchedDataset
+
+        # Measurement Parameters
+        self.register_parameter('D', datum=self.metric.D)
+
+        if not isinstance(width, u.Quantity):
+            width = width * u.arcmin
+        self.register_parameter('width',
+                                quantity=width,
+                                label='Width',
+                                description='Width of annulus')
+        if magRange is None:
+            magRange = np.array([17.0, 21.5]) * u.mag
+        else:
+            assert len(magRange) == 2
+            if not isinstance(magRange, u.Quantity):
+                magRange = np.array(magRange) * u.mag
+        self.register_parameter('magRange',
+                                quantity=magRange,
+                                description='Stellar magnitude selection '
+                                            'range.')
+
+        annulus = self.D + (self.width/2)*np.array([-1, +1])
+        self.register_parameter('annulus',
+                                quantity=annulus,
+                                label='annulus radii',
+                                description='Inner and outer radii of '
+                                            'selection annulus.')
 
         # Register measurement extras
-        self.registerExtra('rmsDistMas', label='RMS', units='milliarcsecond')
-
-        self.bandpass = bandpass
-        self.magRange = magRange
-        self.width = width
-
-        self.matchedDataset = matchedDataset
+        self.register_extra('rmsDistMas', label='RMS')
 
         # Add external blob so that links will be persisted with
         # the measurement
@@ -157,26 +150,191 @@ class AMxMeasurement(MeasurementBase):
                 setattr(self, name, blob)
 
         matches = matchedDataset.safeMatches
+        rmsDistances = calcRmsDistances(
+            matches,
+            self.annulus,
+            magRange=self.magRange,
+            verbose=verbose)
 
-        self.annulus = self.D + (self.width/2)*np.array([-1, +1])
-
-        rmsDistances, self.annulus, self.magRange = \
-            calcRmsDistances(matches, self.annulus, magRange=self.magRange,
-                             verbose=verbose)
-
-        if not list(rmsDistances):
+        if len(rmsDistances) == 0:
             # raise ValidateErrorNoStars(
             #     'No stars found that are %.1f--%.1f arcmin apart.' %
             #     (annulus[0], annulus[1]))
             # FIXME should we still report that this measurement was
             # attempted instead of just crashing.
-            print('No stars found that are %.1f--%.1f arcmin apart.' %
-                  (self.annulus[0], self.annulus[1]))
+            print('No stars found that are {0:.1f}--{1:.1f} apart.'.format(
+                  self.annulus[0], self.annulus[1]))
             self.rmsDistMas = None
-            self.value = None
+            self.quantity = None
         else:
-            self.rmsDistMas = np.asarray(radiansToMilliarcsec(rmsDistances))
-            self.value = np.median(self.rmsDistMas)
+            self.rmsDistMas = rmsDistances.to(u.marcsec)
+            self.quantity = np.median(self.rmsDistMas)
 
         if job:
-            job.registerMeasurement(self)
+            job.register_measurement(self)
+
+
+def calcRmsDistances(groupView, annulus, magRange, verbose=False):
+    """Calculate the RMS distance of a set of matched objects over visits.
+
+    Parameters
+    ----------
+    groupView : lsst.afw.table.GroupView
+        GroupView object of matched observations from MultiMatch.
+    annulus : length-2 `astropy.units.Quantity`
+        Distance range (i.e., arcmin) in which to compare objects.
+        E.g., `annulus=np.array([19, 21]) * u.arcmin` would consider all
+        objects separated from each other between 19 and 21 arcminutes.
+    magRange : length-2 `astropy.units.Quantity`
+        Magnitude range from which to select objects.
+    verbose : bool, optional
+        Output additional information on the analysis steps.
+
+    Returns
+    -------
+    rmsDistances : `astropy.units.Quantity`
+        RMS angular separations of a set of matched objects over visits.
+    """
+
+    # First we make a list of the keys that we want the fields for
+    importantKeys = [groupView.schema.find(name).key for
+                     name in ['id', 'coord_ra', 'coord_dec',
+                              'object', 'visit', 'base_PsfFlux_mag']]
+
+    minMag, maxMag = magRange.to(u.mag).value
+
+    def magInRange(cat):
+        mag = cat.get('base_PsfFlux_mag')
+        w, = np.where(np.isfinite(mag))
+        medianMag = np.median(mag[w])
+        return minMag <= medianMag and medianMag < maxMag
+
+    groupViewInMagRange = groupView.where(magInRange)
+
+    # List of lists of id, importantValue
+    matchKeyOutput = [obj.get(key)
+                      for key in importantKeys
+                      for obj in groupViewInMagRange.groups]
+
+    jump = len(groupViewInMagRange)
+
+    ra = matchKeyOutput[1*jump:2*jump]
+    dec = matchKeyOutput[2*jump:3*jump]
+    visit = matchKeyOutput[4*jump:5*jump]
+
+    # Calculate the mean position of each object from its constituent visits
+    # `aggregate` calulates a quantity for each object in the groupView.
+    meanRa = groupViewInMagRange.aggregate(averageRaFromCat)
+    meanDec = groupViewInMagRange.aggregate(averageDecFromCat)
+
+    annulusRadians = arcminToRadians(annulus.to(u.arcmin).value)
+
+    rmsDistances = list()
+    for obj1, (ra1, dec1, visit1) in enumerate(zip(meanRa, meanDec, visit)):
+        dist = sphDist(ra1, dec1, meanRa[obj1+1:], meanDec[obj1+1:])
+        objectsInAnnulus, = np.where((annulusRadians[0] <= dist) &
+                                     (dist < annulusRadians[1]))
+        for obj2 in objectsInAnnulus:
+            distances = matchVisitComputeDistance(
+                visit[obj1], ra[obj1], dec[obj1],
+                visit[obj2], ra[obj2], dec[obj2])
+            if not distances:
+                if verbose:
+                    print("No matching visits found for objs: %d and %d" %
+                          (obj1, obj2))
+                continue
+
+            finiteEntries, = np.where(np.isfinite(distances))
+            if len(finiteEntries) > 0:
+                rmsDist = np.std(np.array(distances)[finiteEntries])
+                rmsDistances.append(rmsDist)
+
+    # return quantity
+    rmsDistances = np.array(rmsDistances) * u.radian
+    return rmsDistances
+
+
+def sphDist(ra1, dec1, ra2, dec2):
+    """Calculate distance on the surface of a unit sphere.
+
+    Input and Output are in radians.
+
+    Notes
+    -----
+    Uses the Haversine formula to preserve accuracy at small angles.
+
+    Law of cosines approach doesn't work well for the typically very small
+    differences that we're looking at here.
+    """
+    # Haversine
+    dra = ra1-ra2
+    ddec = dec1-dec2
+    a = np.square(np.sin(ddec/2)) + \
+        np.cos(dec1)*np.cos(dec2)*np.square(np.sin(dra/2))
+    dist = 2 * np.arcsin(np.sqrt(a))
+
+    # This is what the law of cosines would look like
+#    dist = np.arccos(np.sin(dec1)*np.sin(dec2) + np.cos(dec1)*np.cos(dec2)*np.cos(ra1 - ra2))
+
+    # Could use afwCoord.angularSeparation()
+    #  but (a) that hasn't been made accessible through the Python interface
+    #  and (b) I'm not sure that it would be faster than the numpy interface.
+    #    dist = afwCoord.angularSeparation(ra1-ra2, dec1-dec2, np.cos(dec1), np.cos(dec2))
+
+    return dist
+
+
+def matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
+                              visit_obj2, ra_obj2, dec_obj2):
+    """Calculate obj1-obj2 distance for each visit in which both objects are seen.
+
+    For each visit shared between visit_obj1 and visit_obj2,
+    calculate the spherical distance between the obj1 and obj2.
+
+    Parameters
+    ----------
+    visit_obj1 : scalar, list, or numpy.array of int or str
+        List of visits for object 1.
+    ra_obj1 : scalar, list, or numpy.array of float
+        List of RA in each visit for object 1.
+    dec_obj1 : scalar, list or numpy.array of float
+        List of Dec in each visit for object 1.
+    visit_obj2 : list or numpy.array of int or str
+        List of visits for object 2.
+    ra_obj2 : list or numpy.array of float
+        List of RA in each visit for object 2.
+    dec_obj2 : list or numpy.array of float
+        List of Dec in each visit for object 2.
+
+    Results
+    -------
+    list of float
+        spherical distances (in radians) for matching visits.
+    """
+    distances = []
+    for i in range(len(visit_obj1)):
+        for j in range(len(visit_obj2)):
+            if (visit_obj1[i] == visit_obj2[j]):
+                if np.isfinite([ra_obj1[i], dec_obj1[i],
+                                ra_obj2[j], dec_obj2[j]]).all():
+                    distances.append(sphDist(ra_obj1[i], dec_obj1[i],
+                                             ra_obj2[j], dec_obj2[j]))
+    return distances
+
+
+def averageRaFromCat(cat):
+    meanRa, meanDec = averageRaDecFromCat(cat)
+    return meanRa
+
+
+def averageDecFromCat(cat):
+    meanRa, meanDec = averageRaDecFromCat(cat)
+    return meanDec
+
+
+def radiansToMilliarcsec(rad):
+    return np.rad2deg(rad)*3600*1000
+
+
+def arcminToRadians(arcmin):
+    return np.deg2rad(arcmin/60)

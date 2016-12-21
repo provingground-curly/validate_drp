@@ -23,21 +23,18 @@ grading, and persistence.
 
 from __future__ import print_function, absolute_import
 
-import os
 from textwrap import TextWrapper
 
-import yaml
-
-from lsst.utils import getPackageDir
+from lsst.validate.base import Job
 
 from .util import repoNameToPrefix
-from .matchreduce import (MatchedMultiVisitDataset, AnalyticPhotometryModel,
-                          AnalyticAstrometryModel)
-from .calcsrd import (PA1Measurement, PA2Measurement, PF1Measurement,
-                      AMxMeasurement, AFxMeasurement, ADxMeasurement)
-from .base import Metric, Job
-from .plot import (plotAMx, plotPA1, plotAnalyticPhotometryModel,
-                   plotAnalyticAstrometryModel)
+from .matchreduce import MatchedMultiVisitDataset
+from .photerrmodel import PhotometricErrorModel
+from .astromerrmodel import AstrometricErrorModel
+from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
+                      PA1Measurement, PA2Measurement, PF1Measurement)
+from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
+                   plotAstrometryErrorModel)
 
 
 __all__ = ['run', 'runOneFilter']
@@ -54,30 +51,34 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwargs):
-    """Main executable.
+def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False, **kwargs):
+    """Main entrypoint from ``validateDrp.py``.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
     Assesses results against SRD specs at specified `level`.
 
-    Inputs
-    ------
-    repo : string
+    Arguments
+    ---------
+    repo : `str`
         The repository.  This is generally the directory on disk
         that contains the repository and mapper.
-    dataIds : list of dict
-        List of `butler` data IDs of Image catalogs to compare to reference.
-        The `calexp` cpixel image is needed for the photometric calibration.
-    outputPrefix : str, optional
+    dataIds : `list` of `dict`
+        List of butler data IDs of Image catalogs to compare to reference.
+        The calexp cpixel image is needed for the photometric calibration.
+    metrics : `dict` or `collections.OrderedDict`
+        Dictionary of `lsst.validate.base.Metric` instances. Typically this is
+        data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
+        `lsst.validate.base.load_metrics`.
+    outputPrefix : `str`, optional
         Specify the beginning filename for output files.
         The name of each filter will be appended to outputPrefix.
-    level : str
-        The level of the specification to check: "design", "minimum", "stretch"
-    verbose : bool
+    level : `str`, optional
+        The level of the specification to check: "design", "minimum", "stretch".
+    verbose : `bool`
         Provide detailed output.
 
-    Outputs
-    -------
+    Notes
+    -----
     Names of plot files or JSON file are generated based on repository name,
     unless overriden by specifying `ouputPrefix`.
     E.g., Analyzing a repository "CFHT/output"
@@ -92,34 +93,44 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
         outputPrefix = repoNameToPrefix(repo)
 
     jobs = {}
-    for filt in allFilters:
+    for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
-        thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filt)
-        theseVisitDataIds = [v for v in dataIds if v['filter'] == filt]
-        job = runOneFilter(repo, theseVisitDataIds,
+        thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
+        theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
+        job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
-                           verbose=verbose, filterName=filt,
+                           verbose=verbose, filterName=filterName,
                            **kwargs)
-        jobs[filt] = job
+        jobs[filterName] = job
 
-    for filt, job in jobs.items():
+    passedCurrent = True  # Trip to false for failure in the 'current' level
+    currentTestCount = 0
+    currentFailCount = 0
+
+    for filterName, job in jobs.items():
         print('')
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filt) + bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-        for specName in job.availableSpecLevels:
+        for specName in job.spec_levels:
             passed = True
 
             measurementCount = 0
             failCount = 0
-            for m in job._measurements:
-                if m.value is None:
+            for m in job.measurements:
+                if m.quantity is None:
                     continue
                 measurementCount += 1
-                if not m.checkSpec(specName):
+                if not m.check_spec(specName):
                     passed = False
                     failCount += 1
+
+            if specName == level:
+                currentTestCount += measurementCount
+                currentFailCount += failCount
+                if not passed:
+                    passedCurrent = False
 
             if passed:
                 print('Passed {level:12s} {count:d} measurements'.format(
@@ -129,9 +140,23 @@ def run(repo, dataIds, outputPrefix=None, level="design", verbose=False, **kwarg
                     level=specName, failCount=failCount, count=measurementCount)
                 print(bcolors.FAIL + msg + bcolors.ENDC)
 
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
 
-def runOneFilter(repo, visitDataIds, brightSnr=100,
-                 medianAstromscatterRef=25, medianPhotoscatterRef=25, matchRef=500,
+    # print summary against current spec level
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(level) + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    if passedCurrent:
+        print('PASSED ({count:d}/{count:d} measurements)'.format(
+            count=measurementCount))
+    else:
+        msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(
+            failCount=currentFailCount, count=measurementCount)
+        print(bcolors.FAIL + msg + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+
+
+def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makePrint=True, makePlot=True, makeJson=True,
                  filterName=None, outputPrefix=None,
                  verbose=False,
@@ -152,14 +177,12 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
+    metrics : `dict` or `collections.OrderedDict`
+        Dictionary of `lsst.validate.base.Metric` instances. Typically this is
+        data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
+        `lsst.validate.base.load_metrics`.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
-    medianAstromscatterRef : float, optional
-        Expected astrometric RMS [mas] across visits.
-    medianPhotoscatterRef : float, optional
-        Expected photometric RMS [mmag] across visits.
-    matchRef : int, optional
-        Expectation of the number of stars that should be matched across visits.
     makePrint : bool, optional
         Print calculated quantities (to stdout).
     makePlot : bool, optional
@@ -172,120 +195,80 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
         Name of the filter (bandpass).
     verbose : bool, optional
         Output additional information on the analysis steps.
-
     """
-    # Cache the YAML definitions of metrics (optional)
-    yamlPath = os.path.join(getPackageDir('validate_drp'),
-                            'metrics.yaml')
-    with open(yamlPath) as f:
-        yamlDoc = yaml.load(f)
-
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(repo)
 
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               verbose=verbose)
-    photomModel = AnalyticPhotometryModel(matchedDataset)
-    astromModel = AnalyticAstrometryModel(matchedDataset)
+    photomModel = PhotometricErrorModel(matchedDataset)
+    astromModel = AstrometricErrorModel(matchedDataset)
     linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
 
-    job = Job()
+    job = Job(blobs=[matchedDataset, photomModel, astromModel])
 
-    PA1 = PA1Measurement(matchedDataset, bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
+    for x in (1, 2, 3):
+        amxName = 'AM{0:d}'.format(x)
+        afxName = 'AF{0:d}'.format(x)
+        adxName = 'AD{0:d}'.format(x)
 
-    pa2Metric = Metric.fromYaml('PA2', yamlDoc=yamlDoc)
-    for specName in pa2Metric.getSpecNames(bandpass=filterName):
-        PA2Measurement(matchedDataset, pa1=PA1, bandpass=filterName,
-                       specName=specName, verbose=verbose,
+        AMxMeasurement(metrics[amxName], matchedDataset, filterName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+
+        for specName in metrics[afxName].get_spec_names(filter_name=filterName):
+            AFxMeasurement(metrics[afxName], matchedDataset,
+                           job.get_measurement(amxName), filterName, specName,
+                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+
+            ADxMeasurement(metrics[adxName], matchedDataset,
+                           job.get_measurement(amxName), filterName, specName,
+                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+
+    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs,
+                   verbose=verbose)
+
+    for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
+        PA2Measurement(metrics['PA2'], matchedDataset,
+                       pa1=job.get_measurement('PA1'), filter_name=filterName,
+                       spec_name=specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    pf1Metric = Metric.fromYaml('PF1', yamlDoc=yamlDoc)
-    for specName in pf1Metric.getSpecNames(bandpass=filterName):
-        PF1Measurement(matchedDataset, pa1=PA1, bandpass=filterName,
-                       specName=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    AM1 = AMxMeasurement(1, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    af1Metric = Metric.fromYaml('AF1', yamlDoc=yamlDoc)
-    for specName in af1Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(1, matchedDataset, AM1,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-        ADxMeasurement(1, matchedDataset, AM1,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    AM2 = AMxMeasurement(2, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    af2Metric = Metric.fromYaml('AF2', yamlDoc=yamlDoc)
-    for specName in af2Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(2, matchedDataset, AM2,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-        ADxMeasurement(2, matchedDataset, AM2,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    AM3 = AMxMeasurement(3, matchedDataset,
-                         bandpass=filterName, verbose=verbose,
-                         job=job, linkedBlobs=linkedBlobs)
-
-    af3Metric = Metric.fromYaml('AF3', yamlDoc=yamlDoc)
-    for specName in af3Metric.getSpecNames(bandpass=filterName):
-        AFxMeasurement(3, matchedDataset, AM3,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-        ADxMeasurement(3, matchedDataset, AM3,
-                       bandpass=filterName, specName=specName,
-                       verbose=verbose,
+    for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
+        PF1Measurement(metrics['PF1'], matchedDataset,
+                       job.get_measurement('PA1'),
+                       filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePlot:
-        if AM1.value:
-            plotAMx(job.getMeasurement('AM1'),
-                    job.getMeasurement('AF1', specName='design'),
+        if job.get_measurement('AM1').quantity is not None:
+            plotAMx(job.get_measurement('AM1'),
+                    job.get_measurement('AF1', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
-        if AM2.value:
-            plotAMx(job.getMeasurement('AM2'),
-                    job.getMeasurement('AF2', specName='design'),
+        if job.get_measurement('AM2').quantity is not None:
+            plotAMx(job.get_measurement('AM2'),
+                    job.get_measurement('AF2', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
-        if AM3.value:
-            plotAMx(job.getMeasurement('AM3'),
-                    job.getMeasurement('AF3', specName='design'),
+        if job.get_measurement('AM3').quantity is not None:
+            plotAMx(job.get_measurement('AM3'),
+                    job.get_measurement('AF3', spec_name='design'),
                     filterName, amxSpecName='design',
                     outputPrefix=outputPrefix)
 
-        plotPA1(job.getMeasurement('PA1'), outputPrefix=outputPrefix)
+        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
 
-        plotAnalyticPhotometryModel(matchedDataset, photomModel,
-                                    outputPrefix=outputPrefix)
+        plotPhotometryErrorModel(matchedDataset, photomModel,
+                                 filterName=filterName,
+                                 outputPrefix=outputPrefix)
 
-        plotAnalyticAstrometryModel(matchedDataset, astromModel,
-                                    outputPrefix=outputPrefix)
+        plotAstrometryErrorModel(matchedDataset, astromModel,
+                                 outputPrefix=outputPrefix)
 
     if makePrint:
-        orderedMetrics = ['PA1', 'PF1', 'PA2',
-                          'AM1', 'AM2', 'AM3',
-                          'AF1', 'AF2', 'AF3',
-                          'AD1', 'AD2', 'AD3']
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER +
               '{band} band metric measurements'.format(band=filterName) +
@@ -294,39 +277,39 @@ def runOneFilter(repo, visitDataIds, brightSnr=100,
 
         wrapper = TextWrapper(width=65)
 
-        for metricName in orderedMetrics:
-            metric = Metric.fromYaml(metricName, yamlDoc=yamlDoc)
+        for metricName in metrics:
+            metric = metrics[metricName]
             print(bcolors.HEADER + '{name} - {reference}'.format(
                 name=metric.name, reference=metric.reference))
             print(wrapper.fill(bcolors.ENDC + '{description}'.format(
                 description=metric.description).strip()))
 
-            for specName in metric.getSpecNames(bandpass=filterName):
+            for specName in metric.get_spec_names(filter_name=filterName):
                 try:
-                    m = job.getMeasurement(metricName, specName=specName,
-                                           bandpass=filterName)
+                    m = job.get_measurement(metricName,
+                                            spec_name=specName,
+                                            filter_name=filterName)
                 except RuntimeError:
                     print('\tSkipped {specName:12s} no spec'.format(
                         specName=specName))
                     continue
 
-                if m.value is None:
+                if m.quantity is None:
                     print('\tSkipped {specName:12s} no measurement'.format(
                         specName=specName))
                     continue
 
-                spec = metric.getSpec(specName, bandpass=filterName)
-                passed = m.checkSpec(specName)
+                spec = metric.get_spec(specName, filter_name=filterName)
+                passed = m.check_spec(specName)
                 if passed:
                     prefix = bcolors.OKBLUE + '\tPassed '
                 else:
                     prefix = bcolors.FAIL + '\tFailed '
-                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f} {units}'.format(
+                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f}'.format(
                     specName=specName,
-                    meas=m.value,
-                    op=metric._operatorStr,  # FIXME make public attribute
-                    spec=spec.value,
-                    units=spec.units)
+                    meas=m.quantity,
+                    op=metric.operator_str,
+                    spec=spec.quantity)
                 print(prefix + infoStr + bcolors.ENDC)
 
     return job
