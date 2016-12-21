@@ -54,7 +54,7 @@ if __name__ == "__main__":
                         help='YAML configuration file validation parameters and dataIds.')
     parser.add_argument('--metricsFile',
                         default=os.path.join(getPackageDir('validate_drp'),
-                                             'metrics.yaml'),
+                                             'etc', 'metrics.yaml'),
                         help='Path of YAML file with LPM-17 metric definitions.')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
                         help='Display additional information about the analysis.')

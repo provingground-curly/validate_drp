@@ -233,7 +233,7 @@ ccdnum: [10, 11, 12, 13, 14, 15, 16, 17, 18]
 
 Metrics and their specification levels are defined in a YAML file.
 You can choose this file by assigning its path to `validateDrp.py`'s `--metricsFile` argument.
-By default, `validateDrp.py` uses the `metrics.yaml` file at the root of its repository.
+By default, `validateDrp.py` uses the `metrics.yaml` file in the `etc/` directory of its repository.
 See the `validate_base` documentation for details on the file's schema.
 
 To add a custom specification level for an existing metric:
@@ -251,6 +251,7 @@ E.g., the expected astrometric uncertainty is intimately related to the seeing o
 
 ## Files
 
+* `etc/metrics.yaml`: Definitions of metrics measured by `validate_drp`.
 * `bin.src/validateDrp.py`: Analyze output data produced by processCcd.py
 * `config/cfhtConfig.py`: empty config overrides for Cfht.  Edit to easily include config parameters in the examples.
 * `config/decamConfig.py`: empty config overrides for Decam.  Edit to easily include config parameters in the examples.
