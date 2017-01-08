@@ -293,20 +293,22 @@ def matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
     For each visit shared between visit_obj1 and visit_obj2,
     calculate the spherical distance between the obj1 and obj2.
 
+    visit_obj1 and visit_obj2 are assumed to be unsorted.
+
     Parameters
     ----------
     visit_obj1 : scalar, list, or numpy.array of int or str
         List of visits for object 1.
     ra_obj1 : scalar, list, or numpy.array of float
-        List of RA in each visit for object 1.
+        List of RA in each visit for object 1.  [radians]
     dec_obj1 : scalar, list or numpy.array of float
-        List of Dec in each visit for object 1.
+        List of Dec in each visit for object 1. [radians]
     visit_obj2 : list or numpy.array of int or str
         List of visits for object 2.
     ra_obj2 : list or numpy.array of float
-        List of RA in each visit for object 2.
+        List of RA in each visit for object 2.  [radians]
     dec_obj2 : list or numpy.array of float
-        List of Dec in each visit for object 2.
+        List of Dec in each visit for object 2.  [radians]
 
     Results
     -------
