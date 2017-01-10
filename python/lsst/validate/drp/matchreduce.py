@@ -150,8 +150,10 @@ class MatchedMultiVisitDataset(BlobBase):
             description='RMS of sky coordinates of stars over multiple visits')
 
         # Match catalogs across visits
-        self._matchedCatalog = self._loadAndMatchCatalogs(
-            repo, dataIds, matchRadius, useJointCal=useJointCal)
+        self._catalog, self._matchedCatalog = \
+            self._loadAndMatchCatalogs(repo, dataIds, matchRadius,
+                                       useJointCal=useJointCal)
+
         self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
         # Reduce catalogs into summary statistics.
         # These are the serialiable attributes of this class.
@@ -174,6 +176,8 @@ class MatchedMultiVisitDataset(BlobBase):
 
         Returns
         -------
+        afw.table.SourceCatalog
+            List of all of the catalogs
         afw.table.GroupView
             An object of matched catalog.
         """
@@ -295,7 +299,7 @@ class MatchedMultiVisitDataset(BlobBase):
         # as a mapping of object ID to catalog of sources.
         allMatches = GroupView.build(matchCat)
 
-        return allMatches
+        return srcVis, allMatches
 
     def _reduceStars(self, allMatches, safeSnr=50.0):
         """Calculate summary statistics for each star. These are persisted
