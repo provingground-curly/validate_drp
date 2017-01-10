@@ -37,6 +37,7 @@ from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
 from .util import getCcdKeyName, positionRmsFromCat
+from .calcsrd.tex import calculate_ellipticity
 
 
 __all__ = ['MatchedMultiVisitDataset']
@@ -205,6 +206,14 @@ class MatchedMultiVisitDataset(BlobBase):
                                            'PSF magnitude'))
         mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
                                            'PSF magnitude uncertainty'))
+        mapper.addOutputField(Field[float]('e1',
+                                           'Source Ellipticity 1'))
+        mapper.addOutputField(Field[float]('e2',
+                                           'Source Ellipticity 1'))
+        mapper.addOutputField(Field[float]('psf_e1',
+                                           'PSF Ellipticity 1'))
+        mapper.addOutputField(Field[float]('psf_e2',
+                                           'PSF Ellipticity 1'))
         newSchema = mapper.getOutputSchema()
         newSchema.setAliasMap(schema.getAliasMap())
 
@@ -266,8 +275,13 @@ class MatchedMultiVisitDataset(BlobBase):
                 # HSC supports these flags, which dramatically improve I/O
                 # performance; support for other cameras is DM-6927.
                 oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
+                calexp = butler.get("calexp", vId, flags=SOURCE_IO_NO_FOOTPRINTS)
             except:
                 oldSrc = butler.get('src', vId)
+                calexp = butler.get("calexp", vId)
+
+            psf = calexp.getPsf()
+
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
@@ -287,6 +301,16 @@ class MatchedMultiVisitDataset(BlobBase):
                                            tmpCat['base_PsfFlux_fluxSigma'])
                     tmpCat['base_PsfFlux_mag'][:] = _[0]
                     tmpCat['base_PsfFlux_magErr'][:] = _[1]
+
+            for i, s in enumerate(oldSrc):
+                psf_shape = psf.computeShape(s.getCentroid())
+                psf_e, psf_e1, psf_e2 = calculate_ellipticity(psf_shape)
+                star_shape = s.getShape()
+                star_e, star_e1, star_e2 = calculate_ellipticity(star_shape)
+                tmpCat['e1'][i] = star_e1
+                tmpCat['e2'][i] = star_e2
+                tmpCat['psf_e1'][i] = psf_e1
+                tmpCat['psf_e2'][i] = psf_e2
 
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)
