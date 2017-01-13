@@ -489,9 +489,8 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
                  magFaint=amx.magRange[1]))
 
     amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
-    amxSpecLabel = '{amx.label} {specname}: {amx.quantity:.0f}'.format(
-        amx=amx,
-        specname=amxSpecName)
+    amxSpecLabelTemplate = '{amx.label} {specname}: {amx.quantity:.0f}'
+    amxSpecLabel = amxSpecLabelTemplate.format(amx=amx, specname=amxSpecName)
     ax1.axvline(amxSpec.quantity.value, 0, 1, linewidth=2, color='red',
                 label=amxSpecLabel)
 
@@ -499,10 +498,8 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
         amxStatus = 'passed'
     else:
         amxStatus = 'failed'
-    amxLabel = 'Median RMS\n' + \
-               '{amx.label} measured: {amx.quantity:.1f} ({status})'.format(
-                   amx=amx,
-                   status=amxStatus)
+    amxLabelTemplate = '{amx.label} measured: {amx.quantity:.1f} ({status})'
+    amxLabel = amxLabelTemplate.format(amx=amx, status=amxStatus)
     ax1.axvline(amx.quantity.value, 0, 1, linewidth=2, color='black',
                 label=amxLabel)
 
@@ -510,13 +507,13 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
         afxStatus = 'passed'
     else:
         afxStatus = 'failed'
-    afxLabelTemplate = '{afx.label} {afx.spec_name}: {afxSpec}%\n' + \
+    afxSpec = afx.metric.get_spec(afx.spec_name, filter_name=filterName)
+    afxLabelTemplate = '{afx.label} {afx.spec_name}: {afxSpec.quantity}%\n' + \
                        '{afx.label} measured: {afx.quantity:.1f}% ({status})'
     afxLabel = afxLabelTemplate.format(
         afx=afx,
-        afxSpec=afx.metric.get_spec(afx.spec_name, filter_name=filterName).quantity,
+        afxSpec=afxSpec,
         status=afxStatus)
-
     ax1.axvline((amx.quantity + afx.ADx).value,
                 0, 1, linewidth=2, color='green',
                 label=afxLabel)
