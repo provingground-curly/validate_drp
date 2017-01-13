@@ -489,8 +489,11 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
                  magFaint=amx.magRange[1]))
 
     amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
-    amxSpecLabelTemplate = '{amx.label} {specname}: {amx.quantity:.0f}'
-    amxSpecLabel = amxSpecLabelTemplate.format(amx=amx, specname=amxSpecName)
+    amxSpecLabelTemplate = '{amx.label} {specname}: {amxSpec.quantity:.1f}'
+    amxSpecLabel = amxSpecLabelTemplate.format(
+        amx=amx,
+        specname=amxSpecName,
+        amxSpec=amxSpec)
     ax1.axvline(amxSpec.quantity.value, 0, 1, linewidth=2, color='red',
                 label=amxSpecLabel)
 
