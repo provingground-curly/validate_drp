@@ -488,6 +488,13 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
                  magBright=amx.magRange[0],
                  magFaint=amx.magRange[1]))
 
+    amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
+    amxSpecLabel = '{amx.label} {specname}: {amx.quantity:.0f}'.format(
+        amx=amx,
+        specname=amxSpecName)
+    ax1.axvline(amxSpec.quantity.value, 0, 1, linewidth=2, color='red',
+                label=amxSpecLabel)
+
     if amx.check_spec(amxSpecName):
         amxStatus = 'passed'
     else:
@@ -498,13 +505,6 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
                    status=amxStatus)
     ax1.axvline(amx.quantity.value, 0, 1, linewidth=2, color='black',
                 label=amxLabel)
-
-    amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
-    amxSpecLabel = '{amx.label} {specname}: {amx.quantity:.0f}'.format(
-        amx=amx,
-        specname=amxSpecName)
-    ax1.axvline(amxSpec.quantity.value, 0, 1, linewidth=2, color='red',
-                label=amxSpecLabel)
 
     if afx.check_spec(afx.spec_name):
         afxStatus = 'passed'
