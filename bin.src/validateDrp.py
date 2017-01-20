@@ -31,23 +31,25 @@ from lsst.validate.base import load_metrics
 from lsst.validate.drp import validate, util
 
 
+description = """
+Calculate and plot validation Key Project Metrics from the LSST SRD.
+http://ls.st/LPM-17
+
+Produces results to:
+STDOUT
+    Summary of key metrics
+REPONAME*.png
+    Plots of key metrics.  Generated in current working directory.
+REPONAME*.json
+    JSON serialization of each KPM.
+
+where REPONAME is based on the repository name but with path separators
+replaced with underscores.  E.g., "Cfht/output" -> "Cfht_output_"
+"""
+
 if __name__ == "__main__":
-    description = """
-    Calculate and plot validation Key Project Metrics from the LSST SRD.
-    http://ls.st/LPM-17
-
-    Produces results to:
-    STDOUT
-        Summary of key metrics
-    REPONAME*.png
-        Plots of key metrics.  Generated in current working directory.
-    REPONAME*.json
-        JSON serialization of each KPM.
-
-    where REPONAME is based on the repository name but with path separators
-    replaced with underscores.  E.g., "Cfht/output" -> "Cfht_output_"
-    """
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(description=description,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('repo', type=str,
                         help='path to a repository containing the output of processCcd')
     parser.add_argument('--configFile', '-c', type=str, default=None,
