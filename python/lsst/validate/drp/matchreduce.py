@@ -29,7 +29,7 @@ import astropy.units as u
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
-import lsst.daf.persistence as dafPersist
+# import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView)
 from lsst.afw.fits.fitsLib import FitsError
@@ -104,7 +104,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
     name = 'MatchedMultiVisitDataset'
 
-    def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
+    def __init__(self, butler, dataIds, matchRadius=None, safeSnr=50.,
                  verbose=False):
         BlobBase.__init__(self)
 
@@ -144,20 +144,19 @@ class MatchedMultiVisitDataset(BlobBase):
 
         # Match catalogs across visits
         self._matchedCatalog = self._loadAndMatchCatalogs(
-            repo, dataIds, matchRadius)
+            butler, dataIds, matchRadius)
         self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
         # Reduce catalogs into summary statistics.
         # These are the serialiable attributes of this class.
         self._reduceStars(self._matchedCatalog, safeSnr)
 
-    def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius):
+    def _loadAndMatchCatalogs(self, butler, dataIds, matchRadius):
         """Load data from specific visit. Match with reference.
 
         Parameters
         ----------
-        repo : string
-            The repository.  This is generally the directory on disk
-            that contains the repository and mapper.
+        butler :
+            Butler instance.
         dataIds : list of dict
             List of `butler` data IDs of Image catalogs to compare to
             reference. The `calexp` cpixel image is needed for the photometric
@@ -172,7 +171,6 @@ class MatchedMultiVisitDataset(BlobBase):
         """
         # Following
         # https://github.com/lsst/afw/blob/tickets/DM-3896/examples/repeatability.ipynb
-        butler = dafPersist.Butler(repo)
         dataset = 'src'
 
         # 2016-02-08 MWV:

@@ -32,7 +32,7 @@ import lsst.pex.config as pexConfig
 import lsst.pipe.base as pipeBase
 from lsst.pipe.base.argumentParser import ArgumentParser
 from lsst.pipe.supertask.super_task import SuperTask
-from lsst.validate.base import Job
+from lsst.validate.base import Job, load_metrics
 
 from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
@@ -71,6 +71,11 @@ class ValidateDrpConfig(pexConfig.Config):
         dtype=str,
         default=os.path.join(getPackageDir('validate_drp'),
                              'etc', 'metrics.yaml')
+    )
+    outputPrefix = pexConfig.Field(
+        doc='Prefix for output file names, including any directories.',
+        dtype=str,
+        default='validate_drp_'
     )
     makePlot = pexConfig.Field(
         help='Render and save plots with matplotlib.',
@@ -111,8 +116,19 @@ class ValidateDrpTask(SuperTask):
         """ValidateDrpTask SuperTask entrypoint."""
         self.log.info("Executing ValidateDrpTask.")
 
+        # Get dataIds that know about the filter by querying butler
+        butler = dataRef.butler
+        butlerSubset = butler.subset('src', dataId=dataRef.dataId)
+        dataIds = [r.dataId for r in butlerSubset]
 
-def run(repo, dataIds, metrics, outputPrefix=None, level="design",
+        metrics = load_metrics(self.config.metricsFilePath)
+
+        run(butler, dataIds, metrics, self.config.outputPrefix,
+            level=self.config.targetSpecLevel, makePlot=self.config.makePlot,
+            brightSnr=self.config.brightSnr)
+
+
+def run(butler, dataIds, metrics, outputPrefix, level="design",
         verbose=False, **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
@@ -121,9 +137,8 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design",
 
     Arguments
     ---------
-    repo : `str`
-        The repository.  This is generally the directory on disk
-        that contains the repository and mapper.
+    butler :
+        Butler instance.
     dataIds : `list` of `dict`
         List of butler data IDs of Image catalogs to compare to reference.
         The calexp cpixel image is needed for the photometric calibration.
@@ -151,16 +166,13 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design",
 
     allFilters = set([d['filter'] for d in dataIds])
 
-    if outputPrefix is None:
-        outputPrefix = repoNameToPrefix(repo)
-
     jobs = {}
     for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
         thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
         theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
-        job = runOneFilter(repo, theseVisitDataIds, metrics,
-                           outputPrefix=thisOutputPrefix,
+        job = runOneFilter(butler, theseVisitDataIds, metrics,
+                           thisOutputPrefix,
                            verbose=verbose, filterName=filterName,
                            **kwargs)
         jobs[filterName] = job
@@ -218,9 +230,9 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design",
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
 
-def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
+def runOneFilter(butler, visitDataIds, metrics, outputPrefix, brightSnr=100,
                  makePrint=True, makePlot=True, makeJson=True,
-                 filterName=None, outputPrefix=None,
+                 filterName=None,
                  verbose=False,
                  **kwargs):
     """Main executable for the case where there is just one filter.
@@ -233,9 +245,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     Parameters
     ----------
-    repo : string
-        The repository.  This is generally the directory on disk
-        that contains the repository and mapper.
+    butler :
+        Butler instance.
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
@@ -243,6 +254,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         Dictionary of `lsst.validate.base.Metric` instances. Typically this is
         data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
         `lsst.validate.base.load_metrics`.
+    outputPrefix : str
+        Specify the beginning filename for output files.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
     makePrint : bool, optional
@@ -251,17 +264,12 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         Create plots for metrics.  Saved to current working directory.
     makeJson : bool, optional
         Create JSON output file for metrics.  Saved to current working directory.
-    outputPrefix : str, optional
-        Specify the beginning filename for output files.
     filterName : str, optional
         Name of the filter (bandpass).
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    if outputPrefix is None:
-        outputPrefix = repoNameToPrefix(repo)
-
-    matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
+    matchedDataset = MatchedMultiVisitDataset(butler, visitDataIds,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
     astromModel = AstrometricErrorModel(matchedDataset)
