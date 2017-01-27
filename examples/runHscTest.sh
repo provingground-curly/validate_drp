@@ -16,18 +16,18 @@ CAMERA=Hsc
 YAMLCONFIG="${PRODUCT_DIR}"/examples/"${CAMERA}".yaml
 
 DATA_DIR=${VALIDATION_DATA_HSC_DIR}
-CALIB_DIR=${VALIDATION_DATA_HSC_DIR}/CALIB
+CALIB_DIR=${DATA_DIR}/CALIB
 
 # Ingest raw data into repo
-mkdir -p ${REPO}
-ln -s ${CALIB_DIR} ${REPO}/CALIB
-echo lsst.obs.hsc.HscMapper > ${REPO}/_mapper
-ingestImages.py ${REPO} --mode=link ${VALIDATION_DATA_HSC_DIR}/'raw/*.fits'
+mkdir -p "${REPO}"
+ln -s "${CALIB_DIR}" "${REPO}/CALIB"
+echo lsst.obs.hsc.HscMapper > "${REPO}"/_mapper
+ingestImages.py "${REPO}" --mode=link "${VALIDATION_DATA_HSC_DIR}"/'raw/*.fits'
 
 ALL_VISITS=903332^903340^903982^904006^904350^904378^904828^904846
 
 # Heavy lifting
-singleFrameDriver.py ${REPO} --calib ${CALIB_DIR} --rerun ${RERUN} --job singleFrame --cores 16 --id visit=${ALL_VISITS}
+singleFrameDriver.py ${REPO} --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores 16 --id visit=${ALL_VISITS}
 makeDiscreteSkyMap.py ${REPO} --rerun ${RERUN} --id ccd=0..103 visit=${ALL_VISITS}
 # makeDiscreteSkyMap INFO: tract 0 has corners (321.714, -1.294), (318.915, -1.294), (318.915, 1.504), (321.714, 1.504) (RA, Dec deg) and 15 x 15 patches
 

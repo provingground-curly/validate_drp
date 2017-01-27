@@ -17,17 +17,16 @@ PRODUCT_DIR="${VALIDATE_DRP_DIR}"
 CAMERA=HscQuick
 YAMLCONFIG="${PRODUCT_DIR}"/examples/"${CAMERA}".yaml
 
-# DATA_DIR=${VALIDATION_DATA_HSC_DIR}
 DATA_DIR=${CI_HSC_DIR}
-CALIB_DIR=${CI_HSC_DIR}/CALIB
+CALIB_DIR=${DATA_DIR}/CALIB
 
 # Ingest raw data into repo
-mkdir -p ${REPO}
-ln -s ${CALIB_DIR} ${REPO}/CALIB
-echo lsst.obs.hsc.HscMapper > ${REPO}/_mapper
-ingestImages.py ${REPO} --mode=link ${CI_HSC_DIR}/'raw/*.fits'
+mkdir -p "${REPO}"
+ln -s "${CALIB_DIR}" "${REPO}/CALIB"
+echo lsst.obs.hsc.HscMapper > "${REPO}/_mapper"
+ingestImages.py "${REPO}" --mode=link "${CI_HSC_DIR}/raw/*.fits"
 
-ALL_VISITS= 903334^903336^903338^903342^903344^903346^903986^903988^903990^904010^904014
+ALL_VISITS=903334^903336^903338^903342^903344^903346^903986^903988^903990^904010^904014
 
 # The available images in ci_hsc are
 # visit|filter|ccd
@@ -66,8 +65,8 @@ ALL_VISITS= 903334^903336^903338^903342^903344^903346^903986^903988^903990^90401
 # 904014|HSC-I|12
 
 # Heavy lifting
-singleFrameDriver.py ${REPO} --calib ${CALIB_DIR} --rerun ${RERUN} --job singleFrame --cores 16 --id visit=${ALL_VISITS}
-makeDiscreteSkyMap.py ${REPO} --rerun ${RERUN} --id ccd=0..103 visit=${ALL_VISITS}
+singleFrameDriver.py "${REPO}" --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores 16 --id visit=${ALL_VISITS}
+makeDiscreteSkyMap.py "${REPO}" --rerun "${RERUN}" --id ccd=0..103 visit=${ALL_VISITS}
 # makeDiscreteSkyMap INFO: tract 0 has corners (321.166, -0.594), (320.606, -0.594), (320.606, -0.034), (321.166, -0.034) (RA, Dec deg) and 3 x 3 patches
 
 # Run astrometry check on src
