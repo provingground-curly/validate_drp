@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # USES DATA IN ci_hsc
 

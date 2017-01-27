@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Setup
 export OMP_NUM_THREADS=1
