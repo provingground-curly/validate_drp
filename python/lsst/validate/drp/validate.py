@@ -24,8 +24,14 @@ grading, and persistence.
 from __future__ import print_function, absolute_import
 from builtins import object
 
+import os
 from textwrap import TextWrapper
 
+from lsst.utils import getPackageDir
+import lsst.pex.config as pexConfig
+import lsst.pipe.base as pipeBase
+from lsst.pipe.base.argumentParser import ArgumentParser
+from lsst.pipe.supertask.super_task import SuperTask
 from lsst.validate.base import Job
 
 from .util import repoNameToPrefix
@@ -38,7 +44,7 @@ from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
 
-__all__ = ['run', 'runOneFilter']
+__all__ = ['run', 'runOneFilter', 'ValidateDrpTask', 'ValidateDrpConfig']
 
 
 class bcolors(object):
@@ -52,11 +58,66 @@ class bcolors(object):
     UNDERLINE = '\033[4m'
 
 
-def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False, **kwargs):
+class ValidateDrpConfig(pexConfig.Config):
+    """`ValidateDrpTask` configuration."""
+
+    brightSnr = pexConfig.Field(
+        doc='SNR cut-off for bright stars.',
+        dtype=float,
+        default=100.
+    )
+    metricsFilePath = pexConfig.Field(
+        doc='Path of YAML file with LPM-17 SRD metric definitions.',
+        dtype=str,
+        default=os.path.join(getPackageDir('validate_drp'),
+                             'etc', 'metrics.yaml')
+    )
+    makePlot = pexConfig.Field(
+        help='Render and save plots with matplotlib.',
+        dtype=bool,
+        default=True)
+    targetSpecLevel = pexConfig.Field(
+        doc='Level of SRD requirement to meet: "minimum", "design", "stretch"',
+        type=str,
+        default='design')
+
+
+class ValidateDrpTask(SuperTask):
+    """LSST LPM-17 science requirements validation supertask."""
+
+    ConfigClass = ValidateDrpConfig
+    _DefaultName = 'validateDrp'
+
+    def __init__(self, *args, **kwargs):
+        super(ValidateDrpTask, self).__init__(*args, **kwargs)
+        # TODO sub tasks would be initialized here (makeSubtask).
+
+    @classmethod
+    def makeArgumentParser(cls):
+        """Override dataset type for --id argument.
+
+        Returns
+        -------
+        Instance of pipe.base.ArgumentParser type or its subtype.
+        """
+        parser = ArgumentParser(name=cls._DefaultName)
+        parser.add_id_argument(
+            "--id", "src",
+            help="data IDs, e.g. --id visit=12345 ccd=1,2^0,3")
+        return parser
+
+    @pipeBase.timeMethod
+    def execute(self, dataRef):
+        """ValidateDrpTask SuperTask entrypoint."""
+        self.log.info("Executing ValidateDrpTask.")
+
+
+def run(repo, dataIds, metrics, outputPrefix=None, level="design",
+        verbose=False, **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
-    Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
-    Assesses results against SRD specs at specified `level`.
+    Runs multiple filters, if necessary, through repeated calls to
+    `runOneFilter`.  Assesses results against SRD specs at specified `level`.
 
     Arguments
     ---------
