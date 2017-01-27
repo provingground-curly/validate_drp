@@ -5,6 +5,7 @@ setupRequired(utils)
 setupRequired(daf_persistence)
 setupRequired(afw)
 setupRequired(pipe_base)
+setupRequired(pipe_supertask)
 setupRequired(validate_base)
 
 setupRequired(pyyaml)
