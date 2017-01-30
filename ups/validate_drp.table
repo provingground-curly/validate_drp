@@ -12,6 +12,7 @@ setupRequired(scipy)
 setupRequired(matplotlib)
 
 setupOptional(pipe_tasks)
+setupOptional(pipe_drivers)
 setupOptional(obs_cfht)
 setupOptional(obs_decam)
 setupOptional(obs_subaru)
