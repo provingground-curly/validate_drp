@@ -78,12 +78,12 @@ class ValidateDrpConfig(pexConfig.Config):
         default='validate_drp_'
     )
     makePlot = pexConfig.Field(
-        help='Render and save plots with matplotlib.',
+        doc='Render and save plots with matplotlib.',
         dtype=bool,
         default=True)
     targetSpecLevel = pexConfig.Field(
         doc='Level of SRD requirement to meet: "minimum", "design", "stretch"',
-        type=str,
+        dtype=str,
         default='design')
 
 
@@ -114,6 +114,7 @@ class ValidateDrpTask(SuperTask):
     @pipeBase.timeMethod
     def execute(self, dataRef):
         """ValidateDrpTask SuperTask entrypoint."""
+        # NOTE will be rename run_quantum
         self.log.info("Executing ValidateDrpTask.")
 
         # Get dataIds that know about the filter by querying butler
