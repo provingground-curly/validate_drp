@@ -86,10 +86,10 @@ ${PROCESSCCD} "${INPUT}" --output "${OUTPUT}" \
     >& "${WORKSPACE}"/processCcd.log
 
 # Run astrometry check on src
-echo "validating"
-validateDrp.py "${OUTPUT}" --configFile "${YAMLCONFIG}" "$@"
+# echo "validating"
+# validateDrp.py "${OUTPUT}" --configFile "${YAMLCONFIG}" "$@"
 
-if [ $? != 0 ]; then
-   print_error "Validation failed"
-   exit 99
-fi
+# if [ $? != 0 ]; then
+#    print_error "Validation failed"
+#    exit 99
+# fi
