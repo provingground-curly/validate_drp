@@ -115,7 +115,7 @@ This will create a repository in your current working directory called `data_hsc
 ```
 setup obs_subaru
 setup pipe_drivers
-setup validation_data_hsc
+setup ci_hsc
 setup validate_drp
 
 $VALIDATE_DRP_DIR/examples/runHscQuickTest.sh
