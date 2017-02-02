@@ -115,8 +115,13 @@ This will create a repository in your current working directory called `data_hsc
 ```
 setup obs_subaru
 setup pipe_drivers
-setup ci_hsc
 setup validate_drp
+
+# The ci_hsc doesn't install any data in the stack dir.
+# It's meant to be a an integration test itself.
+# If you have used lsstsw to "install" ci_hsc,
+# the actual data we want is in the build dir.
+setup -k -r "${LSST_BUILD_DIR}"/../build/ci_hsc
 
 $VALIDATE_DRP_DIR/examples/runHscQuickTest.sh
 ```
