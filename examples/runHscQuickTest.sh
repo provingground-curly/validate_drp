@@ -4,7 +4,16 @@ set -e
 # USES DATA IN ci_hsc
 
 # Setup
+# We don't want threading
 export OMP_NUM_THREADS=1
+# But we do want to process images in parallel on multiple cores.
+# Need ~2GB/core
+# Actually, 1 GB should be fine, but if you run out of memory on a VM
+# or compute node your job might just get killed without notice,
+# so 2GB/core to be safe.
+# The default here of 4 cores means this works on your laptop or an 8 GB VM.
+# If you're running on a larger node, you might increase this up to 16.
+N_CORES=4
 
 # Fake out the pipeline about the origin of the reference catalog
 export SETUP_ASTROMETRY_NET_DATA="astrometry_net_data sdss-dr9-fink-v5b"
@@ -66,7 +75,7 @@ ALL_VISITS=903334^903336^903338^903342^903344^903346^903986^903988^903990^904010
 # 904014|HSC-I|12
 
 # Heavy lifting
-singleFrameDriver.py "${REPO}" --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores 16 --id visit=${ALL_VISITS}
+singleFrameDriver.py "${REPO}" --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores ${N_CORES} --id visit=${ALL_VISITS}
 makeDiscreteSkyMap.py "${REPO}" --rerun "${RERUN}" --id ccd=0..103 visit=${ALL_VISITS}
 # makeDiscreteSkyMap INFO: tract 0 has corners (321.166, -0.594), (320.606, -0.594), (320.606, -0.034), (321.166, -0.034) (RA, Dec deg) and 3 x 3 patches
 
