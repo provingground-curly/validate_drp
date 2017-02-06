@@ -85,41 +85,52 @@ examples/runCfhtQuickTest.sh
 
 This quick test processes on a single CCD, which is useful for debugging.
 
+### Example: HSC
 
-### Example: DECam
-
-To setup for a run with DECam:
+To setup for a run with data from the HSC camera on Subaru:
 
 ```
-setup pipe_tasks
-setup obs_decam
-setup validation_data_decam
+setup obs_subaru
+setup pipe_drivers
+setup validation_data_hsc
 setup validate_drp
 ```
 
+Note that `pipe_drivers` is required for the HSC processing; it is not required for the Cfht or DECam processing.
+
 As usual, if any of these packages are not declared current you will also need to specify a version or tag.
 
-`validation_data_decam` contains both the test DECam data and selected SDSS reference catalogs in astrometry.net format.
+`validation_data_hsc` contains both the engineering HSC data and selected SDSS reference catalogs in astrometry.net format.
 
 Run the measurement algorithm processing and astrometry test with
 
 ```
-$VALIDATE_DRP_DIR/examples/runDecamTest.sh
+$VALIDATE_DRP_DIR/examples/runHscTest.sh
 ```
 
-This will create a repository in your current working directory called DECam.
+This will create a repository in your current working directory called `data_hsc`.
 
 **Note:** You can, instead, run:
 
 ```
-examples/runDecamQuickTest.sh
+setup obs_subaru
+setup pipe_drivers
+setup validate_drp
+
+# The ci_hsc doesn't install any data in the stack dir.
+# It's meant to be a an integration test itself.
+# If you have used lsstsw to "install" ci_hsc,
+# the actual data we want is in the build dir.
+setup -k -r "${LSST_BUILD_DIR}"/../build/ci_hsc
+
+$VALIDATE_DRP_DIR/examples/runHscQuickTest.sh
 ```
 
-This quick test processes on a single CCD, which is useful for debugging.
+This quick test processes on just a few CCDs that are in the data in `ci_hsc`.  A repository will be created in the current working directory as `data_hsc_quick`. The `validation_data_hsc` data set is not required for this quick test.
 
 ### Details on the processing
 
-While `examples/runCfhtTest.sh` and `examples/runDecamTest.sh` respectively do all of the processing and validation analysis, below are some examples of running the processing/measurement steps individually.  While these examples are from  the CFHT validation example, analogous commands would work for DECam.
+While `examples/run{Cfht,DECam,HSC}Test.sh` respectively do all of the processing and validation analysis, below are some examples of running the processing/measurement steps individually.  While these examples are from  the CFHT validation example, analogous commands would work for DECam.  The HSC processing uses `singleFrameDriver.py` instead of `processCcd.py`.
 
 1. Make sure the astrometry.net environment variable is pointed to the right place for this validation set:
     ```
@@ -257,6 +268,10 @@ E.g., the expected astrometric uncertainty is intimately related to the seeing o
 * `config/decamConfig.py`: empty config overrides for Decam.  Edit to easily include config parameters in the examples.
 * `examples/runCfhtTest.sh`: CFHT Run initialization, ingest, measurement, and astrometry validation.
 * `examples/runDecamTest.sh`: DECam Run initialization, ingest, measurement, and astrometry validation.
+* `examples/runHscTest.sh`: HSC Run initialization, ingest, measurement, and astrometry validation.
+* `examples/runCfhtQuickTest.sh`: Quick version.
+* `examples/runDecamQuickTest.sh`: Quick version.
+* `examples/runHscQuickTest.sh`: Quick run version.  Uses `ci_hsc` data instead of `validation_data_hsc`.
 * `examples/runExample.sh`: General example runner.
 * `examples/Cfht.yaml`: CFHT YAML file with visits, ccd, paramaters for validateDrp.
 * `examples/Decam.yaml`: DECam YAML file with visits, ccd, paramaters for validateDrp.

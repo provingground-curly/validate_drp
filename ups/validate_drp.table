@@ -12,10 +12,19 @@ setupRequired(scipy)
 setupRequired(matplotlib)
 
 setupOptional(pipe_tasks)
+setupOptional(pipe_drivers)
 setupOptional(obs_cfht)
 setupOptional(obs_decam)
+setupOptional(obs_subaru)
 setupOptional(validation_data_cfht)
 setupOptional(validation_data_decam)
+# 2017-02-02 Michael Wood-Vasey:
+# Conceptually, validation_data_hsc is an optional dependency
+# But, because lsstsw build will install a new copy of validation_data_hsc
+# if the packages it depends on change, and it's currently 700GB
+# we don't actually list that here.
+# setupOptional(validation_data_hsc)
+setupOptional(ci_hsc)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
