@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # LSST Data Management System
-# Copyright 2008-2016 AURA/LSST.
+# Copyright 2008-2017 AURA/LSST.
 #
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
@@ -20,90 +20,6 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
-from __future__ import print_function
+from lsst.validate.drp.validateDrp import ValidateDrpTask
 
-# Ensure that this script will run on a mis-configured node
-# that may default to a backend that requires X
-# e.g., 'Qt5Agg', even though there is is no display available
-# Putting this here in the command-line script is fine because no one
-# should import this script.
-import matplotlib
-matplotlib.use('Agg')
-
-import argparse
-import os.path
-import sys
-
-from lsst.utils import getPackageDir
-from lsst.validate.drp import validate, util
-from lsst.verify import MetricSet
-
-
-description = """
-Calculate and plot validation Key Project Metrics from the LSST SRD.
-http://ls.st/LPM-17
-
-Produces results to:
-STDOUT
-    Summary of key metrics
-REPONAME*.png
-    Plots of key metrics.  Generated in current working directory.
-REPONAME*.json
-    JSON serialization of each KPM.
-
-where REPONAME is based on the repository name but with path separators
-replaced with underscores.  E.g., "Cfht/output" -> "Cfht_output_"
-"""
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=description,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('repo', type=str,
-                        help='path to a repository containing the output of processCcd')
-    parser.add_argument('--outputPrefix', '-o', type=str, default=None,
-                        help="""
-                        Define basic name prefix for output files.  Can include paths.
-                        E.g., --outputPrefix="mydir/awesome_reduction" will produce
-                        "mydir/awesome_reduction_r.json" for the r-band JSON file.
-                        """)
-    parser.add_argument('--configFile', '-c', type=str, default=None,
-                        help='YAML configuration file validation parameters and dataIds.')
-    parser.add_argument('--metricsPackage',
-                        default='verify_metrics',
-                        help='Name of the repository with YAML definitions of LPM-17 metrics.')
-    parser.add_argument('--verbose', '-v', default=False, action='store_true',
-                        help='Display additional information about the analysis.')
-    parser.add_argument('--noplot', dest='makePlot',
-                        default=True, action='store_false',
-                        help='Skip making plots of performance.')
-    parser.add_argument('--level', type=str, default='design',
-                        help='Level of SRD requirement to meet: "minimum", "design", "stretch"')
-
-    args = parser.parse_args()
-
-    # Should clean up the duplication here between this and validate.run
-    if args.repo[-5:] == '.json':
-        load_json = True
-    else:
-        load_json = False
-
-    kwargs = {}
-
-    if not load_json:
-        if args.configFile:
-            pbStruct = util.loadDataIdsAndParameters(args.configFile)
-            kwargs = pbStruct.getDict()
-
-        if not args.configFile or not pbStruct.dataIds:
-            kwargs['dataIds'] = util.discoverDataIds(args.repo)
-            if args.verbose:
-                print("VISITDATAIDS: ", kwargs['dataIds'])
-
-        kwargs['metrics_package'] = args.metricsPackage
-
-    kwargs['verbose'] = args.verbose
-    kwargs['makePlot'] = args.makePlot
-    kwargs['level'] = args.level
-    kwargs['outputPrefix'] = args.outputPrefix
-
-    validate.run(args.repo, **kwargs)
+ValidateDrpTask.parseAndRun()
