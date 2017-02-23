@@ -31,7 +31,7 @@ import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
-                            MultiMatch, SimpleRecord, GroupView)
+                            MultiMatch, SimpleRecord, GroupView, SOURCE_IO_NO_FOOTPRINTS)
 from lsst.afw.fits.fitsLib import FitsError
 from lsst.validate.base import BlobBase
 
@@ -226,7 +226,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
             calib = afwImage.Calib(calexpMetadata)
 
-            oldSrc = butler.get('src', vId, immediate=True)
+            oldSrc = butler.get('src', vId, immediate=True, flags=SOURCE_IO_NO_FOOTPRINTS)
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
