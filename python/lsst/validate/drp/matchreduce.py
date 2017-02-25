@@ -35,7 +35,7 @@ from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
 from lsst.afw.fits.fitsLib import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import (getCcdKeyName, averageRaDecFromCat)
+from .util import (getCcdKeyName, averageRaDecFromCat, sphDist)
 
 
 __all__ = ['MatchedMultiVisitDataset', 'positionRms']
@@ -325,16 +325,15 @@ def positionRms(cat):
     Returns
     -------
     pos_rms -- RMS of positions in milliarcsecond.  Float.
-
-    This routine doesn't handle wrap-around
     """
     ra_avg, dec_avg = averageRaDecFromCat(cat)
     ra, dec = cat.get('coord_ra'), cat.get('coord_dec')
-    # Approximating that the cos(dec) term is roughly the same
-    #   for all observations of this object.
-    ra_var = np.var(ra) * np.cos(dec_avg)**2
-    dec_var = np.var(dec)
-    pos_rms = np.sqrt(ra_var + dec_var)  # radians
-    pos_rms = afwGeom.radToMas(pos_rms)  # milliarcsec
+    separations = sphDist(ra_avg, dec_avg, ra, dec)
+    # Note we don't want `np.std` of separations, which would give us the
+    #   std around the average of separations.
+    # We've already taken out the average,
+    #   so we want the sqrt of the mean of the squares.
+    pos_rms_rad = np.sqrt(np.mean(separations**2))  # radians
+    pos_rms_mas = afwGeom.radToMas(pos_rms_rad)  # milliarcsec
 
-    return pos_rms
+    return pos_rms_mas
