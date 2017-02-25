@@ -25,7 +25,7 @@ import numpy as np
 import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
-from ..util import averageRaDecFromCat
+from ..util import averageRaDecFromCat, sphDist
 
 
 class AMxMeasurement(MeasurementBase):
@@ -253,36 +253,6 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
     # return quantity
     rmsDistances = np.array(rmsDistances) * u.radian
     return rmsDistances
-
-
-def sphDist(ra1, dec1, ra2, dec2):
-    """Calculate distance on the surface of a unit sphere.
-
-    Input and Output are in radians.
-
-    Notes
-    -----
-    Uses the Haversine formula to preserve accuracy at small angles.
-
-    Law of cosines approach doesn't work well for the typically very small
-    differences that we're looking at here.
-    """
-    # Haversine
-    dra = ra1-ra2
-    ddec = dec1-dec2
-    a = np.square(np.sin(ddec/2)) + \
-        np.cos(dec1)*np.cos(dec2)*np.square(np.sin(dra/2))
-    dist = 2 * np.arcsin(np.sqrt(a))
-
-    # This is what the law of cosines would look like
-#    dist = np.arccos(np.sin(dec1)*np.sin(dec2) + np.cos(dec1)*np.cos(dec2)*np.cos(ra1 - ra2))
-
-    # Could use afwCoord.angularSeparation()
-    #  but (a) that hasn't been made accessible through the Python interface
-    #  and (b) I'm not sure that it would be faster than the numpy interface.
-    #    dist = afwCoord.angularSeparation(ra1-ra2, dec1-dec2, np.cos(dec1), np.cos(dec2))
-
-    return dist
 
 
 def matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
