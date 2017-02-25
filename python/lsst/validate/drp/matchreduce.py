@@ -38,7 +38,7 @@ from lsst.validate.base import BlobBase
 from .util import (getCcdKeyName, averageRaDecFromCat, sphDist)
 
 
-__all__ = ['MatchedMultiVisitDataset', 'positionRms']
+__all__ = ['MatchedMultiVisitDataset', 'positionRmsFromCat']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -314,7 +314,7 @@ class MatchedMultiVisitDataset(BlobBase):
         self.safeMatches = safeMatches
 
 
-def positionRms(cat):
+def positionRmsFromCat(cat):
     """Calculate the RMS for RA, Dec for a set of observations an object.
 
     Parameters
@@ -328,12 +328,4 @@ def positionRms(cat):
     """
     ra_avg, dec_avg = averageRaDecFromCat(cat)
     ra, dec = cat.get('coord_ra'), cat.get('coord_dec')
-    separations = sphDist(ra_avg, dec_avg, ra, dec)
-    # Note we don't want `np.std` of separations, which would give us the
-    #   std around the average of separations.
-    # We've already taken out the average,
-    #   so we want the sqrt of the mean of the squares.
-    pos_rms_rad = np.sqrt(np.mean(separations**2))  # radians
-    pos_rms_mas = afwGeom.radToMas(pos_rms_rad)  # milliarcsec
-
-    return pos_rms_mas
+    return positionRms(ra_avg, dec_avg, ra, dec)

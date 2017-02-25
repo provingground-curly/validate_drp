@@ -64,6 +64,31 @@ def averageRaDecFromCat(cat):
     return averageRaDec(cat.get('coord_ra'), cat.get('coord_dec'))
 
 
+def positionRms(ra_avg, dec_avg, ra, dec):
+    """Calculate the RMS between RA_avg, Dec_avg and RA, Dec
+
+    Parameters
+    ----------
+    ra_avg -- Average RA  [rad]
+    dec_avg -- Average Dec [rad]
+    ra -- np.array of RA  [rad]
+    dec -- np.array of Dec  [rad]
+
+    Returns
+    -------
+    pos_rms -- RMS of positions in milliarcsecond.  Float.
+    """
+    separations = sphDist(ra_avg, dec_avg, ra, dec)
+    # Note we don't want `np.std` of separations, which would give us the
+    #   std around the average of separations.
+    # We've already taken out the average,
+    #   so we want the sqrt of the mean of the squares.
+    pos_rms_rad = np.sqrt(np.mean(separations**2))  # radians
+    pos_rms_mas = afwGeom.radToMas(pos_rms_rad)  # milliarcsec
+
+    return pos_rms_mas
+
+
 def sphDist(ra1, dec1, ra2, dec2):
     """Calculate distance on the surface of a unit sphere.
 
