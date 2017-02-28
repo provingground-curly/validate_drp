@@ -321,7 +321,7 @@ def matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
     j_raw = 0
     j = visit_obj2_idx[j_raw]
     for i in visit_obj1_idx:
-        while (visit_obj2[j] < visit_obj1[i]) and (j_raw < len(visit_obj2_idx)):
+        while (visit_obj2[j] < visit_obj1[i]) and (j_raw < len(visit_obj2_idx)-1):
             j_raw += 1
             j = visit_obj2_idx[j_raw]
         if visit_obj2[j] == visit_obj1[i]:
