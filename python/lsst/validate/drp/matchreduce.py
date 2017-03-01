@@ -226,7 +226,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
             calib = afwImage.Calib(calexpMetadata)
 
-            oldSrc = butler.get('src', vId, immediate=True, flags=SOURCE_IO_NO_FOOTPRINTS)
+            oldSrc = butler.get('src', vId, immediate=True)
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
