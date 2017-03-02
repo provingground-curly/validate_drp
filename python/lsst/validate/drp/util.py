@@ -77,6 +77,10 @@ def positionRms(ra_avg, dec_avg, ra, dec):
     Returns
     -------
     pos_rms -- RMS of positions in milliarcsecond.  Float.
+
+
+    The RMS of a single-element array will be returned as 0.
+    The RMS of an empty array will be returned as NaN.
     """
     separations = sphDist(ra_avg, dec_avg, ra, dec)
     # Note we don't want `np.std` of separations, which would give us the
