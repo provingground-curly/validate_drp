@@ -195,7 +195,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
         # Create an object that matches multiple catalogs with same schema
         mmatch = MultiMatch(newSchema,
-                            dataIdFormat={'visit': int, ccdKeyName: int},
+                            dataIdFormat={'visit': np.int32, ccdKeyName: np.int32},
                             radius=matchRadius,
                             RecordClass=SimpleRecord)
 
