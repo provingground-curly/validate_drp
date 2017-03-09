@@ -69,11 +69,12 @@ export ASTROMETRY_NET_DATA_DIR="${VALIDATION_DATA}"/../astrometry_net_data
 echo "running processCcd"
 MACH=$(uname -s)
 if [ "$MACH" == Darwin ]; then
-    NUMPROC=$(sysctl -n hw.logicalcpu)
+    sys_proc=$(sysctl -n hw.logicalcpu)
 else
-    NUMPROC=$(grep -c processor /proc/cpuinfo)
+    sys_proc=$(grep -c processor /proc/cpuinfo)
 fi
-NUMPROC=$((NUMPROC<8?NUMPROC:8))
+max_proc=8
+NUMPROC=${NUMPROC:-$((sys_proc < max_proc ? sys_proc : max_proc))}
 
 # Extract desired dataIds runs from YAML config file
 YAMLCONFIG="${PRODUCT_DIR}"/examples/${CAMERA}.yaml
@@ -83,7 +84,7 @@ makeRunList.py "${YAMLCONFIG}" > "${RUNLIST}"
 ${PROCESSCCD} "${INPUT}" --output "${OUTPUT}" \
     @"${RUNLIST}" \
     --configfile "${CONFIG_FILE}" \
-    -j $NUMPROC \
+    -j "$NUMPROC" \
     >& "${WORKSPACE}"/processCcd.log
 
 # Run astrometry check on src
