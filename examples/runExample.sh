@@ -62,7 +62,7 @@ echo "$MAPPER" > "${INPUT}"/_mapper
 RAWDATA=${VALIDATION_DATA}
 ${INGEST} "${INPUT}" "${RAWDATA}"/*.fz --mode link
 
-# Set up astrometry 
+# Set up astrometry
 export ASTROMETRY_NET_DATA_DIR="${VALIDATION_DATA}"/../astrometry_net_data
 
 # Create calexps and src
@@ -76,7 +76,7 @@ fi
 NUMPROC=$((NUMPROC<8?NUMPROC:8))
 
 # Extract desired dataIds runs from YAML config file
-YAMLCONFIG="${PRODUCT_DIR}"/examples/${CAMERA}.yaml 
+YAMLCONFIG="${PRODUCT_DIR}"/examples/${CAMERA}.yaml
 RUNLIST="${PRODUCT_DIR}"/examples/${CAMERA}.list
 makeRunList.py "${YAMLCONFIG}" > "${RUNLIST}"
 
