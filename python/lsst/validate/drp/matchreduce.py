@@ -35,10 +35,10 @@ from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
 from lsst.afw.fits.fitsLib import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import (getCcdKeyName, averageRaDecFromCat)
+from .util import (getCcdKeyName, averageRaDecFromCat, sphDist)
 
 
-__all__ = ['MatchedMultiVisitDataset', 'positionRms']
+__all__ = ['MatchedMultiVisitDataset', 'positionRmsFromCat']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -314,7 +314,7 @@ class MatchedMultiVisitDataset(BlobBase):
         self.safeMatches = safeMatches
 
 
-def positionRms(cat):
+def positionRmsFromCat(cat):
     """Calculate the RMS for RA, Dec for a set of observations an object.
 
     Parameters
@@ -325,16 +325,7 @@ def positionRms(cat):
     Returns
     -------
     pos_rms -- RMS of positions in milliarcsecond.  Float.
-
-    This routine doesn't handle wrap-around
     """
     ra_avg, dec_avg = averageRaDecFromCat(cat)
     ra, dec = cat.get('coord_ra'), cat.get('coord_dec')
-    # Approximating that the cos(dec) term is roughly the same
-    #   for all observations of this object.
-    ra_var = np.var(ra) * np.cos(dec_avg)**2
-    dec_var = np.var(dec)
-    pos_rms = np.sqrt(ra_var + dec_var)  # radians
-    pos_rms = afwGeom.radToMas(pos_rms)  # milliarcsec
-
-    return pos_rms
+    return positionRms(ra_avg, dec_avg, ra, dec)

@@ -25,6 +25,7 @@ from past.builtins import basestring
 
 import os
 
+import numpy as np
 import yaml
 
 import lsst.daf.persistence as dafPersist
@@ -61,6 +62,65 @@ def averageRaDec(ra, dec):
 
 def averageRaDecFromCat(cat):
     return averageRaDec(cat.get('coord_ra'), cat.get('coord_dec'))
+
+
+def positionRms(ra_avg, dec_avg, ra, dec):
+    """Calculate the RMS between RA_avg, Dec_avg and RA, Dec
+
+    Parameters
+    ----------
+    ra_avg -- Average RA  [rad]
+    dec_avg -- Average Dec [rad]
+    ra -- np.array of RA  [rad]
+    dec -- np.array of Dec  [rad]
+
+    Returns
+    -------
+    pos_rms -- RMS of positions in milliarcsecond.  Float.
+
+
+    The RMS of a single-element array will be returned as 0.
+    The RMS of an empty array will be returned as NaN.
+    """
+    separations = sphDist(ra_avg, dec_avg, ra, dec)
+    # Note we don't want `np.std` of separations, which would give us the
+    #   std around the average of separations.
+    # We've already taken out the average,
+    #   so we want the sqrt of the mean of the squares.
+    pos_rms_rad = np.sqrt(np.mean(separations**2))  # radians
+    pos_rms_mas = afwGeom.radToMas(pos_rms_rad)  # milliarcsec
+
+    return pos_rms_mas
+
+
+def sphDist(ra1, dec1, ra2, dec2):
+    """Calculate distance on the surface of a unit sphere.
+
+    Input and Output are in radians.
+
+    Notes
+    -----
+    Uses the Haversine formula to preserve accuracy at small angles.
+
+    Law of cosines approach doesn't work well for the typically very small
+    differences that we're looking at here.
+    """
+    # Haversine
+    dra = ra1-ra2
+    ddec = dec1-dec2
+    a = np.square(np.sin(ddec/2)) + \
+        np.cos(dec1)*np.cos(dec2)*np.square(np.sin(dra/2))
+    dist = 2 * np.arcsin(np.sqrt(a))
+
+    # This is what the law of cosines would look like
+#    dist = np.arccos(np.sin(dec1)*np.sin(dec2) + np.cos(dec1)*np.cos(dec2)*np.cos(ra1 - ra2))
+
+    # Could use afwCoord.angularSeparation()
+    #  but (a) that hasn't been made accessible through the Python interface
+    #  and (b) I'm not sure that it would be faster than the numpy interface.
+    #    dist = afwCoord.angularSeparation(ra1-ra2, dec1-dec2, np.cos(dec1), np.cos(dec2))
+
+    return dist
 
 
 def getCcdKeyName(dataid):
