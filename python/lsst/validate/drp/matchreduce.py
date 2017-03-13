@@ -306,8 +306,8 @@ class MatchedMultiVisitDataset(BlobBase):
         self.mag = goodMatches.aggregate(np.mean, field=psfMagKey) * u.mag
         self.magrms = goodMatches.aggregate(np.std, field=psfMagKey) * u.mag
         self.magerr = goodMatches.aggregate(np.median, field=psfMagErrKey) * u.mag
-        # positionRms knows how to query a group so we give it the whole thing
-        # by going with the default `field=None`.
+        # positionRmsFromCat knows how to query a group
+        # so we give it the whole thing by going with the default `field=None`.
         self.dist = goodMatches.aggregate(positionRmsFromCat) * u.milliarcsecond
 
         # These attributes are not serialized
