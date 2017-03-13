@@ -30,7 +30,7 @@ This package also includes examples that run processCcd task on some
 CFHT data and DECam data
 and validate the astrometric and photometric repeatability of the results.
 
-Pre-requisites: install and declare the following
+Pre-requisites for the examples: install and declare the following
 
 1. `pipe_base` from the LSST DM stack (note that `pipe_base` is included with `lsst_apps`, which is the usual thing to install)
 2. `obs_decam` from https://github.com/lsst/obs_decam
@@ -67,7 +67,18 @@ setup validate_drp
 
 As usual, if any of these packages are not declared current you will also need to specify a version or tag.
 
-`validation_data_cfht` contains both the test CFHT data and selected SDSS reference catalogs in astrometry.net format.
+`validation_data_cfht` contains both the test CFHT data and selected SDSS reference catalogs in astrometry.net format.  It also contains an already-processed set of output data products.
+
+Analyze the `validation_data_cfht` data products with
+
+```
+validateDrp.py ${VALIDATION_DATA_CFHT_DIR}/data
+```
+
+To add a custom set of requirements to pass that differ from the LSST Science Requirements Document, pass a configuration file option:
+```
+validateDrp.py ${VALIDATION_DATA_CFHT_DIR}/data --configFile ${VALIDATE_DRP_DIR}/examples/Cfht.yaml
+```
 
 Run the measurement algorithm processing and astrometry test with
 
@@ -100,7 +111,18 @@ Note that `pipe_drivers` is required for the HSC processing; it is not required 
 
 As usual, if any of these packages are not declared current you will also need to specify a version or tag.
 
-`validation_data_hsc` contains both the engineering HSC data and selected SDSS reference catalogs in astrometry.net format.
+`validation_data_decam` contains both the test DECam data and selected SDSS reference catalogs in astrometry.net format.  It also contains an already-processed set of output data products.
+
+Analyze the `validation_data_decam` data products with
+
+```
+validateDrp.py ${VALIDATION_DATA_DECAM_DIR}/data
+```
+
+To add a custom set of requirements to pass that differ from the LSST Science Requirements Document, pass a configuration file option:
+```
+validateDrp.py ${VALIDATION_DATA_DECAM_DIR}/data --configFile ${VALIDATE_DRP_DIR}/examples/decam.yaml
+```
 
 Run the measurement algorithm processing and astrometry test with
 
