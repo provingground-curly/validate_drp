@@ -93,6 +93,23 @@ def positionRms(ra_avg, dec_avg, ra, dec):
     return pos_rms_mas
 
 
+def positionRmsFromCat(cat):
+    """Calculate the RMS for RA, Dec for a set of observations an object.
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'coord_ra', 'coord_dec' that returns radians.
+
+    Returns
+    -------
+    pos_rms -- RMS of positions in milliarcsecond.  Float.
+    """
+    ra_avg, dec_avg = averageRaDecFromCat(cat)
+    ra, dec = cat.get('coord_ra'), cat.get('coord_dec')
+    return positionRms(ra_avg, dec_avg, ra, dec)
+
+
 def sphDist(ra1, dec1, ra2, dec2):
     """Calculate distance on the surface of a unit sphere.
 
