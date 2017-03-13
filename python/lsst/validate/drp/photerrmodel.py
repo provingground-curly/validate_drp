@@ -35,7 +35,7 @@ __all__ = ['photErrModel', 'fitPhotErrModel', 'PhotometricErrorModel']
 def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):
     """Model of photometric error for a single visit.
 
-    The model is described in LSST Overview paper,
+    The model is described in the LSST Overview paper:
     http://arxiv.org/abs/0805.2366v4.
 
     Photometric error of a single visit (Eq. 4):
@@ -75,7 +75,9 @@ def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):
 
 
 def fitPhotErrModel(mag, mag_err):
-    """Fit photometric error model from the LSST Overview paper.
+    """Fit photometric error model from the LSST Overview paper:
+
+    http://arxiv.org/abs/0805.2366v4
 
     The fit is performed with `scipy.optimize.curvefit`.
 
