@@ -35,10 +35,11 @@ from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
 from lsst.afw.fits.fitsLib import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import (getCcdKeyName, averageRaDecFromCat, sphDist)
+from .util import (averageRaDecFromCat, getCcdKeyName, positionRmsFromCat,
+                   sphDist)
 
 
-__all__ = ['MatchedMultiVisitDataset', 'positionRmsFromCat']
+__all__ = ['MatchedMultiVisitDataset']
 
 
 class MatchedMultiVisitDataset(BlobBase):
@@ -305,27 +306,10 @@ class MatchedMultiVisitDataset(BlobBase):
         self.mag = goodMatches.aggregate(np.mean, field=psfMagKey) * u.mag
         self.magrms = goodMatches.aggregate(np.std, field=psfMagKey) * u.mag
         self.magerr = goodMatches.aggregate(np.median, field=psfMagErrKey) * u.mag
-        # positionRms knows how to query a group so we give it the whole thing
-        # by going with the default `field=None`.
-        self.dist = goodMatches.aggregate(positionRms) * u.milliarcsecond
+        # positionRmsFromCat knows how to query a group
+        # so we give it the whole thing by going with the default `field=None`.
+        self.dist = goodMatches.aggregate(positionRmsFromCat) * u.milliarcsecond
 
         # These attributes are not serialized
         self.goodMatches = goodMatches
         self.safeMatches = safeMatches
-
-
-def positionRmsFromCat(cat):
-    """Calculate the RMS for RA, Dec for a set of observations an object.
-
-    Parameters
-    ----------
-    cat -- collection with a .get method
-         for 'coord_ra', 'coord_dec' that returns radians.
-
-    Returns
-    -------
-    pos_rms -- RMS of positions in milliarcsecond.  Float.
-    """
-    ra_avg, dec_avg = averageRaDecFromCat(cat)
-    ra, dec = cat.get('coord_ra'), cat.get('coord_dec')
-    return positionRms(ra_avg, dec_avg, ra, dec)
