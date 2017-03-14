@@ -24,7 +24,10 @@ setupOptional(validation_data_decam)
 # if the packages it depends on change, and it's currently 700GB
 # we don't actually list that here.
 # setupOptional(validation_data_hsc)
-setupOptional(ci_hsc)
+# 2017-03-14 Michael Wood-Vasey:
+# ci_hsc currently fails both in CI and under Py3
+# So I remove it from the listed dependencies.
+# setupOptional(ci_hsc)
 
 envPrepend(PYTHONPATH, ${PRODUCT_DIR}/python)
 envPrepend(PATH, ${PRODUCT_DIR}/bin)
