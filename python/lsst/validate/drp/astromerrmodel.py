@@ -65,7 +65,9 @@ def astromErrModel(snr, theta=1000, sigmaSys=10, C=1, **kwargs):
 
 
 def fitAstromErrModel(snr, dist):
-    """Fit model of astrometric error from LSST Overview paper
+    """Fit model of astrometric error from the LSST Overview paper:
+
+    http://arxiv.org/abs/0805.2366v4
 
     Parameters
     ----------
