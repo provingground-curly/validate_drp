@@ -24,6 +24,7 @@ PRODUCT_DIR="${VALIDATE_DRP_DIR}"
 
 CAMERA=Hsc
 YAMLCONFIG="${PRODUCT_DIR}"/examples/"${CAMERA}".yaml
+CONFIG_FILE="${PRODUCT_DIR}"/config/hscConfig.py
 
 DATA_DIR=${VALIDATION_DATA_HSC_DIR}
 CALIB_DIR=${DATA_DIR}/CALIB
@@ -37,7 +38,7 @@ ingestImages.py "${REPO}" --mode=link "${VALIDATION_DATA_HSC_DIR}"/'raw/*.fits'
 ALL_VISITS=903332^903340^903982^904006^904350^904378^904828^904846
 
 # Heavy lifting
-singleFrameDriver.py ${REPO} --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores ${NUMPROC} --id visit=${ALL_VISITS}
+singleFrameDriver.py ${REPO} --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores ${NUMPROC} --id visit=${ALL_VISITS} -C "${CONFIG_FILE}"
 makeDiscreteSkyMap.py ${REPO} --rerun ${RERUN} --id ccd=0..103 visit=${ALL_VISITS}
 # makeDiscreteSkyMap INFO: tract 0 has corners (321.714, -1.294), (318.915, -1.294), (318.915, 1.504), (321.714, 1.504) (RA, Dec deg) and 15 x 15 patches
 
