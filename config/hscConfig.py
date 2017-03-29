@@ -1,4 +1,7 @@
-# Configure to force using astrometry_net instead of pre-loaded reference catalogs
+"""
+Configure to force using astrometry_net instead of directly 
+loading Pan-STARRS1 reference catalogs
+"""
 
 from lsst.pipe.tasks.setConfigFromEups import setPhotocalConfigFromEups, setAstrometryConfigFromEups
 
