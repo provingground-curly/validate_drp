@@ -31,12 +31,11 @@ import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
-                            MultiMatch, SimpleRecord, GroupView, SOURCE_IO_NO_FOOTPRINTS)
+                            MultiMatch, SimpleRecord, GroupView)
 from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import (averageRaDecFromCat, getCcdKeyName, positionRmsFromCat,
-                   sphDist)
+from .util import getCcdKeyName, positionRmsFromCat
 
 
 __all__ = ['MatchedMultiVisitDataset']
