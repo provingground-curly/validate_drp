@@ -31,12 +31,11 @@ import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
-                            MultiMatch, SimpleRecord, GroupView, SOURCE_IO_NO_FOOTPRINTS)
-from lsst.afw.fits.fitsLib import FitsError
+                            MultiMatch, SimpleRecord, GroupView)
+from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import (averageRaDecFromCat, getCcdKeyName, positionRmsFromCat,
-                   sphDist)
+from .util import getCcdKeyName, positionRmsFromCat
 
 
 __all__ = ['MatchedMultiVisitDataset']
@@ -206,8 +205,8 @@ class MatchedMultiVisitDataset(BlobBase):
         for vId in dataIds:
             try:
                 calexpMetadata = butler.get("calexp_md", vId, immediate=True)
-            except FitsError as fe:
-                print(fe)
+            except (FitsError, dafPersist.NoResults) as e:
+                print(e)
                 print("Could not open calibrated image file for ", vId)
                 print("Skipping %s " % repr(vId))
                 continue
