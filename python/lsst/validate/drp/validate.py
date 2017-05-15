@@ -240,29 +240,52 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     if makePlot:
         if job.get_measurement('AM1').quantity is not None:
-            plotAMx(job.get_measurement('AM1'),
-                    job.get_measurement('AF1', spec_name='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
+            try:
+                plotAMx(job.get_measurement('AM1'),
+                        job.get_measurement('AF1', spec_name='design'),
+                        filterName, amxSpecName='design',
+                        outputPrefix=outputPrefix)
+            except RuntimeError:
+                print('\tSkipped plotAM1')
+                continue
+
         if job.get_measurement('AM2').quantity is not None:
-            plotAMx(job.get_measurement('AM2'),
-                    job.get_measurement('AF2', spec_name='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
+            try:
+                plotAMx(job.get_measurement('AM2'),
+                        job.get_measurement('AF2', spec_name='design'),
+                        filterName, amxSpecName='design',
+                        outputPrefix=outputPrefix)
+            except RuntimeError:
+                print('\tSkipped plotAM2')
+                continue
         if job.get_measurement('AM3').quantity is not None:
-            plotAMx(job.get_measurement('AM3'),
-                    job.get_measurement('AF3', spec_name='design'),
-                    filterName, amxSpecName='design',
-                    outputPrefix=outputPrefix)
+            try:
+                plotAMx(job.get_measurement('AM3'),
+                        job.get_measurement('AF3', spec_name='design'),
+                        filterName, amxSpecName='design',
+                        outputPrefix=outputPrefix)
+            except RuntimeError:
+                print('\tSkipped plotAM3')
+                continue
 
-        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
+        try:
+            plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
+        except RuntimeError:
+            print('\tSkipped plotPA1')
 
-        plotPhotometryErrorModel(matchedDataset, photomModel,
-                                 filterName=filterName,
-                                 outputPrefix=outputPrefix)
+        try:
+            plotPhotometryErrorModel(matchedDataset, photomModel,
+                                     filterName=filterName,
+                                     outputPrefix=outputPrefix)
+        except RuntimeError:
+            print('\tSkipped plotPhotometryErrorModel')
 
-        plotAstrometryErrorModel(matchedDataset, astromModel,
-                                 outputPrefix=outputPrefix)
+
+        try:
+            plotAstrometryErrorModel(matchedDataset, astromModel,
+                                     outputPrefix=outputPrefix)
+        except RuntimeError:
+            print('\tSkipped plotAstrometryErrorModel')
 
     if makePrint:
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
