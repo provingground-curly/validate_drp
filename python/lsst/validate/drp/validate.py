@@ -38,7 +38,7 @@ from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
 
-__all__ = ['run', 'runOneFilter']
+__all__ = ['plot_metrics', 'print_metrics', 'run', 'runOneFilter']
 
 
 class bcolors(object):
@@ -239,86 +239,97 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePlot:
-        for x in (1, 2, 3):
-            amxName = 'AM{0:d}'.format(x)
-            afxName = 'AF{0:d}'.format(x)
-            # ADx is included on the AFx plots
-
-            if job.get_measurement(amxName).quantity is not None:
-                try:
-                    plotAMx(job.get_measurement(amxName),
-                            job.get_measurement(afxName, spec_name='design'),
-                            filterName, amxSpecName='design',
-                            outputPrefix=outputPrefix)
-                except RuntimeError as e:
-                    print(e)
-                    print('\tSkipped plot{}'.format(amxName))
-                    continue
-
-        try:
-            plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
-        except RuntimeError as e:
-            print(e)
-            print('\tSkipped plotPA1')
-
-        try:
-            plotPhotometryErrorModel(matchedDataset, photomModel,
-                                     filterName=filterName,
-                                     outputPrefix=outputPrefix)
-        except RuntimeError as e:
-            print(e)
-            print('\tSkipped plotPhotometryErrorModel')
-
-
-        try:
-            plotAstrometryErrorModel(matchedDataset, astromModel,
-                                     outputPrefix=outputPrefix)
-        except RuntimeError as e:
-            print(e)
-            print('\tSkipped plotAstrometryErrorModel')
+        plot_metrics(metrics, job, filterName,
+                     matchedDataset, photomModel, astromModel,
+                     outputPrefix=outputPrefix)
 
     if makePrint:
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER +
-              '{band} band metric measurements'.format(band=filterName) +
-              bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-
-        wrapper = TextWrapper(width=65)
-
-        for metricName in metrics:
-            metric = metrics[metricName]
-            print(bcolors.HEADER + '{name} - {reference}'.format(
-                name=metric.name, reference=metric.reference))
-            print(wrapper.fill(bcolors.ENDC + '{description}'.format(
-                description=metric.description).strip()))
-
-            for specName in metric.get_spec_names(filter_name=filterName):
-                try:
-                    m = job.get_measurement(metricName,
-                                            spec_name=specName,
-                                            filter_name=filterName)
-                except RuntimeError:
-                    print('\tSkipped {specName:12s} no spec'.format(
-                        specName=specName))
-                    continue
-
-                if m.quantity is None:
-                    print('\tSkipped {specName:12s} no measurement'.format(
-                        specName=specName))
-                    continue
-
-                spec = metric.get_spec(specName, filter_name=filterName)
-                passed = m.check_spec(specName)
-                if passed:
-                    prefix = bcolors.OKBLUE + '\tPassed '
-                else:
-                    prefix = bcolors.FAIL + '\tFailed '
-                infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f}'.format(
-                    specName=specName,
-                    meas=m.quantity,
-                    op=metric.operator_str,
-                    spec=spec.quantity)
-                print(prefix + infoStr + bcolors.ENDC)
+        print_metrics(metrics, job, filterName)
 
     return job
+
+
+def plot_metrics(metrics, job, filterName,
+                 matchedDataset, photomModel, astromModel,
+                 outputPrefix=None):
+    for x in (1, 2, 3):
+        amxName = 'AM{0:d}'.format(x)
+        afxName = 'AF{0:d}'.format(x)
+        # ADx is included on the AFx plots
+
+        if job.get_measurement(amxName).quantity is not None:
+            try:
+                plotAMx(job.get_measurement(amxName),
+                        job.get_measurement(afxName, spec_name='design'),
+                        filterName, amxSpecName='design',
+                        outputPrefix=outputPrefix)
+            except RuntimeError as e:
+                print(e)
+                print('\tSkipped plot{}'.format(amxName))
+                continue
+
+    try:
+        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
+    except RuntimeError as e:
+        print(e)
+        print('\tSkipped plotPA1')
+
+    try:
+        plotPhotometryErrorModel(matchedDataset, photomModel,
+                                 filterName=filterName,
+                                 outputPrefix=outputPrefix)
+    except RuntimeError as e:
+        print(e)
+        print('\tSkipped plotPhotometryErrorModel')
+
+    try:
+        plotAstrometryErrorModel(matchedDataset, astromModel,
+                                 outputPrefix=outputPrefix)
+    except RuntimeError as e:
+        print(e)
+        print('\tSkipped plotAstrometryErrorModel')
+
+
+def print_metrics(metrics, job, filterName):
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER +
+          '{band} band metric measurements'.format(band=filterName) +
+          bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+
+    wrapper = TextWrapper(width=65)
+
+    for metricName in metrics:
+        metric = metrics[metricName]
+        print(bcolors.HEADER + '{name} - {reference}'.format(
+            name=metric.name, reference=metric.reference))
+        print(wrapper.fill(bcolors.ENDC + '{description}'.format(
+            description=metric.description).strip()))
+
+        for specName in metric.get_spec_names(filter_name=filterName):
+            try:
+                m = job.get_measurement(metricName,
+                                        spec_name=specName,
+                                        filter_name=filterName)
+            except RuntimeError:
+                print('\tSkipped {specName:12s} no spec'.format(
+                    specName=specName))
+                continue
+
+            if m.quantity is None:
+                print('\tSkipped {specName:12s} no measurement'.format(
+                    specName=specName))
+                continue
+
+            spec = metric.get_spec(specName, filter_name=filterName)
+            passed = m.check_spec(specName)
+            if passed:
+                prefix = bcolors.OKBLUE + '\tPassed '
+            else:
+                prefix = bcolors.FAIL + '\tFailed '
+            infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f}'.format(
+                specName=specName,
+                meas=m.quantity,
+                op=metric.operator_str,
+                spec=spec.quantity)
+            print(prefix + infoStr + bcolors.ENDC)
