@@ -239,42 +239,51 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePlot:
-        plot_metrics(metrics, job, filterName,
-                     matchedDataset, photomModel, astromModel,
-                     outputPrefix=outputPrefix)
+        plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
     if makePrint:
-        print_metrics(metrics, job, filterName)
+        print_metrics(job, filterName, metrics)
 
     return job
 
 
-def plot_metrics(metrics, job, filterName,
-                 matchedDataset, photomModel, astromModel,
-                 outputPrefix=None):
+def plot_metrics(job, filterName, outputPrefix=None):
+    """Plot AM1, AM2, AM3, PA1 plus related informational plots.
+
+    Parameters
+    ---
+    job - an lsst.validate.base.Job object
+    filterName - string identifying the filter.
+    """
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
         # ADx is included on the AFx plots
+        spec_name = 'design'
 
-        if job.get_measurement(amxName).quantity is not None:
+        amx = job.get_measurement(amxName)
+        afx = job.get_measurement(afxName, spec_name=spec_name)
+
+        if amx.quantity is not None:
             try:
-                plotAMx(job.get_measurement(amxName),
-                        job.get_measurement(afxName, spec_name='design'),
-                        filterName, amxSpecName='design',
+                plotAMx(amx, afx, filterName, amxSpecName=spec_name,
                         outputPrefix=outputPrefix)
             except RuntimeError as e:
                 print(e)
                 print('\tSkipped plot{}'.format(amxName))
-                continue
+
 
     try:
-        plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
+        pa1 = job.get_measurement('PA1')
+        plotPA1(pa1, outputPrefix=outputPrefix)
     except RuntimeError as e:
         print(e)
         print('\tSkipped plotPA1')
 
     try:
+        matchedDataset = pa1.blobs['matchedDataset']
+        photomModel = pa1.blobs['photomModel']
+        filterName = pa1.filter_name
         plotPhotometryErrorModel(matchedDataset, photomModel,
                                  filterName=filterName,
                                  outputPrefix=outputPrefix)
@@ -283,6 +292,9 @@ def plot_metrics(metrics, job, filterName,
         print('\tSkipped plotPhotometryErrorModel')
 
     try:
+        am1 = job.get_measurement('AM1')
+        matchedDataset = am1.blobs['matchedDataset']
+        astromModel = am1.blobs['astromModel']
         plotAstrometryErrorModel(matchedDataset, astromModel,
                                  outputPrefix=outputPrefix)
     except RuntimeError as e:
@@ -290,7 +302,19 @@ def plot_metrics(metrics, job, filterName,
         print('\tSkipped plotAstrometryErrorModel')
 
 
-def print_metrics(metrics, job, filterName):
+def print_metrics(job, filterName, metrics):
+    """Print specified list of metrics.  E.g., AM1, AM2, AM3, PA1.
+
+    Parameters
+    ---
+    job - lsst.validate.base.Job object
+    filterName - string identifying the filter.
+    metrics - Dictionary of lsst.validate.base.metric.Metric objects to print
+
+    Note: We here specify the list of metrics to plot.
+    In `plot_metrics` the list is implicitly hardcoded because of the different
+    options each plotting method needs.
+    """
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER +
           '{band} band metric measurements'.format(band=filterName) +
@@ -299,8 +323,7 @@ def print_metrics(metrics, job, filterName):
 
     wrapper = TextWrapper(width=65)
 
-    for metricName in metrics:
-        metric = metrics[metricName]
+    for metricName, metric in metrics.items():
         print(bcolors.HEADER + '{name} - {reference}'.format(
             name=metric.name, reference=metric.reference))
         print(wrapper.fill(bcolors.ENDC + '{description}'.format(
