@@ -238,11 +238,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
-    if makePlot:
-        plot_metrics(job, filterName, outputPrefix=outputPrefix)
-
     if makePrint:
         print_metrics(job, filterName, metrics)
+    if makePlot:
+        plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
     return job
 
