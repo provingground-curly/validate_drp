@@ -26,22 +26,16 @@ import os
 from lsst.validate.drp.photerrmodel import photErrModel, fitPhotErrModel
 
 sigmaSys, gamma, m5 = 0.01, 0.039, 24.35  # mag, '', mag
-# m = randn(100)*2 + 25
-# m[m<25]
-mag = np.array([20.61924649, 22.38816749, 23.42808267, 23.91382154,
-                21.03983081, 22.66172609, 22.99162843, 22.15120047,
-                23.81592911, 24.18329084, 24.06935126, 24.56872001,
-                22.87464248, 19.65561574, 19.91919161, 22.68216205,
-                23.64408218, 23.76364731, 24.37833970, 24.64955185,
-                23.97967389, 24.38613033, 23.97724519, 24.13588853,
-                21.66608579, 24.05617257, 24.68853882, 24.10951259,
-                23.57543272, 23.01713577, 24.85388469, 22.98283602,
-                22.37079191, 21.94217066, 23.75503379, 22.49101874,
-                22.64036787, 22.01897656, 24.01141995, 21.90216590,
-                22.40675442, 24.29205718, 24.54783765, 23.63751763,
-                24.34770239, 24.66212856, 24.88785257, 24.49763894])
+
+# Set seed for repeatibility
+np.random.seed(96701237)
+m = np.random.randn(1000)*2 + 25
+mag = m[m < 25]
 mag_err = photErrModel(mag, sigmaSys, gamma, m5)
+
 # Resample mag
+# Set seed for repeatibility.  We explicityly reset it here to a known value
+#  in case `photErrModel` called np.random
 np.random.seed(23987)
 noisy_mag = mag + np.random.randn(len(mag_err))*mag_err
 
