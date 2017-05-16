@@ -22,52 +22,77 @@ from __future__ import print_function, absolute_import, division
 
 import numpy as np
 import os
+import unittest
 
+import lsst.utils.tests
 from lsst.validate.drp.photerrmodel import photErrModel, fitPhotErrModel
 
-sigmaSys, gamma, m5 = 0.01, 0.039, 24.35  # mag, '', mag
 
-# Set seed for repeatibility
-np.random.seed(96701237)
-m = np.random.randn(1000)*2 + 25
-mag = m[m < 25]
-mag_err = photErrModel(mag, sigmaSys, gamma, m5)
+class Phot_Err_Case(lsst.utils.tests.TestCase):
+    """Testing photometric error model fitting performance and failure modes."""
+    def setUp(self):
+        self.sigmaSys, self.gamma, self.m5 = 0.01, 0.039, 24.35  # mag, '', mag
 
-# Resample mag
-# Set seed for repeatibility.  We explicityly reset it here to a known value
-#  in case `photErrModel` called np.random
-np.random.seed(23987)
-noisy_mag = mag + np.random.randn(len(mag_err))*mag_err
+        # Set seed for repeatibility
+        np.random.seed(96701237)
+        m = np.random.randn(1000)*2 + 25
+        self.mag = m[m < 25]
+        self.mag_err = photErrModel(
+            self.mag, self.sigmaSys, self.gamma, self.m5)
+
+        # Resample mag
+        # Set seed for repeatibility.
+        #  We explicityly reset it here to a known value
+        #  in case `photErrModel` called np.random
+        np.random.seed(23987)
+        self.noisy_mag = self.mag + np.random.randn(len(self.mag_err))*self.mag_err
+
+    def test_perfect_fit_phot_error_model(self):
+        """Does a simple fit to a small, perfect, data set work?"""
+        fit_results = fitPhotErrModel(self.mag, self.mag_err)
+
+        self.assertFloatsAlmostEqual(
+            fit_results['sigmaSys'].value, self.sigmaSys, atol=1e-7)
+        self.assertFloatsAlmostEqual(
+            fit_results['gamma'].value, self.gamma, atol=1e-7)
+        self.assertFloatsAlmostEqual(
+            fit_results['m5'].value, self.m5, atol=1e-7)
+
+    def test_noisy_fit_phot_error_model(self):
+        """Does a simple fit to a small, perfect, data set work?"""
+        fit_results = fitPhotErrModel(self.noisy_mag, self.mag_err)
+
+        # Different absolute tolerances because we expect some variation in the
+        # fit results to the hnoisy data and that variation is different
+        # for different parameters
+        self.assertFloatsAlmostEqual(
+            fit_results['sigmaSys'].value, self.sigmaSys, atol=1e-2)
+        self.assertFloatsAlmostEqual(
+            fit_results['gamma'].value, self.gamma, atol=2e-2)
+        self.assertFloatsAlmostEqual(
+            fit_results['m5'].value, self.m5, atol=0.2)
+
+    def test_failed_fit_phot_error_model(self):
+        """Does a failed fit recover and return NaN?"""
+        testDir = os.path.dirname(__file__)
+        failing_datafile = os.path.join(testDir, 'mag_magerr_bright.dat')
+        failing_mag, failing_mag_err = np.loadtxt(failing_datafile)
+
+        fit_results = fitPhotErrModel(failing_mag, failing_mag_err)
+
+        self.assertTrue(np.isnan(fit_results['sigmaSys'].value))
+        self.assertTrue(np.isnan(fit_results['gamma'].value))
+        self.assertTrue(np.isnan(fit_results['m5'].value))
 
 
-def test_perfect_fit_phot_error_model():
-    """Does a simple fit to a small, perfect, data set work."""
-    fit_results = fitPhotErrModel(mag, mag_err)
-    fit_diff = np.array([fit_results['sigmaSys'].value - sigmaSys,
-                         fit_results['gamma'].value - gamma,
-                         fit_results['m5'].value - m5])
-    eps = 1e-7
-    assert np.sum(fit_diff**2) < eps
+class MemoryTester(lsst.utils.tests.MemoryTestCase):
+    pass
 
 
-def test_noisy_fit_phot_error_model():
-    """Does a simple fit to a small, perfect, data set work."""
-    fit_results = fitPhotErrModel(noisy_mag, mag_err)
-    fit_diff = np.array([fit_results['sigmaSys'].value - sigmaSys,
-                         fit_results['gamma'].value - gamma,
-                         fit_results['m5'].value - m5])
-    eps = 1e-2
-    assert np.sum(fit_diff**2) < eps
+def setup_module(module):
+    lsst.utils.tests.init()
 
 
-def test_failed_fit_phot_error_model():
-    """Does a failed fit recover and return NaN."""
-    testDir = os.path.dirname(__file__)
-    failing_datafile = os.path.join(testDir, 'mag_magerr_bright.dat')
-    failing_mag, failing_mag_err = np.loadtxt(failing_datafile)
-
-    fit_results = fitPhotErrModel(failing_mag, failing_mag_err)
-
-    assert np.isnan(fit_results['sigmaSys'].value)
-    assert np.isnan(fit_results['gamma'].value)
-    assert np.isnan(fit_results['m5'].value)
+if __name__ == "__main__":
+    lsst.utils.tests.init()
+    unittest.main()
