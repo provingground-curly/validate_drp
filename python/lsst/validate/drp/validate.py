@@ -38,7 +38,8 @@ from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
 
-__all__ = ['plot_metrics', 'print_metrics', 'run', 'runOneFilter']
+__all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
+           'run', 'runOneFilter']
 
 
 class bcolors(object):
@@ -104,52 +105,7 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
                            **kwargs)
         jobs[filterName] = job
 
-    currentTestCount = 0
-    currentFailCount = 0
-
-    for filterName, job in jobs.items():
-        print('')
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-
-        for specName in job.spec_levels:
-            measurementCount = 0
-            failCount = 0
-            for m in job.measurements:
-                if m.quantity is None:
-                    continue
-                measurementCount += 1
-                if not m.check_spec(specName):
-                    failCount += 1
-
-            if specName == level:
-                currentTestCount += measurementCount
-                currentFailCount += failCount
-
-            if failCount == 0:
-                print('Passed {level:12s} {count:d} measurements'.format(
-                    level=specName, count=measurementCount))
-            else:
-                msg = 'Failed {level:12s} {failCount} of {count:d} failed'.format(
-                    level=specName, failCount=failCount, count=measurementCount)
-                print(bcolors.FAIL + msg + bcolors.ENDC)
-
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
-
-    # print summary against current spec level
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(level) + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    if currentFailCount > 0:
-        msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(
-            failCount=currentFailCount, count=currentTestCount)
-        print(bcolors.FAIL + msg + bcolors.ENDC)
-    else:
-        print('PASSED ({count:d}/{count:d} measurements)'.format(
-            count=currentTestCount))
-
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print_pass_fail_summary(jobs, level=level)
 
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
@@ -355,3 +311,52 @@ def print_metrics(job, filterName, metrics):
                 op=metric.operator_str,
                 spec=spec.quantity)
             print(prefix + infoStr + bcolors.ENDC)
+
+
+def print_pass_fail_summary(jobs, level='design'):
+    currentTestCount = 0
+    currentFailCount = 0
+
+    for filterName, job in jobs.items():
+        print('')
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+
+        for specName in job.spec_levels:
+            measurementCount = 0
+            failCount = 0
+            for m in job.measurements:
+                if m.quantity is None:
+                    continue
+                measurementCount += 1
+                if not m.check_spec(specName):
+                    failCount += 1
+
+            if specName == level:
+                currentTestCount += measurementCount
+                currentFailCount += failCount
+
+            if failCount == 0:
+                print('Passed {level:12s} {count:d} measurements'.format(
+                    level=specName, count=measurementCount))
+            else:
+                msg = 'Failed {level:12s} {failCount} of {count:d} failed'.format(
+                    level=specName, failCount=failCount, count=measurementCount)
+                print(bcolors.FAIL + msg + bcolors.ENDC)
+
+        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
+
+    # print summary against current spec level
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(level) + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    if currentFailCount > 0:
+        msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(
+            failCount=currentFailCount, count=currentTestCount)
+        print(bcolors.FAIL + msg + bcolors.ENDC)
+    else:
+        print('PASSED ({count:d}/{count:d} measurements)'.format(
+            count=currentTestCount))
+
+    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
