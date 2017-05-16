@@ -239,34 +239,20 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     job.write_json(outputPrefix.rstrip('_') + '.json')
 
     if makePlot:
-        if job.get_measurement('AM1').quantity is not None:
-            try:
-                plotAMx(job.get_measurement('AM1'),
-                        job.get_measurement('AF1', spec_name='design'),
-                        filterName, amxSpecName='design',
-                        outputPrefix=outputPrefix)
-            except RuntimeError:
-                print('\tSkipped plotAM1')
-                continue
+        for x in (1, 2, 3):
+            amxName = 'AM{0:d}'.format(x)
+            afxName = 'AF{0:d}'.format(x)
+            # ADx is included on the AFx plots
 
-        if job.get_measurement('AM2').quantity is not None:
-            try:
-                plotAMx(job.get_measurement('AM2'),
-                        job.get_measurement('AF2', spec_name='design'),
-                        filterName, amxSpecName='design',
-                        outputPrefix=outputPrefix)
-            except RuntimeError:
-                print('\tSkipped plotAM2')
-                continue
-        if job.get_measurement('AM3').quantity is not None:
-            try:
-                plotAMx(job.get_measurement('AM3'),
-                        job.get_measurement('AF3', spec_name='design'),
-                        filterName, amxSpecName='design',
-                        outputPrefix=outputPrefix)
-            except RuntimeError:
-                print('\tSkipped plotAM3')
-                continue
+            if job.get_measurement(amxName).quantity is not None:
+                try:
+                    plotAMx(job.get_measurement(amxName),
+                            job.get_measurement(afxName, spec_name='design'),
+                            filterName, amxSpecName='design',
+                            outputPrefix=outputPrefix)
+                except RuntimeError:
+                    print('\tSkipped plot{}'.format(amxNAme))
+                    continue
 
         try:
             plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
