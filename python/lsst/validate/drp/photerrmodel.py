@@ -131,8 +131,8 @@ def fitPhotErrModel(mag, mag_err):
     try:
         fit_params, fit_param_covariance = curve_fit(
             photErrModel, mag, mag_err, p0=p0)
-        sigmaSys, gamma, m5 = fit_params[:3]
-    except RuntimeError as e:
+        sigmaSys, gamma, m5 = fit_params
+    except (RuntimeError, ValueError) as e:
         print("fitPhotErrorModel fitting failed with")
         print(e)
         print("sigmaSys, gamma, m5 are being set to NaN.")
