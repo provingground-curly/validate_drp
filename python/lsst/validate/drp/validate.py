@@ -250,27 +250,31 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                             job.get_measurement(afxName, spec_name='design'),
                             filterName, amxSpecName='design',
                             outputPrefix=outputPrefix)
-                except RuntimeError:
-                    print('\tSkipped plot{}'.format(amxNAme))
+                except RuntimeError as e:
+                    print(e)
+                    print('\tSkipped plot{}'.format(amxName))
                     continue
 
         try:
             plotPA1(job.get_measurement('PA1'), outputPrefix=outputPrefix)
-        except RuntimeError:
+        except RuntimeError as e:
+            print(e)
             print('\tSkipped plotPA1')
 
         try:
             plotPhotometryErrorModel(matchedDataset, photomModel,
                                      filterName=filterName,
                                      outputPrefix=outputPrefix)
-        except RuntimeError:
+        except RuntimeError as e:
+            print(e)
             print('\tSkipped plotPhotometryErrorModel')
 
 
         try:
             plotAstrometryErrorModel(matchedDataset, astromModel,
                                      outputPrefix=outputPrefix)
-        except RuntimeError:
+        except RuntimeError as e:
+            print(e)
             print('\tSkipped plotAstrometryErrorModel')
 
     if makePrint:
