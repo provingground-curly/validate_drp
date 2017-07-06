@@ -23,6 +23,7 @@ grading, and persistence.
 
 from __future__ import print_function, absolute_import
 from builtins import object
+import json
 
 from textwrap import TextWrapper
 
@@ -53,8 +54,91 @@ class bcolors(object):
     UNDERLINE = '\033[4m'
 
 
-def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False, **kwargs):
+def load_json_output(filepath):
+    """Read JSON from a file into a job object.
+
+    Currently just does a trivial de-serialization with no checking
+    to make sure that one results with a valid validate.base.job object.
+
+    Parameters
+    ----------
+    filepath : `str`
+        Source file name for JSON output.
+
+    Returns
+    -------
+    job : A `validate.base.job` object.
+    """
+    with open(filepath, 'r') as infile:
+        job = json.load(infile)
+
+    return job
+
+
+def get_filter_name_from_job(job):
+    """Get the filtername from a validate.base.job object
+
+    Assumes there is only one filter name and that it's the one in
+    the first measurement
+
+    Parameters
+    ----------
+    job : `validate.base.job` object
+
+    Returns
+    -------
+    filter_name : `str`
+    """
+    measurement_iterator = job.measurements
+    measurement = measurement_iterator.next()
+    filter_name = measurement.filter_name
+
+    return filter_name
+
+
+def run(repo_or_json, *args, **kwargs):
     """Main entrypoint from ``validateDrp.py``.
+
+    Arguments
+    ---------
+    repo : `str`
+        The repository.  This is generally the directory on disk
+        that contains the repository and mapper.
+
+        This can also be the filepath for a JSON file that contains
+        the cached output from a previous run.
+    """
+    if repo_or_json[-4:] == '.json':
+        load_json = True
+    else:
+        load_json = False
+
+    if load_json:
+        json_path = repo_or_json
+        job = load_json_output(json_path)
+        filterName = get_filter_name_from_job(job)
+        jobs = {filterName: job}
+    else:
+        repo_path = repo_or_json
+        jobs = runOneRepo(repo_path, *args, **kwargs)
+
+    for job in jobs:
+        filterName = get_filter_name_from_job(job)
+        if 'makePrint' in kwargs and kwargs['makePrint']:
+            print_metrics(job, filterName, metrics)
+        if 'makePlot' in kwargs and kwargs['makePlot']:
+            # I think I have to interrogate the kwargs to maintain compatibility
+            if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
+                outputPrefix = kwargs['outputPrefix']
+            else:
+                outputPrefix = None
+            plot_metrics(job, filterName, outputPrefix=outputPrefix)
+
+    print_pass_fail_summary(jobs, level=level)
+
+
+def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix=None, level="design", verbose=False, **kwargs):
+    """Calculate statistics for all filters in a repo.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
     Assesses results against SRD specs at specified `level`.
@@ -89,6 +173,7 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
         there will be annoyance and sadness as those spaces will appear in the filenames.
     """
 
+
     allFilters = set([d['filter'] for d in dataIds])
 
     if outputPrefix is None:
@@ -105,7 +190,7 @@ def run(repo, dataIds, metrics, outputPrefix=None, level="design", verbose=False
                            **kwargs)
         jobs[filterName] = job
 
-    print_pass_fail_summary(jobs, level=level)
+    return jobs
 
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
