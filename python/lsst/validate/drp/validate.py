@@ -96,7 +96,7 @@ def get_filter_name_from_job(job):
     return filter_name
 
 
-def run(repo_or_json, *args, **kwargs):
+def run(repo_or_json, metrics=None, level='design', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
     Arguments
@@ -120,7 +120,7 @@ def run(repo_or_json, *args, **kwargs):
         jobs = {filterName: job}
     else:
         repo_path = repo_or_json
-        jobs = runOneRepo(repo_path, *args, **kwargs)
+        jobs = runOneRepo(repo_path, **kwargs)
 
     for job in jobs:
         filterName = get_filter_name_from_job(job)
@@ -128,6 +128,8 @@ def run(repo_or_json, *args, **kwargs):
             print_metrics(job, filterName, metrics)
         if 'makePlot' in kwargs and kwargs['makePlot']:
             # I think I have to interrogate the kwargs to maintain compatibility
+            # between Python 2 and Python 3
+            # In Python 3 I would have let me mix in a keyword default after *args
             if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
                 outputPrefix = kwargs['outputPrefix']
             else:
@@ -137,7 +139,7 @@ def run(repo_or_json, *args, **kwargs):
     print_pass_fail_summary(jobs, level=level)
 
 
-def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix=None, level="design", verbose=False, **kwargs):
+def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix=None, verbose=False, **kwargs):
     """Calculate statistics for all filters in a repo.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
@@ -172,7 +174,6 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix=None, level="desig
     The filter name is added to this prefix.  If the filter name has spaces,
         there will be annoyance and sadness as those spaces will appear in the filenames.
     """
-
 
     allFilters = set([d['filter'] for d in dataIds])
 
