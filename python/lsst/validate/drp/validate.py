@@ -70,9 +70,9 @@ def load_json_output(filepath):
     job : A `validate.base.job` object.
     """
     with open(filepath, 'r') as infile:
-        job = json.load(infile)
+        json_data = json.load(infile)
 
-    return job
+    return Job.from_json(json_data)
 
 
 def get_filter_name_from_job(job):
