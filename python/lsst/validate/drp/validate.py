@@ -97,8 +97,16 @@ def get_filter_name_from_job(job):
     return filter_name
 
 
-def run(repo_or_json, metrics=None, level='design', **kwargs):
+def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
+        level='design', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
+
+    makePrint : bool, optional
+        Print calculated quantities (to stdout).
+    makePlot : bool, optional
+        Create plots for metrics.  Saved to current working directory.
+    level : str
+        Use <level> E.g., 'design', 'minimum', 'stretch'.
 
     Arguments
     ---------
@@ -113,6 +121,7 @@ def run(repo_or_json, metrics=None, level='design', **kwargs):
         base_name = repo_or_json[:-5]
         load_json = True
     else:
+        base_name = repo_or_json
         load_json = False
 
     if load_json:
@@ -132,18 +141,18 @@ def run(repo_or_json, metrics=None, level='design', **kwargs):
         repo_path = repo_or_json
         jobs = runOneRepo(repo_path, **kwargs)
 
-    for job in jobs:
-        filterName = get_filter_name_from_job(job)
-        if 'makePrint' in kwargs and kwargs['makePrint']:
-            print_metrics(job, filterName, metrics)
-        if 'makePlot' in kwargs and kwargs['makePlot']:
+    for filterName, job in jobs.items():
+        if makePrint:
+            for metric_name in job.metric_names:
+                print_metrics(job, filterName, metric)
+        if makePlot:
             # I think I have to interrogate the kwargs to maintain compatibility
             # between Python 2 and Python 3
             # In Python 3 I would have let me mix in a keyword default after *args
             if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
                 outputPrefix = kwargs['outputPrefix']
             else:
-                outputPrefix = None
+                outputPrefix = repoNameToPrefix(base_name)
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
     print_pass_fail_summary(jobs, level=level)
@@ -187,9 +196,6 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix=None, verbose=Fals
 
     allFilters = set([d['filter'] for d in dataIds])
 
-    if outputPrefix is None:
-        outputPrefix = repoNameToPrefix(repo)
-
     jobs = {}
     for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
@@ -231,10 +237,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         `lsst.validate.base.load_metrics`.
     brightSnr : float, optional
         Minimum SNR for a star to be considered bright
-    makePrint : bool, optional
-        Print calculated quantities (to stdout).
-    makePlot : bool, optional
-        Create plots for metrics.  Saved to current working directory.
     makeJson : bool, optional
         Create JSON output file for metrics.  Saved to current working directory.
     outputPrefix : str, optional
@@ -289,11 +291,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        job=job, linkedBlobs=linkedBlobs)
 
     job.write_json(outputPrefix.rstrip('_') + '.json')
-
-    if makePrint:
-        print_metrics(job, filterName, metrics)
-    if makePlot:
-        plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
     return job
 
