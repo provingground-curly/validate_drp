@@ -80,9 +80,8 @@ class ParseJsonJob(unittest.TestCase):
         """
         job = load_json_output(self.jsonFile)
         filterName = get_filter_name_from_job(job)
-
-        for metric_name in job.metric_names:
-            print_metrics(job, filterName, metric_name)
+        metrics = {meas.metric.name: meas.metric for meas in job.measurements}
+        print_metrics(job, filterName, metrics)
 
 
 def setup_module(module):

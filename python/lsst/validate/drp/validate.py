@@ -143,8 +143,9 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
 
     for filterName, job in jobs.items():
         if makePrint:
-            for metric_name in job.metric_names:
-                print_metrics(job, filterName, metric)
+            if metrics is None:
+                metrics = {meas.metric.name: meas.metric for meas in job.measurements}
+            print_metrics(job, filterName, metrics)
         if makePlot:
             # I think I have to interrogate the kwargs to maintain compatibility
             # between Python 2 and Python 3
