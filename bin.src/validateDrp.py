@@ -68,30 +68,33 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if not os.path.isdir(args.repo):
-        print("Could not find repo %r" % (args.repo,))
-        sys.exit(1)
+    # Should clean up the duplication here between this and validate.run
+    if args.repo[-5:] == '.json':
+        load_json = True
+    else:
+        load_json = False
 
     kwargs = {}
-    if args.configFile:
-        pbStruct = util.loadDataIdsAndParameters(args.configFile)
-        kwargs = pbStruct.getDict()
-
     kwargs['verbose'] = args.verbose
     kwargs['makePlot'] = args.makePlot
-
-    if not args.configFile or not pbStruct.dataIds:
-        kwargs['dataIds'] = util.discoverDataIds(args.repo)
-        if args.verbose:
-            print("VISITDATAIDS: ", kwargs['dataIds'])
 
     kwargs['verbose'] = args.verbose
     kwargs['level'] = args.level
 
-    if not os.path.exists(args.metricsFile):
-        print('Could not find metric definitions: {0}'.format(args.metricsFile))
-        sys.exit(1)
-    metrics = load_metrics(args.metricsFile)
-    kwargs['metrics'] = metrics
+    if not load_json:
+        if args.configFile:
+            pbStruct = util.loadDataIdsAndParameters(args.configFile)
+            kwargs = pbStruct.getDict()
+
+        if not args.configFile or not pbStruct.dataIds:
+            kwargs['dataIds'] = util.discoverDataIds(args.repo)
+            if args.verbose:
+                print("VISITDATAIDS: ", kwargs['dataIds'])
+
+        if not os.path.exists(args.metricsFile):
+            print('Could not find metric definitions: {0}'.format(args.metricsFile))
+            sys.exit(1)
+        metrics = load_metrics(args.metricsFile)
+        kwargs['metrics'] = metrics
 
     validate.run(args.repo, **kwargs)

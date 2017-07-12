@@ -24,6 +24,7 @@ grading, and persistence.
 from __future__ import print_function, absolute_import
 from builtins import object
 import json
+import os
 
 from textwrap import TextWrapper
 
@@ -108,17 +109,26 @@ def run(repo_or_json, metrics=None, level='design', **kwargs):
         This can also be the filepath for a JSON file that contains
         the cached output from a previous run.
     """
-    if repo_or_json[-4:] == '.json':
+    if repo_or_json[-5:] == '.json':
+        base_name = repo_or_json[:-5]
         load_json = True
     else:
         load_json = False
 
     if load_json:
+        if not os.path.isfile(repo_or_json):
+            print("Could not find JSON file %s" % (repo_or_json))
+            return
+
         json_path = repo_or_json
         job = load_json_output(json_path)
         filterName = get_filter_name_from_job(job)
         jobs = {filterName: job}
     else:
+        if not os.path.isdir(repo_or_json):
+            print("Could not find repo %s" % (repo_or_json))
+            return
+
         repo_path = repo_or_json
         jobs = runOneRepo(repo_path, **kwargs)
 
