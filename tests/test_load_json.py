@@ -59,8 +59,8 @@ class ParseJsonJob(unittest.TestCase):
         filterName = get_filter_name_from_job(job)
         self.assertEqual(filterName, self.jsonFile_filter)
 
-    def testPrintMetricsFromJsonJob(self):
-        """Does printing the metrics run without error?
+    def testPrintMetricsFromJsonJobFromMetricsfile(self):
+        """Does printing the metrics run without error using metrics.yaml?
 
         This is in essence half the big test.
         If we load a file do we get printed metrics?
@@ -70,6 +70,19 @@ class ParseJsonJob(unittest.TestCase):
         filterName = get_filter_name_from_job(job)
         metrics = load_metrics(self.metricsFile)
         print_metrics(job, filterName, metrics)
+
+    def testPrintMetricsFromJsonJob(self):
+        """Does printing the metrics run without error using itself?
+
+        This is in essence half the big test.
+        If we load a file do we get printed metrics?
+        Next TODO is to actually check for the values printed.
+        """
+        job = load_json_output(self.jsonFile)
+        filterName = get_filter_name_from_job(job)
+
+        for metric_name in job.metric_names:
+            print_metrics(job, filterName, metric_name)
 
 
 def setup_module(module):
