@@ -38,8 +38,7 @@ class ParseJsonJob(unittest.TestCase):
     """Testing loading of JSON cache files."""
 
     def setUp(self):
-        validateDrpDir = lsst.utils.getPackageDir('validate_drp')
-        testDataDir = os.path.join(validateDrpDir, 'tests')
+        testDataDir = os.path.dirname(__file__)
         self.metricsFile = os.path.join(testDataDir, 'metrics.yaml')
         self.jsonFile = os.path.join(testDataDir, 'CfhtQuick_output_r.json')
         self.jsonFile_filter = 'r'
