@@ -21,20 +21,37 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import tempfile
+import unittest
+
+import lsst.utils
+
 from lsst.validate.drp import performance_summary
 
+class PerformanceSummaryFromJob(unittest.TestCase):
+    """Testing release performance summary."""
 
-def test_generate_report_from_json(tmpdir):
-    """Can we read in JSON results and make a report.
+    def setUp(self):
+        test_data_dir = os.path.dirname(__file__)
+        self.report_file = os.path.join(test_data_dir, 'report_file.rst')
+        self.json_file = os.path.join(test_data_dir, 'CfhtQuick_output_r.json')
+        self.json_file_filter = 'r'
 
-    Reference datasets are from a v13.0 validation_data_hsc run.
-    """
+    def test_generate_report_from_json(self):
+        """Can we read in JSON results and make a report.
 
-    reference_files = ['CfhtQuick_output_r.json']
-    testDir = os.path.dirname(__file__)
-    reference_filepaths = [os.path.join(testDir, f) for f in reference_files]
+        Reference datasets are from a v13.0 validation_data_hsc run.
+        """
+        # Manually use temporary directories here,
+        #  because I can't figure out how to get py.test tmpdir fixture
+        #  to work in the unittest.TestCase context.
+        tmp_dir = tempfile.mkdtemp()
+        out_file_name = os.path.join(tmp_dir, "performance_summary_test.rst")
 
-    outfile = tmpdir.mkdir("write").join(tmpdir, "metrics_report.rst")
-    performance_summary.run(reference_filepaths, outfile)
+        performance_summary.run([self.json_file], out_file_name)
 
-    assert(os.path.exists(outfile.strpath))
+        assert(os.path.exists(out_file_name))
+
+        # Cleanup our temp files
+        os.remove(out_file_name)
+        os.removedirs(tmp_dir)
