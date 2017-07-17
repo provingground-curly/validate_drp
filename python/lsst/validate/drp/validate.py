@@ -91,7 +91,7 @@ def get_filter_name_from_job(job):
     filter_name : `str`
     """
     measurement_iterator = job.measurements
-    measurement = measurement_iterator.next()
+    measurement = next(measurement_iterator)
     filter_name = measurement.filter_name
 
     return filter_name
