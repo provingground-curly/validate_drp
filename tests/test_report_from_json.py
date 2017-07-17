@@ -20,20 +20,20 @@
 
 from __future__ import absolute_import, division, print_function
 
+import filecmp
 import os
 import tempfile
 import unittest
 
-import lsst.utils
-
 from lsst.validate.drp import performance_summary
+
 
 class PerformanceSummaryFromJob(unittest.TestCase):
     """Testing release performance summary."""
 
     def setUp(self):
         test_data_dir = os.path.dirname(__file__)
-        self.report_file = os.path.join(test_data_dir, 'report_file.rst')
+        self.report_file = os.path.join(test_data_dir, 'CfhtQuick_output_r_report_file.rst')
         self.json_file = os.path.join(test_data_dir, 'CfhtQuick_output_r.json')
         self.json_file_filter = 'r'
 
@@ -51,6 +51,7 @@ class PerformanceSummaryFromJob(unittest.TestCase):
         performance_summary.run([self.json_file], out_file_name)
 
         assert(os.path.exists(out_file_name))
+        assert filecmp.cmp(out_file_name, self.report_file)
 
         # Cleanup our temp files
         os.remove(out_file_name)
