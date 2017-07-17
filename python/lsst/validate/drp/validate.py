@@ -321,7 +321,6 @@ def plot_metrics(job, filterName, outputPrefix=None):
                 print(e)
                 print('\tSkipped plot{}'.format(amxName))
 
-
     try:
         pa1 = job.get_measurement('PA1')
         plotPA1(pa1, outputPrefix=outputPrefix)
