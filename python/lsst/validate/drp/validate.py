@@ -117,7 +117,7 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         This can also be the filepath for a JSON file that contains
         the cached output from a previous run.
     """
-    if repo_or_json[-5:] == '.json':
+    if os.path.splitext(repo_or_json)[-1] == '.json':
         base_name = repo_or_json[:-5]
         load_json = True
     else:
