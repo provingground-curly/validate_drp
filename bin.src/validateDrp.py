@@ -77,8 +77,6 @@ if __name__ == "__main__":
     kwargs = {}
     kwargs['verbose'] = args.verbose
     kwargs['makePlot'] = args.makePlot
-
-    kwargs['verbose'] = args.verbose
     kwargs['level'] = args.level
 
     if not load_json:
