@@ -159,7 +159,7 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
     print_pass_fail_summary(jobs, level=level)
 
 
-def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix=None, verbose=False, **kwargs):
+def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False, **kwargs):
     """Calculate statistics for all filters in a repo.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
