@@ -49,9 +49,9 @@ class MatchedMultiVisitDataset(BlobBase):
 
     Parameters
     ----------
-    repo : `str`
-        The repository.  This is generally the directory on disk
-        that contains the repository and mapper.
+    repo : `str` or `Butler`
+        A Butler instance or a repository URL that can be used to construct
+        one.
     dataIds : `list` of `dict`
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
@@ -162,9 +162,8 @@ class MatchedMultiVisitDataset(BlobBase):
 
         Parameters
         ----------
-        repo : string
-            The repository.  This is generally the directory on disk
-            that contains the repository and mapper.
+        repo : string or Butler
+            A Butler or a repository URL that can be used to construct one
         dataIds : list of dict
             List of `butler` data IDs of Image catalogs to compare to
             reference. The `calexp` cpixel image is needed for the photometric
@@ -179,7 +178,10 @@ class MatchedMultiVisitDataset(BlobBase):
         """
         # Following
         # https://github.com/lsst/afw/blob/tickets/DM-3896/examples/repeatability.ipynb
-        butler = dafPersist.Butler(repo)
+        if isinstance(repo, dafPersist.Butler):
+            butler = repo
+        else:
+            butler = dafPersist.Butler(repo)
         dataset = 'src'
 
         # 2016-02-08 MWV:

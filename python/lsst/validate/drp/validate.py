@@ -229,9 +229,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     Parameters
     ----------
-    repo : string
-        The repository.  This is generally the directory on disk
-        that contains the repository and mapper.
+    repo : string or Butler
+        A Butler or a repository URL that can be used to construct one.
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` pixel image is needed for the photometric calibration
