@@ -145,6 +145,7 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         if not os.path.isdir(repo_or_json):
             print("Could not find repo %s" % (repo_or_json))
             return
+        kwargs['metrics'] = metrics
 
         repo_path = repo_or_json
         jobs = runOneRepo(repo_path, **kwargs)
