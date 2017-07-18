@@ -124,6 +124,14 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         base_name = repo_or_json
         load_json = False
 
+    # I think I have to interrogate the kwargs to maintain compatibility
+    # between Python 2 and Python 3
+    # In Python 3 I would have let me mix in a keyword default after *args
+    if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
+        outputPrefix = kwargs['outputPrefix']
+    else:
+        outputPrefix = repoNameToPrefix(base_name)
+
     if load_json:
         if not os.path.isfile(repo_or_json):
             print("Could not find JSON file %s" % (repo_or_json))
@@ -147,13 +155,6 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
                 metrics = {meas.metric.name: meas.metric for meas in job.measurements}
             print_metrics(job, filterName, metrics)
         if makePlot:
-            # I think I have to interrogate the kwargs to maintain compatibility
-            # between Python 2 and Python 3
-            # In Python 3 I would have let me mix in a keyword default after *args
-            if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
-                outputPrefix = kwargs['outputPrefix']
-            else:
-                outputPrefix = repoNameToPrefix(base_name)
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
     print_pass_fail_summary(jobs, level=level)
