@@ -189,7 +189,7 @@ class MatchedMultiVisitDataset(BlobBase):
                                            'PSF flux SNR'))
         mapper.addOutputField(Field[float]('base_PsfFlux_mag',
                                            'PSF magnitude'))
-        mapper.addOutputField(Field[float]('base_PsfFlux_magerr',
+        mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
                                            'PSF magnitude uncertainty'))
         newSchema = mapper.getOutputSchema()
 
@@ -239,7 +239,7 @@ class MatchedMultiVisitDataset(BlobBase):
                 _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
                                        tmpCat['base_PsfFlux_fluxSigma'])
                 tmpCat['base_PsfFlux_mag'][:] = _[0]
-                tmpCat['base_PsfFlux_magerr'][:] = _[1]
+                tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)
@@ -272,7 +272,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
         psfSnrKey = allMatches.schema.find("base_PsfFlux_snr").key
         psfMagKey = allMatches.schema.find("base_PsfFlux_mag").key
-        psfMagErrKey = allMatches.schema.find("base_PsfFlux_magerr").key
+        psfMagErrKey = allMatches.schema.find("base_PsfFlux_magErr").key
         extendedKey = allMatches.schema.find("base_ClassificationExtendedness_value").key
 
         def goodFilter(cat, goodSnr=3):
