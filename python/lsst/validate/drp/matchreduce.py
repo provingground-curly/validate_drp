@@ -105,7 +105,7 @@ class MatchedMultiVisitDataset(BlobBase):
     name = 'MatchedMultiVisitDataset'
 
     def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
-                 verbose=False):
+                 useJointCal=False, verbose=False):
         BlobBase.__init__(self)
 
         self.verbose = verbose
@@ -117,6 +117,12 @@ class MatchedMultiVisitDataset(BlobBase):
             'filterName',
             quantity=set([dId['filter'] for dId in dataIds]).pop(),
             description='Filter name')
+
+        # Record important configuration
+        self.register_datum(
+            'useJointCal',
+            quantity=useJointCal,
+            description='Whether jointcal/meas_mosaic calibrations were used')
 
         # Register datums stored by this blob; will be set later
         self.register_datum(
@@ -144,13 +150,14 @@ class MatchedMultiVisitDataset(BlobBase):
 
         # Match catalogs across visits
         self._matchedCatalog = self._loadAndMatchCatalogs(
-            repo, dataIds, matchRadius)
+            repo, dataIds, matchRadius, useJointCal=useJointCal)
         self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
         # Reduce catalogs into summary statistics.
         # These are the serialiable attributes of this class.
         self._reduceStars(self._matchedCatalog, safeSnr)
 
-    def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius):
+    def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius,
+                              useJointCal=False):
         """Load data from specific visit. Match with reference.
 
         Parameters
@@ -203,29 +210,50 @@ class MatchedMultiVisitDataset(BlobBase):
         srcVis = SourceCatalog(newSchema)
 
         for vId in dataIds:
-            try:
-                calexpMetadata = butler.get("calexp_md", vId, immediate=True)
-            except (FitsError, dafPersist.NoResults) as e:
-                print(e)
-                print("Could not open calibrated image file for ", vId)
-                print("Skipping %s " % repr(vId))
-                continue
-            except TypeError as te:
-                # DECam images that haven't been properly reformatted
-                # can trigger a TypeError because of a residual FITS header
-                # LTV2 which is a float instead of the expected integer.
-                # This generates an error of the form:
-                #
-                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
-                #
-                # See, e.g., DM-2957 for details.
-                print(te)
-                print("Calibration image header information malformed.")
-                print("Skipping %s " % repr(vId))
-                continue
 
-            calib = afwImage.Calib(calexpMetadata)
+            if useJointCal:
+                try:
+                    photoCalib = butler.get("photoCalib", vId)
+                except (FitsError, dafPersist.NoResults) as e:
+                    print(e)
+                    print("Could not open photometric calibration for ", vId)
+                    print("Skipping %s " % repr(vId))
+                    continue
+                try:
+                    md = butler.get("wcs_md", vId)
+                    wcs = afwImage.makeWcs(md)
+                except (FitsError, dafPersist.NoResults) as e:
+                    print(e)
+                    print("Could not open updated WCS for ", vId)
+                    print("Skipping %s " % repr(vId))
+                    continue
+            else:
+                try:
+                    calexpMetadata = butler.get("calexp_md", vId, immediate=True)
+                except (FitsError, dafPersist.NoResults) as e:
+                    print(e)
+                    print("Could not open calibrated image file for ", vId)
+                    print("Skipping %s " % repr(vId))
+                    continue
+                except TypeError as te:
+                    # DECam images that haven't been properly reformatted
+                    # can trigger a TypeError because of a residual FITS header
+                    # LTV2 which is a float instead of the expected integer.
+                    # This generates an error of the form:
+                    #
+                    # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
+                    #
+                    # See, e.g., DM-2957 for details.
+                    print(te)
+                    print("Calibration image header information malformed.")
+                    print("Skipping %s " % repr(vId))
+                    continue
 
+                calib = afwImage.Calib(calexpMetadata)
+
+            # We don't want to put this above the first "if useJointCal block"
+            # because we need to use the first `butler.get` above to quickly
+            # catch data IDs with no usable outputs.
             oldSrc = butler.get('src', vId, immediate=True)
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
@@ -235,11 +263,17 @@ class MatchedMultiVisitDataset(BlobBase):
             tmpCat.extend(oldSrc, mapper=mapper)
             tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_flux'] \
                 / tmpCat['base_PsfFlux_fluxSigma']
-            with afwImageUtils.CalibNoThrow():
-                _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
-                                       tmpCat['base_PsfFlux_fluxSigma'])
-                tmpCat['base_PsfFlux_mag'][:] = _[0]
-                tmpCat['base_PsfFlux_magErr'][:] = _[1]
+
+            if useJointCal:
+                for record in tmpCat:
+                    record.updateCoord(wcs)
+                photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
+            else:
+                with afwImageUtils.CalibNoThrow():
+                    _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
+                                           tmpCat['base_PsfFlux_fluxSigma'])
+                    tmpCat['base_PsfFlux_mag'][:] = _[0]
+                    tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)
