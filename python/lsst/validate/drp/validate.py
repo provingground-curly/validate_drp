@@ -216,8 +216,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
-                 makePrint=True, makePlot=True, makeJson=True,
-                 filterName=None, outputPrefix='',
+                 makeJson=True, filterName=None, outputPrefix='',
                  useJointCal=False, verbose=False,
                  **kwargs):
     """Main executable for the case where there is just one filter.
@@ -298,7 +297,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    job.write_json(outputPrefix + '.json')
+    if makeJson:
+        job.write_json(outputPrefix + '.json')
 
     return job
 
