@@ -75,6 +75,9 @@ def calculate_numbers(input_table):
 def write_report(data, filename='test.rst', format='ascii.rst'):
     col_names = ['Metric', 'Unit', 'SRD Requirement',
                  'Release Target', 'Value', 'Comments']
+    # Provide default formats
+    for spec_col in ('SRD Requirement', 'Release Target'):
+        data[spec_col].info.format = '.1f'
     data[col_names].write(filename=filename, format=format,
                           include_names=col_names,
                           overwrite=True)
