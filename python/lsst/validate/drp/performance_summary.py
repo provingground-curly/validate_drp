@@ -78,8 +78,9 @@ def objects_to_table(input_objects, level='design'):
                         m.operator_str, spec.quantity.value]
             rows.append(this_row)
 
+    srd_requirement_col_name = 'SRD Requirement: %s' % level
     col_names = ('Metric', 'Filter', 'Value', 'Unit',
-                 'Operator', 'SRD Requirement')
+                 'Operator', srd_requirement_col_name)
     output = Table(rows=rows, names=col_names)
     output.add_column(Column(['']*len(output), dtype=str, name='Comments'))
     return output
@@ -97,7 +98,7 @@ def add_release_metric(data, release_metrics, release_metrics_level):
     release_targets_col = Column(
         release_targets,
         dtype=float,
-        name='Release Target %s' % release_metrics_level)
+        name='Release Target: %s' % release_metrics_level)
     data.add_column(release_targets_col)
 
     return data
@@ -121,14 +122,27 @@ def blank_none(s):
     return str(s)
 
 
+def find_col_name(prefix, colnames):
+    """Return the first entry in 'colnames' that starts with 'prefix'."""
+    for c in colnames:
+        if c.startswith(prefix):
+            return c
+
+
 # Output table
 def write_report(data, filename='test.rst', format='ascii.rst'):
+    # Find the 'Release Target XYZ' column name
+    release_target_col_name = find_col_name('Release Target', data.colnames)
+    # Find the 'SRD Requirement XYZ' column name
+    srd_requirement_col_name = find_col_name('SRD Requirement', data.colnames)
+
     col_names = ['Metric', 'Filter', 'Unit', 'Operator',
-                 'SRD Requirement',
-                 'Release Target', 'Value', 'Comments']
+                 srd_requirement_col_name,
+                 release_target_col_name,
+                 'Value', 'Comments']
     use_col_names = [c for c in col_names if c in data.colnames]
     # Provide default formats
-    for spec_col in ('SRD Requirement', 'Release Target'):
+    for spec_col in (release_target_col_name, srd_requirement_col_name):
         if spec_col in data:
             data[spec_col].info.format = '.1f'
     data['Value'].info.format = float_or_dash
