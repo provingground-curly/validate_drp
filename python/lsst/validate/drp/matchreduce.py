@@ -31,7 +31,8 @@ import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
-                            MultiMatch, SimpleRecord, GroupView)
+                            MultiMatch, SimpleRecord, GroupView,
+                            SOURCE_IO_NO_FOOTPRINTS)
 from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
@@ -256,7 +257,12 @@ class MatchedMultiVisitDataset(BlobBase):
             # We don't want to put this above the first "if useJointCal block"
             # because we need to use the first `butler.get` above to quickly
             # catch data IDs with no usable outputs.
-            oldSrc = butler.get('src', vId)
+            try:
+                # HSC supports these flags, which dramatically improve I/O
+                # performance; support for other cameras is DM-6927.
+                oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
+            except:
+                oldSrc = butler.get('src', vId)
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
