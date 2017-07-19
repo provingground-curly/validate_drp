@@ -95,7 +95,8 @@ def blank_none(s):
 
 # Output table
 def write_report(data, filename='test.rst', format='ascii.rst'):
-    col_names = ['Metric', 'Filter', 'Unit', 'SRD Requirement',
+    col_names = ['Metric', 'Filter', 'Unit', 'Operator',
+                 'SRD Requirement',
                  'Release Target', 'Value', 'Comments']
     # Provide default formats
     for spec_col in ('SRD Requirement', 'Release Target'):
