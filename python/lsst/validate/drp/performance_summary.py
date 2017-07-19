@@ -48,6 +48,10 @@ def objects_to_table(input_objects, level='design'):
     rows = []
     for filter_name, obj in input_objects.items():
         for meas in obj.measurements:
+            # Skip specification levels (called .name in measurement objects)
+            #  that are not the 'level' we are looking for.
+            if meas.spec_name is not None and meas.spec_name != level:
+                continue
             m = meas.metric
             spec = m.get_spec(level, filter_name=filter_name)
             if meas.quantity is None:
