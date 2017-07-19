@@ -1,2 +1,0 @@
-Calculates performance against SRD or custom-specified requirements
-Outputs to STDOUT by default.
