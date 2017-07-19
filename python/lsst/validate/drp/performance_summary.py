@@ -80,14 +80,24 @@ def float_or_dash(f, format_string='{:.2f}'):
         return '--'
 
 
+def blank_none(s):
+    if s is None:
+        return ''
+    if s == 'None':
+        return ''
+
+    return str(s)
+
+
 # Output table
 def write_report(data, filename='test.rst', format='ascii.rst'):
-    col_names = ['Metric', 'Unit', 'SRD Requirement',
+    col_names = ['Metric', 'Filter', 'Unit', 'SRD Requirement',
                  'Release Target', 'Value', 'Comments']
     # Provide default formats
     for spec_col in ('SRD Requirement', 'Release Target'):
         data[spec_col].info.format = '.1f'
     data['Value'].info.format = float_or_dash
+    data['Unit'].info.format = blank_none
     data[col_names].write(filename=filename, format=format,
                           include_names=col_names,
                           overwrite=True)
