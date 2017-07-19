@@ -71,6 +71,15 @@ def calculate_numbers(input_table):
     return updated_table
 
 
+def float_or_dash(f, format_string='{:.2f}'):
+    """Return string of formatted float, or -- if None."""
+    # This try/except handles both None and non-numeric strings.
+    try:
+        return format_string.format(float(f))
+    except:
+        return '--'
+
+
 # Output table
 def write_report(data, filename='test.rst', format='ascii.rst'):
     col_names = ['Metric', 'Unit', 'SRD Requirement',
@@ -78,6 +87,7 @@ def write_report(data, filename='test.rst', format='ascii.rst'):
     # Provide default formats
     for spec_col in ('SRD Requirement', 'Release Target'):
         data[spec_col].info.format = '.1f'
+    data['Value'].info.format = float_or_dash
     data[col_names].write(filename=filename, format=format,
                           include_names=col_names,
                           overwrite=True)
