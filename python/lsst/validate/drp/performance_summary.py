@@ -23,7 +23,7 @@ from astropy.table import Column, Table
 from lsst.validate.drp.validate import get_filter_name_from_job, load_json_output
 
 
-def run(validation_drp_report_filenames, output_file, debug=True):
+def run(validation_drp_report_filenames, output_file):
     input_objects = ingest_data(validation_drp_report_filenames)
     input_table = objects_to_table(input_objects)
     output_table = calculate_numbers(input_table)
