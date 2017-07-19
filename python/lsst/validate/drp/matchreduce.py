@@ -191,7 +191,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
         ccdKeyName = getCcdKeyName(dataIds[0])
 
-        schema = butler.get(dataset + "_schema", immediate=True).schema
+        schema = butler.get(dataset + "_schema").schema
         mapper = SchemaMapper(schema)
         mapper.addMinimalSchema(schema)
         mapper.addOutputField(Field[float]('base_PsfFlux_snr',
@@ -231,7 +231,7 @@ class MatchedMultiVisitDataset(BlobBase):
                     continue
             else:
                 try:
-                    calexpMetadata = butler.get("calexp_md", vId, immediate=True)
+                    calexpMetadata = butler.get("calexp_md", vId)
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open calibrated image file for ", vId)
@@ -256,7 +256,7 @@ class MatchedMultiVisitDataset(BlobBase):
             # We don't want to put this above the first "if useJointCal block"
             # because we need to use the first `butler.get` above to quickly
             # catch data IDs with no usable outputs.
-            oldSrc = butler.get('src', vId, immediate=True)
+            oldSrc = butler.get('src', vId)
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
