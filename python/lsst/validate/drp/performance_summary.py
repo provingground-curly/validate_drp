@@ -20,14 +20,30 @@
 
 from astropy.table import Column, Table
 
+from lsst.validate.base import load_metrics
 from lsst.validate.drp.validate import get_filter_name_from_job, load_json_output
 
 
-def run(validation_drp_report_filenames, output_file):
+def run(validation_drp_report_filenames, output_file,
+        release_metrics_file=None, release_level=None):
+    """
+    Parameters
+    ---
+    validation_drp_report_filenames : [] or str giving filepaths for JSON files.
+    output_file : str given filepath of output RST file.
+    release_metrics_file : filepath of YAML file of a given release level.
+       The JSON file will store the metrics it was calculated with
+       But one will wish to compare against an external set of specifications.
+       Such as the release for a given version during a given fiscal year.
+    release_level : E.g., 'FY17' or 'ORR'
+    """
     input_objects = ingest_data(validation_drp_report_filenames)
     input_table = objects_to_table(input_objects)
-    output_table = calculate_numbers(input_table)
-    write_report(output_table, output_file)
+    if release_metrics_file is not None and release_level is not None:
+        release_metrics = load_metrics(release_metrics_file)
+        add_release_metric(input_table, release_metrics, release_level)
+
+    write_report(input_table, output_file)
 
 
 def ingest_data(filenames):
@@ -59,20 +75,32 @@ def objects_to_table(input_objects, level='design'):
             else:
                 meas_quantity_value = meas.quantity.value
             this_row = [m.name, filter_name, meas_quantity_value, meas.unit,
-                        m.operator_str, spec.quantity.value, spec.quantity.value]
+                        m.operator_str, spec.quantity.value]
             rows.append(this_row)
 
     col_names = ('Metric', 'Filter', 'Value', 'Unit',
-                 'Operator', 'Release Target', 'SRD Requirement')
+                 'Operator', 'SRD Requirement')
     output = Table(rows=rows, names=col_names)
     output.add_column(Column(['']*len(output), dtype=str, name='Comments'))
     return output
 
 
 # Calculate numbers in table
-def calculate_numbers(input_table):
-    updated_table = input_table
-    return updated_table
+def add_release_metric(data, release_metrics, release_metrics_level):
+    release_targets = []
+    for row in data:
+        metric = release_metrics[row['Metric']]
+        spec = metric.get_spec(
+            name=release_metrics_level, filter_name=row['Filter'])
+        release_targets.append(spec.quantity.value)
+
+    release_targets_col = Column(
+        release_targets,
+        dtype=float,
+        name='Release Target %s' % release_metrics_level)
+    data.add_column(release_targets_col)
+
+    return data
 
 
 def float_or_dash(f, format_string='{:.2f}'):
@@ -98,11 +126,13 @@ def write_report(data, filename='test.rst', format='ascii.rst'):
     col_names = ['Metric', 'Filter', 'Unit', 'Operator',
                  'SRD Requirement',
                  'Release Target', 'Value', 'Comments']
+    use_col_names = [c for c in col_names if c in data.colnames]
     # Provide default formats
     for spec_col in ('SRD Requirement', 'Release Target'):
-        data[spec_col].info.format = '.1f'
+        if spec_col in data:
+            data[spec_col].info.format = '.1f'
     data['Value'].info.format = float_or_dash
     data['Unit'].info.format = blank_none
-    data[col_names].write(filename=filename, format=format,
-                          include_names=col_names,
-                          overwrite=True)
+    data[use_col_names].write(filename=filename, format=format,
+                              include_names=use_col_names,
+                              overwrite=True)
