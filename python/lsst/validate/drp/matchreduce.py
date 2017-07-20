@@ -202,6 +202,7 @@ class MatchedMultiVisitDataset(BlobBase):
         mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
                                            'PSF magnitude uncertainty'))
         newSchema = mapper.getOutputSchema()
+        newSchema.setAliasMap(schema.getAliasMap())
 
         # Create an object that matches multiple catalogs with same schema
         mmatch = MultiMatch(newSchema,
