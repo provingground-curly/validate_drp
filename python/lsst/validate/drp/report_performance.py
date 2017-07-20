@@ -36,6 +36,10 @@ def run(validation_drp_report_filenames, output_file,
        But one will wish to compare against an external set of specifications.
        Such as the release for a given version during a given fiscal year.
     release_level : E.g., 'FY17' or 'ORR'
+
+    Products
+    ---
+    Writes table of performance metrics to an RST file.
     """
     input_objects = ingest_data(validation_drp_report_filenames)
     input_table = objects_to_table(input_objects)

@@ -25,15 +25,17 @@ import os
 import tempfile
 import unittest
 
-from lsst.validate.drp import performance_summary
+from lsst.validate.drp import report_performance
 
 
-class PerformanceSummaryFromJob(unittest.TestCase):
+class ReportPerformanceFromJob(unittest.TestCase):
     """Testing release performance summary."""
 
     def setUp(self):
         test_data_dir = os.path.dirname(__file__)
         self.report_file = os.path.join(test_data_dir, 'CfhtQuick_output_r_report_file.rst')
+        self.release_metrics_file = os.path.join(test_data_dir, '../', 'etc', 'release_metrics.yaml')
+        self.release_level = 'FY17'
         self.json_file = os.path.join(test_data_dir, 'CfhtQuick_output_r.json')
         self.json_file_filter = 'r'
 
@@ -46,9 +48,10 @@ class PerformanceSummaryFromJob(unittest.TestCase):
         #  because I can't figure out how to get py.test tmpdir fixture
         #  to work in the unittest.TestCase context.
         tmp_dir = tempfile.mkdtemp()
-        out_file_name = os.path.join(tmp_dir, "performance_summary_test.rst")
+        out_file_name = os.path.join(tmp_dir, "report_performance_test.rst")
 
-        performance_summary.run([self.json_file], out_file_name)
+        report_performance.run(
+            [self.json_file], out_file_name, self.release_metrics_file, self.release_level)
 
         assert(os.path.exists(out_file_name))
         assert filecmp.cmp(out_file_name, self.report_file)
