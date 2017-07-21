@@ -59,7 +59,7 @@ if __name__ == "__main__":
                         default=os.path.join(getPackageDir('validate_drp'),
                                              'etc', 'release_metrics.yaml'),
                         help='Path of YAML file with this release specifications.')
-    parser.add_argument('--release_level', type=str, default='ORR',
+    parser.add_argument('--release_level', type=str, default='FY17',
                         help='Level of release_metric requirement to meet: ["FY17", "FY18", ...]')
 
     args = parser.parse_args()
