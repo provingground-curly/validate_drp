@@ -13,6 +13,11 @@ export OMP_NUM_THREADS=1
 # If you're running on a larger node, you might increase this up to 16.
 NUMPROC=${NUMPROC:-4}
 
+# OS X El Capitan SIP swallows DYLD_LIBRARY_PATH so export the duplicate in LSST_LIBRARY_PATH
+if [[ -z "${DYLD_LIBRARY_PATH}" ]]; then
+    export DYLD_LIBRARY_PATH="${LSST_LIBRARY_PATH}"
+fi
+
 # Fake out the pipeline about the origin of the reference catalog
 export SETUP_ASTROMETRY_NET_DATA="astrometry_net_data sdss-dr9-fink-v5b"
 export ASTROMETRY_NET_DATA_DIR=${VALIDATION_DATA_HSC_DIR}/sdss-dr9-fink-v5b
