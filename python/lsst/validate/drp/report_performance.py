@@ -25,12 +25,14 @@ from lsst.validate.drp.validate import get_filter_name_from_job, load_json_outpu
 
 
 def run(validation_drp_report_filenames, output_file,
+        srd_level=None,
         release_metrics_file=None, release_level=None):
     """
     Parameters
     ---
     validation_drp_report_filenames : [] or str giving filepaths for JSON files.
     output_file : str given filepath of output RST file.
+    srd_level : SRD level to quote.  One of ['design', 'minimum', 'stretch']
     release_metrics_file : filepath of YAML file of a given release level.
        The JSON file will store the metrics it was calculated with
        But one will wish to compare against an external set of specifications.
@@ -42,7 +44,12 @@ def run(validation_drp_report_filenames, output_file,
     Writes table of performance metrics to an RST file.
     """
     input_objects = ingest_data(validation_drp_report_filenames)
-    input_table = objects_to_table(input_objects)
+    input_table = objects_to_table(input_objects, level=srd_level)
+    if input_table is None:
+        msg = "Table from Job is None.  Returning without writing table"
+        print(msg)
+        return
+
     if release_metrics_file is not None and release_level is not None:
         release_metrics = load_metrics(release_metrics_file)
         add_release_metric(input_table, release_metrics, release_level)
@@ -73,7 +80,12 @@ def objects_to_table(input_objects, level='design'):
             if meas.spec_name is not None and meas.spec_name != level:
                 continue
             m = meas.metric
-            spec = m.get_spec(level, filter_name=filter_name)
+            try:
+                spec = m.get_spec(level, filter_name=filter_name)
+            except:
+                msg_format = "Could not load meas.spec_name: '{:s}' at level: '{:s}'"
+                print(msg_format.format(meas.spec_name, level))
+                continue
             if meas.quantity is None:
                 meas_quantity_value = "--"
             else:
@@ -81,6 +93,11 @@ def objects_to_table(input_objects, level='design'):
             this_row = [m.name, filter_name, meas_quantity_value, meas.unit,
                         m.operator_str, spec.quantity.value]
             rows.append(this_row)
+
+    if len(rows) == 0:
+        msg_format = "No rows loaded from Job at level: '{:s}'"
+        print(msg_format.format(level))
+        return None
 
     srd_requirement_col_name = 'SRD Requirement: %s' % level
     col_names = ('Metric', 'Filter', 'Value', 'Unit',

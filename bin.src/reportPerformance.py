@@ -44,7 +44,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=description,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('json_files', nargs='+',
-                        help='Paths to a JSON serialization of Job.  Separated with spaces.')
+                        help='Paths to a JSON serializations of Jobs.  Separated with spaces.')
     parser.add_argument('--output_file', default='report_performance.rst',
                         help='Filepath of the output RST file.')
     # 2017-07-21: MWV
@@ -65,5 +65,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     report_performance.run(args.json_files, args.output_file,
-                           args.release_metrics, args.release_level)
-
+                           srd_level=args.srd_level,
+                           release_metrics_file=args.release_metrics,
+                           release_level=args.release_level)
