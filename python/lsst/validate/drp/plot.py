@@ -157,9 +157,8 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
         color=color['bright'])
 
     # Using title rather than suptitle because I can't get the top padding
-    plt.title("Astrometry Check : %s" % outputPrefix.rstrip('_'),
-              fontsize=30)
-    plt.tight_layout()
+    plt.suptitle("Astrometry Check : %s" % outputPrefix.rstrip('_'),
+                 fontsize=30)
     plotPath = outputPrefix+"check_astrometry.png"
     plt.savefig(plotPath, format="png")
     plt.close(fig)
