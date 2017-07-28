@@ -131,6 +131,7 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         outputPrefix = kwargs['outputPrefix']
     else:
         outputPrefix = repoNameToPrefix(base_name)
+        kwargs['outputPrefix'] = outputPrefix
 
     if load_json:
         if not os.path.isfile(repo_or_json):
