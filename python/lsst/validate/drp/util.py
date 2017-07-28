@@ -179,9 +179,12 @@ def repoNameToPrefix(repo):
     'CFHT_output'
     >>> repoNameToPrefix('.a/CFHT/output')
     'a_CFHT_output'
+    >>> repoNameToPrefix('bar/foo.json')
+    'bar_foo'
     """
 
-    return repo.lstrip('\.').strip(os.sep).replace(os.sep, "_")
+    baserepo, ext = os.path.splitext(repo)
+    return baserepo.lstrip('.').strip(os.sep).replace(os.sep, "_")
 
 
 def discoverDataIds(repo, **kwargs):
