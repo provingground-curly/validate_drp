@@ -301,7 +301,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     return job
 
 
-def plot_metrics(job, filterName, outputPrefix=None):
+def plot_metrics(job, filterName, outputPrefix=''):
     """Plot AM1, AM2, AM3, PA1 plus related informational plots.
 
     Parameters
