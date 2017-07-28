@@ -203,7 +203,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     jobs = {}
     for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
-        if outputPrefix is None:
+        if outputPrefix is None or outputPrefix == '':
             thisOutputPrefix = "%s" % filterName
         else:
             thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
