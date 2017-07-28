@@ -206,7 +206,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         if outputPrefix is None or outputPrefix == '':
             thisOutputPrefix = "%s" % filterName
         else:
-            thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
+            thisOutputPrefix = "%s_%s" % (outputPrefix, filterName)
         theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
         job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
@@ -297,7 +297,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    job.write_json(outputPrefix.rstrip('_') + '.json')
+    job.write_json(outputPrefix + '.json')
 
     return job
 

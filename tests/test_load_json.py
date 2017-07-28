@@ -98,7 +98,7 @@ class ParseJsonJob(unittest.TestCase):
 
         outputPrefix = repoNameToPrefix(self.jsonFile)
         plot_metrics(job, filterName, outputPrefix=outputPrefix)
-        expectedCheckAstrometryFile = outputPrefix+'check_astrometry.png'
+        expectedCheckAstrometryFile = '%s_%s' % (outputPrefix, 'check_astrometry.png')
         assert os.path.exists(expectedCheckAstrometryFile)
 
 
