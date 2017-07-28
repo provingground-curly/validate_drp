@@ -10,6 +10,7 @@ setupRequired(validate_base)
 setupRequired(pyyaml)
 setupRequired(scipy)
 setupRequired(matplotlib)
+setupRequired(treecorr)
 
 setupOptional(pipe_tasks)
 setupOptional(pipe_drivers)
