@@ -117,11 +117,10 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         This can also be the filepath for a JSON file that contains
         the cached output from a previous run.
     """
-    if os.path.splitext(repo_or_json)[-1] == '.json':
-        base_name = repo_or_json[:-5]
+    base_name, ext = os.path.splitext(repo_or_json)
+    if ext == '.json':
         load_json = True
     else:
-        base_name = repo_or_json
         load_json = False
 
     # I think I have to interrogate the kwargs to maintain compatibility
