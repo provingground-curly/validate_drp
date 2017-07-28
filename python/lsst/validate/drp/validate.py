@@ -217,7 +217,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makePrint=True, makePlot=True, makeJson=True,
-                 filterName=None, outputPrefix=None,
+                 filterName=None, outputPrefix='',
                  verbose=False,
                  **kwargs):
     """Main executable for the case where there is just one filter.
@@ -251,9 +251,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    if outputPrefix is None:
-        outputPrefix = repoNameToPrefix(repo)
-
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
