@@ -129,7 +129,6 @@ def run(repo_or_json, metrics=None,
     # In Python 3 I would have let me mix in a keyword default after *args
     if outputPrefix is None:
         outputPrefix = repoNameToPrefix(base_name)
-        kwargs['outputPrefix'] = outputPrefix
 
     if load_json:
         if not os.path.isfile(repo_or_json):
@@ -144,10 +143,10 @@ def run(repo_or_json, metrics=None,
         if not os.path.isdir(repo_or_json):
             print("Could not find repo %s" % (repo_or_json))
             return
-        kwargs['metrics'] = metrics
 
         repo_path = repo_or_json
-        jobs = runOneRepo(repo_path, **kwargs)
+        jobs = runOneRepo(repo_path, metrics=metrics, outputPrefix=outputPrefix,
+                          **kwargs)
 
     for filterName, job in jobs.items():
         if makePrint:
