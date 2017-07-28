@@ -97,7 +97,8 @@ def get_filter_name_from_job(job):
     return filter_name
 
 
-def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
+def run(repo_or_json, metrics=None,
+        outputPrefix=None, makePrint=True, makePlot=True,
         level='design', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
@@ -126,9 +127,7 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
     # I think I have to interrogate the kwargs to maintain compatibility
     # between Python 2 and Python 3
     # In Python 3 I would have let me mix in a keyword default after *args
-    if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
-        outputPrefix = kwargs['outputPrefix']
-    else:
+    if outputPrefix is None:
         outputPrefix = repoNameToPrefix(base_name)
         kwargs['outputPrefix'] = outputPrefix
 
