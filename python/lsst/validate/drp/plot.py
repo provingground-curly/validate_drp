@@ -245,10 +245,10 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
             label='Model')
 
     labelFormatStr = '\n'.join([
-        r'$\sigma_\mathrm{{sys}} = {sigmaSysMmag:6.4f}~\mathrm{{[mmag]}}$',
-        r'$\gamma = {gamma:6.4f}$',
-        r'$m_5 = {m5:6.4f}~\mathrm{{[mag]}}$'])
-    label = labelFormatStr.format(sigmaSysMmag=1000*photomModel.sigmaSys,
+        r'$\sigma_\mathrm{{sys}}$ = {sigmaSysMmag:.4f} mmag',
+        r'$\gamma = {gamma:.4f}$',
+        r'$m_5 =$ {m5:.4f}'])
+    label = labelFormatStr.format(sigmaSysMmag=1000*photomModel.sigmaSys.to(u.mag).value,
                                   gamma=photomModel.gamma,
                                   m5=photomModel.m5)
     ax.text(0.1, 0.8, label, color=color,
