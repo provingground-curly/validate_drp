@@ -361,10 +361,10 @@ def constructRunList(filter, visits, ccds, ccdKeyName='ccd'):
 
     Examples
     --------
-    >>> runList = constructRunList([100, 200], 'r', [10, 11, 12])
+    >>> runList = constructRunList('r', [100, 200], [10, 11, 12])
     >>> print(runList)
     ['--id visit=100 ccd=10^11^12', '--id visit=200 ccd=10^11^12']
-    >>> runList = constructRunList([100, 200], 'r', [10, 11, 12], ccdKeyName='ccdnum')
+    >>> runList = constructRunList('r', [100, 200], [10, 11, 12], ccdKeyName='ccdnum')
     >>> print(runList)
     ['--id visit=100 ccdnum=10^11^12', '--id visit=200 ccdnum=10^11^12']
 
