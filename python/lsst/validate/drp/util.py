@@ -292,8 +292,15 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
     Examples
     --------
     >>> dataIds = constructDataIds('r', [100, 200], [10, 11, 12])
-    >>> print(dataIds)
-    [{'filter': 'r', 'visit': 100, 'ccd': 10}, {'filter': 'r', 'visit': 100, 'ccd': 11}, {'filter': 'r', 'visit': 100, 'ccd': 12}, {'filter': 'r', 'visit': 200, 'ccd': 10}, {'filter': 'r', 'visit': 200, 'ccd': 11}, {'filter': 'r', 'visit': 200, 'ccd': 12}]
+    >>> for dId in dataIds:
+    ...     print((dId['filter'], dId['visit'], dId['ccd']))
+    ...
+    ('r', 100, 10)
+    ('r', 100, 11)
+    ('r', 100, 12)
+    ('r', 200, 10)
+    ('r', 200, 11)
+    ('r', 200, 12)
     """
     if isinstance(filters, basestring):
         filters = [filters for _ in visits]
