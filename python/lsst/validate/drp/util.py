@@ -170,18 +170,21 @@ def repoNameToPrefix(repo):
     Examples
     --------
     >>> repoNameToPrefix('a/b/c')
-    'a_b_c_'
+    'a_b_c'
     >>> repoNameToPrefix('/bar/foo/')
-    'bar_foo_'
+    'bar_foo'
     >>> repoNameToPrefix('CFHT/output')
-    'CFHT_output_'
+    'CFHT_output'
     >>> repoNameToPrefix('./CFHT/output')
-    'CFHT_output_'
+    'CFHT_output'
     >>> repoNameToPrefix('.a/CFHT/output')
-    'a_CFHT_output_'
+    'a_CFHT_output'
+    >>> repoNameToPrefix('bar/foo.json')
+    'bar_foo'
     """
 
-    return repo.lstrip('\.').strip(os.sep).replace(os.sep, "_") + "_"
+    baserepo, ext = os.path.splitext(repo)
+    return baserepo.lstrip('.').strip(os.sep).replace(os.sep, "_")
 
 
 def discoverDataIds(repo, **kwargs):

@@ -97,7 +97,8 @@ def get_filter_name_from_job(job):
     return filter_name
 
 
-def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
+def run(repo_or_json, metrics=None,
+        outputPrefix=None, makePrint=True, makePlot=True,
         level='design', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
@@ -117,19 +118,16 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         This can also be the filepath for a JSON file that contains
         the cached output from a previous run.
     """
-    if os.path.splitext(repo_or_json)[-1] == '.json':
-        base_name = repo_or_json[:-5]
+    base_name, ext = os.path.splitext(repo_or_json)
+    if ext == '.json':
         load_json = True
     else:
-        base_name = repo_or_json
         load_json = False
 
     # I think I have to interrogate the kwargs to maintain compatibility
     # between Python 2 and Python 3
     # In Python 3 I would have let me mix in a keyword default after *args
-    if 'outputPrefix' in kwargs and kwargs['outputPrefix']:
-        outputPrefix = kwargs['outputPrefix']
-    else:
+    if outputPrefix is None:
         outputPrefix = repoNameToPrefix(base_name)
 
     if load_json:
@@ -145,10 +143,10 @@ def run(repo_or_json, metrics=None, makePrint=True, makePlot=True,
         if not os.path.isdir(repo_or_json):
             print("Could not find repo %s" % (repo_or_json))
             return
-        kwargs['metrics'] = metrics
 
         repo_path = repo_or_json
-        jobs = runOneRepo(repo_path, **kwargs)
+        jobs = runOneRepo(repo_path, metrics=metrics, outputPrefix=outputPrefix,
+                          **kwargs)
 
     for filterName, job in jobs.items():
         if makePrint:
@@ -202,10 +200,10 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     jobs = {}
     for filterName in allFilters:
         # Do this here so that each outputPrefix will have a different name for each filter.
-        if outputPrefix is None:
+        if outputPrefix is None or outputPrefix == '':
             thisOutputPrefix = "%s" % filterName
         else:
-            thisOutputPrefix = "%s_%s_" % (outputPrefix.rstrip('_'), filterName)
+            thisOutputPrefix = "%s_%s" % (outputPrefix, filterName)
         theseVisitDataIds = [v for v in dataIds if v['filter'] == filterName]
         job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
@@ -218,7 +216,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makePrint=True, makePlot=True, makeJson=True,
-                 filterName=None, outputPrefix=None,
+                 filterName=None, outputPrefix='',
                  verbose=False,
                  **kwargs):
     """Main executable for the case where there is just one filter.
@@ -252,9 +250,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    if outputPrefix is None:
-        outputPrefix = repoNameToPrefix(repo)
-
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
@@ -296,12 +291,12 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    job.write_json(outputPrefix.rstrip('_') + '.json')
+    job.write_json(outputPrefix + '.json')
 
     return job
 
 
-def plot_metrics(job, filterName, outputPrefix=None):
+def plot_metrics(job, filterName, outputPrefix=''):
     """Plot AM1, AM2, AM3, PA1 plus related informational plots.
 
     Parameters

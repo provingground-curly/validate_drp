@@ -157,9 +157,12 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
         color=color['bright'])
 
     # Using title rather than suptitle because I can't get the top padding
-    plt.suptitle("Astrometry Check : %s" % outputPrefix.rstrip('_'),
+    plt.suptitle("Astrometry Check : %s" % outputPrefix,
                  fontsize=30)
-    plotPath = outputPrefix+"check_astrometry.png"
+    if outputPrefix == '':
+        plotPath = "check_astrometry.png"
+    else:
+        plotPath = "%s_%s" % (outputPrefix, "check_astrometry.png")
     plt.savefig(plotPath, format="png")
     plt.close(fig)
 
@@ -391,7 +394,7 @@ def plotPhotometryErrorModel(dataset, photomModel,
                         photomModel, ax=ax[1][1])
     ax[1][1].legend(loc='upper left')
 
-    plt.suptitle("Photometry Check : %s" % outputPrefix.rstrip('_'),
+    plt.suptitle("Photometry Check : %s" % outputPrefix,
                  fontsize=30)
     plotPath = outputPrefix+"check_photometry.png"
     plt.savefig(plotPath, format="png")
@@ -449,7 +452,10 @@ def plotPA1(pa1, outputPrefix=""):
         label.set_visible(False)
 
     plt.tight_layout()  # fix padding
-    plotPath = ''.join((outputPrefix, "PA1.png"))
+    if outputPrefix == '':
+        plotPath = "PA1.png"
+    else:
+        plotPath = "%s_%s" % (outputPrefix, "PA1.png")
     plt.savefig(plotPath, format="png")
     plt.close(fig)
 
