@@ -1,3 +1,10 @@
 # -*- python -*-
-from lsst.sconsUtils import scripts
+
+import platform
+
+from lsst.sconsUtils import scripts, env
 scripts.BasicSConscript.tests()
+
+# avoid the classic matplotlib "Invalid DISPLAY variable" error
+if platform.system() == "Linux":
+    env["ENV"]["MPLBACKEND"] = "Agg"
