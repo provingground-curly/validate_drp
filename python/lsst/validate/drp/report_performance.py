@@ -140,11 +140,24 @@ def objects_to_table(input_objects, level='design'):
 
 # Calculate numbers in table
 def add_release_metric(data, release_metrics, release_metrics_level):
+    """Add columns of additional metric thresholds.
+
+    Intended use is for specifying a set of release metrics that converge
+    over time to the SRD metrics.
+
+    If release_metrics_level is not present in release_metrics,
+    then the original data is unchanged.
+    """
     release_targets = []
     for row in data:
         metric = release_metrics[row['Metric']]
-        spec = metric.get_spec(
-            name=release_metrics_level, filter_name=row['Filter'])
+        try:
+            spec = metric.get_spec(
+                name=release_metrics_level, filter_name=row['Filter'])
+        except:
+            msg = "Release metrics level: {:s} not available in release_metrics file."
+            print(msg.format(release_metrics_level))
+            return
         release_targets.append(spec.quantity.value)
 
     release_targets_col = Column(
