@@ -222,6 +222,11 @@ def write_report(data, filename='test.rst', format='ascii.rst'):
             data[spec_col].info.format = '.1f'
     data['Value'].info.format = float_or_dash
     data['Unit'].info.format = blank_none
+    # Astropy 1.2.1 (the current miniconda stack install) doesn't support
+    #  overwrite=True for Tables
+    # But in Astropy 2.0 (the modern version) reliance on automatically overwriting
+    # ASCII files is deprecated and you get a warning if you don't specify it.
+    # But it does still write.  So for now we'll leave overwrite=True out of
+    # the argument list below, but someday it will likely be required to include it.
     data[use_col_names].write(filename=filename, format=format,
-                              include_names=use_col_names,
-                              overwrite=True)
+                              include_names=use_col_names)
