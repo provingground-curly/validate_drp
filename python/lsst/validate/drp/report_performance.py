@@ -63,7 +63,18 @@ def run(validation_drp_report_filenames, output_file,
 
 
 def ingest_data(filenames):
-    """"""
+    """Load JSON files into a list of lsst.validate.base measurement Jobs.
+
+    Parameters
+    ----------
+    filenames : list of str
+        Filenames of JSON files to load.
+
+    Returns
+    -------
+    list of lsst.validate.base.Job
+        Each element is the Job representation of the JSON file.
+    """
     jobs = {}
     # Read in JSON output from metrics run
     for file in filenames:
@@ -76,7 +87,22 @@ def ingest_data(filenames):
 
 # Identify key data from JSON
 def objects_to_table(input_objects, level='design'):
-    """Take objects and convert to table."""
+    """Take lsst.validate.base.Job objects and convert to astropy.table.Table
+
+    Parameters
+    ----------
+    input_objects : list of Job objects
+    level : str
+        The requirement level to compare to for each metric.
+        This is required because there are metrics with dependencies
+        E.g., AD1 depends on AF1.  Thus you have to specify a level
+        to even get a single AD1 metric.
+
+    Returns
+    -------
+    astropy.table.Table
+        Table with columns needed for final report.
+    """
     rows = []
     for filter_name, obj in input_objects.items():
         for meas in obj.measurements:
@@ -129,7 +155,11 @@ def add_release_metric(data, release_metrics, release_metrics_level):
 
 
 def float_or_dash(f, format_string='{:.2f}'):
-    """Return string of formatted float, or -- if None."""
+    """Return string of formatted float, or -- if None.
+
+    Intended use is to provide formatting output for columns
+    where where None or non-float value indicates a missing measurement.
+    """
     # This try/except handles both None and non-numeric strings.
     try:
         return format_string.format(float(f))
@@ -138,6 +168,12 @@ def float_or_dash(f, format_string='{:.2f}'):
 
 
 def blank_none(s):
+    """Return a blank for  None or 'None', else return string of input.
+
+    Intended use is to provide formatting output for columns where an empty
+    or None value is totally reasonable and expected and should be display
+    as a blank ''.
+    """
     if s is None:
         return ''
     if s == 'None':
@@ -155,6 +191,21 @@ def find_col_name(prefix, colnames):
 
 # Output table
 def write_report(data, filename='test.rst', format='ascii.rst'):
+    """Write performance report to RST file.
+
+    Parameters
+    ----------
+    data : astropy.table.Table
+    filename : str [optional]
+        Filepath of output RST file.
+    format : str [optional]
+        astropy.table format for output table.
+
+    Creates
+    -------
+    test.rst
+        Output file with RST version of data Table.
+    """
     # Find the 'Release Target XYZ' column name
     release_target_col_name = find_col_name('Release Target', data.colnames)
     # Find the 'SRD Requirement XYZ' column name
