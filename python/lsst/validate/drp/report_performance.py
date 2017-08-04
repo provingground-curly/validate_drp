@@ -30,14 +30,19 @@ def run(validation_drp_report_filenames, output_file,
     """
     Parameters
     ---
-    validation_drp_report_filenames : [] or str giving filepaths for JSON files.
-    output_file : str given filepath of output RST file.
-    srd_level : SRD level to quote.  One of ['design', 'minimum', 'stretch']
-    release_metrics_file : filepath of YAML file of a given release level.
-       The JSON file will store the metrics it was calculated with
-       But one will wish to compare against an external set of specifications.
-       Such as the release for a given version during a given fiscal year.
-    release_level : E.g., 'FY17' or 'ORR'
+    validation_drp_report_filenames : [] or str, filepaths for JSON files.
+    output_file : str, filepath of output RST file.
+    srd_level : str, SRD level to quote.  One of ['design', 'minimum', 'stretch']
+    release_metrics_file : str [optional], filepath of metrics YAML file
+      While the JSON file itself will store the metrics the was calculated with
+        one may wish to compare against an external set of specifications.
+      E.g., ${VALIDATE_DRP_DIR}/etc/release_metrics.yaml
+        contains the target levels for each fiscal year through to and including
+        operational readiness review (ORR).  This file is essentially the same
+        as ${VALIDATE_DRP_DIR}/etc/metrics.yaml, but defines levels in terms
+        of fiscal year and ORR instead of design/minimum/stretch.
+    release_level : str, A specification level in the 'release_metrics_file'
+       E.g., 'FY17' or 'ORR'
 
     Products
     ---
