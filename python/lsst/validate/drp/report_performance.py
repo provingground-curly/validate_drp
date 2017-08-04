@@ -127,8 +127,6 @@ def add_release_metric(data, release_metrics, release_metrics_level):
         name='Release Target: %s' % release_metrics_level)
     data.add_column(release_targets_col)
 
-    return data
-
 
 def float_or_dash(f, format_string='{:.2f}'):
     """Return string of formatted float, or -- if None."""
