@@ -31,7 +31,8 @@ import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
-                            MultiMatch, SimpleRecord, GroupView)
+                            MultiMatch, SimpleRecord, GroupView,
+                            SOURCE_IO_NO_FOOTPRINTS)
 from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
@@ -49,9 +50,9 @@ class MatchedMultiVisitDataset(BlobBase):
 
     Parameters
     ----------
-    repo : `str`
-        The repository.  This is generally the directory on disk
-        that contains the repository and mapper.
+    repo : `str` or `Butler`
+        A Butler instance or a repository URL that can be used to construct
+        one.
     dataIds : `list` of `dict`
         List of `butler` data IDs of Image catalogs to compare to reference.
         The `calexp` cpixel image is needed for the photometric calibration.
@@ -105,7 +106,7 @@ class MatchedMultiVisitDataset(BlobBase):
     name = 'MatchedMultiVisitDataset'
 
     def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
-                 verbose=False):
+                 useJointCal=False, verbose=False):
         BlobBase.__init__(self)
 
         self.verbose = verbose
@@ -117,6 +118,12 @@ class MatchedMultiVisitDataset(BlobBase):
             'filterName',
             quantity=set([dId['filter'] for dId in dataIds]).pop(),
             description='Filter name')
+
+        # Record important configuration
+        self.register_datum(
+            'useJointCal',
+            quantity=useJointCal,
+            description='Whether jointcal/meas_mosaic calibrations were used')
 
         # Register datums stored by this blob; will be set later
         self.register_datum(
@@ -144,20 +151,20 @@ class MatchedMultiVisitDataset(BlobBase):
 
         # Match catalogs across visits
         self._matchedCatalog = self._loadAndMatchCatalogs(
-            repo, dataIds, matchRadius)
+            repo, dataIds, matchRadius, useJointCal=useJointCal)
         self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
         # Reduce catalogs into summary statistics.
         # These are the serialiable attributes of this class.
         self._reduceStars(self._matchedCatalog, safeSnr)
 
-    def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius):
+    def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius,
+                              useJointCal=False):
         """Load data from specific visit. Match with reference.
 
         Parameters
         ----------
-        repo : string
-            The repository.  This is generally the directory on disk
-            that contains the repository and mapper.
+        repo : string or Butler
+            A Butler or a repository URL that can be used to construct one
         dataIds : list of dict
             List of `butler` data IDs of Image catalogs to compare to
             reference. The `calexp` cpixel image is needed for the photometric
@@ -172,7 +179,10 @@ class MatchedMultiVisitDataset(BlobBase):
         """
         # Following
         # https://github.com/lsst/afw/blob/tickets/DM-3896/examples/repeatability.ipynb
-        butler = dafPersist.Butler(repo)
+        if isinstance(repo, dafPersist.Butler):
+            butler = repo
+        else:
+            butler = dafPersist.Butler(repo)
         dataset = 'src'
 
         # 2016-02-08 MWV:
@@ -182,16 +192,17 @@ class MatchedMultiVisitDataset(BlobBase):
 
         ccdKeyName = getCcdKeyName(dataIds[0])
 
-        schema = butler.get(dataset + "_schema", immediate=True).schema
+        schema = butler.get(dataset + "_schema").schema
         mapper = SchemaMapper(schema)
         mapper.addMinimalSchema(schema)
         mapper.addOutputField(Field[float]('base_PsfFlux_snr',
                                            'PSF flux SNR'))
         mapper.addOutputField(Field[float]('base_PsfFlux_mag',
                                            'PSF magnitude'))
-        mapper.addOutputField(Field[float]('base_PsfFlux_magerr',
+        mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
                                            'PSF magnitude uncertainty'))
         newSchema = mapper.getOutputSchema()
+        newSchema.setAliasMap(schema.getAliasMap())
 
         # Create an object that matches multiple catalogs with same schema
         mmatch = MultiMatch(newSchema,
@@ -203,30 +214,56 @@ class MatchedMultiVisitDataset(BlobBase):
         srcVis = SourceCatalog(newSchema)
 
         for vId in dataIds:
+
+            if useJointCal:
+                try:
+                    photoCalib = butler.get("photoCalib", vId)
+                except (FitsError, dafPersist.NoResults) as e:
+                    print(e)
+                    print("Could not open photometric calibration for ", vId)
+                    print("Skipping %s " % repr(vId))
+                    continue
+                try:
+                    md = butler.get("wcs_md", vId)
+                    wcs = afwImage.makeWcs(md)
+                except (FitsError, dafPersist.NoResults) as e:
+                    print(e)
+                    print("Could not open updated WCS for ", vId)
+                    print("Skipping %s " % repr(vId))
+                    continue
+            else:
+                try:
+                    calexpMetadata = butler.get("calexp_md", vId)
+                except (FitsError, dafPersist.NoResults) as e:
+                    print(e)
+                    print("Could not open calibrated image file for ", vId)
+                    print("Skipping %s " % repr(vId))
+                    continue
+                except TypeError as te:
+                    # DECam images that haven't been properly reformatted
+                    # can trigger a TypeError because of a residual FITS header
+                    # LTV2 which is a float instead of the expected integer.
+                    # This generates an error of the form:
+                    #
+                    # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
+                    #
+                    # See, e.g., DM-2957 for details.
+                    print(te)
+                    print("Calibration image header information malformed.")
+                    print("Skipping %s " % repr(vId))
+                    continue
+
+                calib = afwImage.Calib(calexpMetadata)
+
+            # We don't want to put this above the first "if useJointCal block"
+            # because we need to use the first `butler.get` above to quickly
+            # catch data IDs with no usable outputs.
             try:
-                calexpMetadata = butler.get("calexp_md", vId, immediate=True)
-            except (FitsError, dafPersist.NoResults) as e:
-                print(e)
-                print("Could not open calibrated image file for ", vId)
-                print("Skipping %s " % repr(vId))
-                continue
-            except TypeError as te:
-                # DECam images that haven't been properly reformatted
-                # can trigger a TypeError because of a residual FITS header
-                # LTV2 which is a float instead of the expected integer.
-                # This generates an error of the form:
-                #
-                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
-                #
-                # See, e.g., DM-2957 for details.
-                print(te)
-                print("Calibration image header information malformed.")
-                print("Skipping %s " % repr(vId))
-                continue
-
-            calib = afwImage.Calib(calexpMetadata)
-
-            oldSrc = butler.get('src', vId, immediate=True)
+                # HSC supports these flags, which dramatically improve I/O
+                # performance; support for other cameras is DM-6927.
+                oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
+            except:
+                oldSrc = butler.get('src', vId)
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
@@ -235,11 +272,17 @@ class MatchedMultiVisitDataset(BlobBase):
             tmpCat.extend(oldSrc, mapper=mapper)
             tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_flux'] \
                 / tmpCat['base_PsfFlux_fluxSigma']
-            with afwImageUtils.CalibNoThrow():
-                _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
-                                       tmpCat['base_PsfFlux_fluxSigma'])
-                tmpCat['base_PsfFlux_mag'][:] = _[0]
-                tmpCat['base_PsfFlux_magerr'][:] = _[1]
+
+            if useJointCal:
+                for record in tmpCat:
+                    record.updateCoord(wcs)
+                photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
+            else:
+                with afwImageUtils.CalibNoThrow():
+                    _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
+                                           tmpCat['base_PsfFlux_fluxSigma'])
+                    tmpCat['base_PsfFlux_mag'][:] = _[0]
+                    tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)
@@ -272,7 +315,7 @@ class MatchedMultiVisitDataset(BlobBase):
 
         psfSnrKey = allMatches.schema.find("base_PsfFlux_snr").key
         psfMagKey = allMatches.schema.find("base_PsfFlux_mag").key
-        psfMagErrKey = allMatches.schema.find("base_PsfFlux_magerr").key
+        psfMagErrKey = allMatches.schema.find("base_PsfFlux_magErr").key
         extendedKey = allMatches.schema.find("base_ClassificationExtendedness_value").key
 
         def goodFilter(cat, goodSnr=3):

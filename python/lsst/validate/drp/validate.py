@@ -173,6 +173,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     dataIds : `list` of `dict`
         List of butler data IDs of Image catalogs to compare to reference.
         The calexp cpixel image is needed for the photometric calibration.
+        Tract IDs must be included if useJointCal is True.
     metrics : `dict` or `collections.OrderedDict`
         Dictionary of `lsst.validate.base.Metric` instances. Typically this is
         data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
@@ -215,9 +216,8 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
-                 makePrint=True, makePlot=True, makeJson=True,
-                 filterName=None, outputPrefix='',
-                 verbose=False,
+                 makeJson=True, filterName=None, outputPrefix='',
+                 useJointCal=False, verbose=False,
                  **kwargs):
     """Main executable for the case where there is just one filter.
 
@@ -229,12 +229,14 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     Parameters
     ----------
-    repo : string
-        The repository.  This is generally the directory on disk
-        that contains the repository and mapper.
+    repo : string or Butler
+        A Butler or a repository URL that can be used to construct one.
     dataIds : list of dict
         List of `butler` data IDs of Image catalogs to compare to reference.
-        The `calexp` cpixel image is needed for the photometric calibration.
+        The `calexp` pixel image is needed for the photometric calibration
+        unless useJointCal is True, in which the `photoCalib` and `wcs`
+        datasets are used instead.  Note that these have data IDs that include
+        the tract number.
     metrics : `dict` or `collections.OrderedDict`
         Dictionary of `lsst.validate.base.Metric` instances. Typically this is
         data from ``validate_drp``\ 's ``metrics.yaml`` and loaded with
@@ -247,10 +249,13 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         Specify the beginning filename for output files.
     filterName : str, optional
         Name of the filter (bandpass).
+    useJointCal : bool, optional
+        Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
+                                              useJointCal=useJointCal,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
     astromModel = AstrometricErrorModel(matchedDataset)
@@ -291,7 +296,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    job.write_json(outputPrefix + '.json')
+    if makeJson:
+        job.write_json(outputPrefix + '.json')
 
     return job
 
