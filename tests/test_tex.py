@@ -37,7 +37,13 @@ class TexCalculations(lsst.utils.tests.TestCase):
     """Test calculation of TEx ellipticity residuals calculations."""
 
     def testSelectBinFromCorr(self):
-        """Does select_bin_from_corr correctly return only and all the bins that satisfy condition."""
+        """Does select_bin_from_corr correctly return only and all the bins that satisfy condition.
+
+        This test is meant for maintaining this consistency of performance.
+        These reference *_xip, *_xip_errs were computed based on the above arrays
+        and running through Treecorr wrapper code here manually.
+        It's not testing original correctness of Treecorr.
+        """
         r = np.array([0.1, 0.2, 0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5])
         xip = 1e-5 * np.array([0.9, 1.1, 1.5, 0.02, 1.2, 10.0, 5.0, 2.5, 3.0])
         xip_err = 1e-6 * np.array([1, 1, 1, 1, 1, 2, 2, 2, 2])
@@ -72,6 +78,7 @@ class TexCalculations(lsst.utils.tests.TestCase):
         Which in turn references
         http://adsabs.harvard.edu/abs/2002A%26A...389..729S
         """
+        # Seed was arbitrarily chosen.
         rand_seed = 1238625876
         random.seed(rand_seed)
         # Yes, a million.  N this high and L this large
