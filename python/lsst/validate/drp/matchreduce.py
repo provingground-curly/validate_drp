@@ -36,7 +36,7 @@ from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
 from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import getCcdKeyName, positionRmsFromCat
+from .util import (getCcdKeyName, positionRmsFromCat, ellipticity_from_cat)
 
 
 __all__ = ['MatchedMultiVisitDataset']
@@ -150,8 +150,10 @@ class MatchedMultiVisitDataset(BlobBase):
             description='RMS of sky coordinates of stars over multiple visits')
 
         # Match catalogs across visits
-        self._matchedCatalog = self._loadAndMatchCatalogs(
-            repo, dataIds, matchRadius, useJointCal=useJointCal)
+        self._catalog, self._matchedCatalog = \
+            self._loadAndMatchCatalogs(repo, dataIds, matchRadius,
+                                       useJointCal=useJointCal)
+
         self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
         # Reduce catalogs into summary statistics.
         # These are the serialiable attributes of this class.
@@ -174,6 +176,8 @@ class MatchedMultiVisitDataset(BlobBase):
 
         Returns
         -------
+        afw.table.SourceCatalog
+            List of all of the catalogs
         afw.table.GroupView
             An object of matched catalog.
         """
@@ -201,6 +205,14 @@ class MatchedMultiVisitDataset(BlobBase):
                                            'PSF magnitude'))
         mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
                                            'PSF magnitude uncertainty'))
+        mapper.addOutputField(Field[float]('e1',
+                                           'Source Ellipticity 1'))
+        mapper.addOutputField(Field[float]('e2',
+                                           'Source Ellipticity 1'))
+        mapper.addOutputField(Field[float]('psf_e1',
+                                           'PSF Ellipticity 1'))
+        mapper.addOutputField(Field[float]('psf_e2',
+                                           'PSF Ellipticity 1'))
         newSchema = mapper.getOutputSchema()
         newSchema.setAliasMap(schema.getAliasMap())
 
@@ -262,8 +274,13 @@ class MatchedMultiVisitDataset(BlobBase):
                 # HSC supports these flags, which dramatically improve I/O
                 # performance; support for other cameras is DM-6927.
                 oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
+                calexp = butler.get("calexp", vId, flags=SOURCE_IO_NO_FOOTPRINTS)
             except:
                 oldSrc = butler.get('src', vId)
+                calexp = butler.get("calexp", vId)
+
+            psf = calexp.getPsf()
+
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
 
@@ -284,6 +301,13 @@ class MatchedMultiVisitDataset(BlobBase):
                     tmpCat['base_PsfFlux_mag'][:] = _[0]
                     tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
+            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape_psf')
+            _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
+            tmpCat['e1'][:] = star_e1
+            tmpCat['e2'][:] = star_e2
+            tmpCat['psf_e1'][:] = psf_e1
+            tmpCat['psf_e2'][:] = psf_e2
+
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)
 
@@ -295,7 +319,7 @@ class MatchedMultiVisitDataset(BlobBase):
         # as a mapping of object ID to catalog of sources.
         allMatches = GroupView.build(matchCat)
 
-        return allMatches
+        return srcVis, allMatches
 
     def _reduceStars(self, allMatches, safeSnr=50.0):
         """Calculate summary statistics for each star. These are persisted

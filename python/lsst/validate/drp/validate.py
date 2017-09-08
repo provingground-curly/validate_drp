@@ -35,8 +35,9 @@ from .matchreduce import MatchedMultiVisitDataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
-                      PA1Measurement, PA2Measurement, PF1Measurement)
-from .plot import (plotAMx, plotPA1, plotPhotometryErrorModel,
+                      PA1Measurement, PA2Measurement, PF1Measurement,
+                      TExMeasurement)
+from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
 
@@ -296,6 +297,11 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
+    for x in (1, 2):
+        texName = 'TE{0:d}'.format(x)
+        TExMeasurement(metrics[texName], matchedDataset, filterName,
+                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+
     if makeJson:
         job.write_json(outputPrefix + '.json')
 
@@ -355,6 +361,18 @@ def plot_metrics(job, filterName, outputPrefix=''):
         print(e)
         print('\tSkipped plotAstrometryErrorModel')
 
+    for x in (1, 2):
+        texName = 'TE{0:d}'.format(x)
+
+        try:
+            measurement = job.get_measurement(texName)
+            plotTEx(measurement, filterName,
+                    texSpecName='design',
+                    outputPrefix=outputPrefix)
+        except RuntimeError as e:
+            print(e)
+            print('\tSkipped plot{}'.format(texName))
+
 
 def print_metrics(job, filterName, metrics):
     """Print specified list of metrics.  E.g., AM1, AM2, AM3, PA1.
@@ -404,7 +422,7 @@ def print_metrics(job, filterName, metrics):
                 prefix = bcolors.OKBLUE + '\tPassed '
             else:
                 prefix = bcolors.FAIL + '\tFailed '
-            infoStr = '{specName:12s} {meas:.4f} {op} {spec:.4f}'.format(
+            infoStr = '{specName:12s} {meas:.4g} {op} {spec:.4g}'.format(
                 specName=specName,
                 meas=m.quantity,
                 op=metric.operator_str,

@@ -26,12 +26,77 @@ from past.builtins import basestring
 import os
 
 import numpy as np
+from numpy.lib import scimath as SM
+
 import yaml
 
 import lsst.daf.persistence as dafPersist
 import lsst.pipe.base as pipeBase
 import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
+
+
+def ellipticity_from_cat(cat, slot_shape='slot_Shape'):
+    """Calculate the ellipticity of the Shapes in a catalog from the 2nd moments.
+
+    Parameters
+    ----------
+    cat : An afwtable catalog with 'slot_Shape' defined and '_xx', '_xy', '_yy'
+       entries for the target of 'slot_Shape'.
+       E.g., 'slot_shape' defined as 'base_SdssShape'
+       And 'base_SdssShape_xx', 'base_SdssShape_xy', 'base_SdssShape_yy' defined.
+    slot_shape : str, optional
+       Specify what slot shape requested.  Intended use is to get the PSF shape
+       estimates by specifying 'slot_shape=slot_Shape_psf'
+       instead of the default 'slot_shape=slot_Shape'.
+
+    Returns
+    -------
+    e, e1, e2 : complex, float, float
+        Complex ellipticity, real part, imaginary part
+    """
+    I_xx, I_xy, I_yy = cat.get(slot_shape+'_xx'), cat.get(slot_shape+'_xy'), cat.get(slot_shape+'_yy')
+    return ellipticity(I_xx, I_xy, I_yy)
+
+
+def ellipticity_from_shape(shape):
+    """Calculate the ellipticty of shape from its moments.
+
+    Parameters
+    ----------
+    shape : geom::ellipses::Quadrupole
+        The LSST generic shape object returned by psf.computeShape()
+        or source.getShape() for a specific source.
+        Imeplementation: just needs to have .getIxx, .getIxy, .getIyy methods
+        that each return a float describing the respective second moments.
+
+    Returns
+    -------
+    e, e1, e2 : complex, float, float
+        Complex ellipticity, real part, imaginary part
+    """
+    I_xx, I_xy, I_yy = shape.getIxx(), shape.getIxy(), shape.getIyy()
+    return ellipticity(I_xx, I_xy, I_yy)
+
+
+def ellipticity(I_xx, I_xy, I_yy):
+    """Calculate ellipticity from second moments.
+
+    Parameters
+    ----------
+    I_xx : float or numpy.array
+    I_xy : float or numpy.array
+    I_yy : float or numpy.array
+
+    Returns
+    -------
+    e, e1, e2 : (float, float, float) or (numpy.array, numpy.array, numpy.array)
+        Complex ellipticity, real component, imaginary component
+    """
+    e = (I_xx - I_yy + 2j*I_xy) / (I_xx + I_yy + 2*SM.sqrt(I_xx*I_yy - I_xy*2))
+    e1 = np.real(e)
+    e2 = np.imag(e)
+    return e, e1, e2
 
 
 def averageRaDec(ra, dec):
@@ -61,6 +126,20 @@ def averageRaDec(ra, dec):
 
 
 def averageRaDecFromCat(cat):
+    """Calculate the average right ascension and declination from a catalog.
+
+    Convenience wrapper around averageRaDec
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'coord_ra', 'coord_dec' that returns radians.
+
+    Returns
+    -------
+    float, float
+       meanRa, meanDec -- Tuple of average RA, Dec [radians]
+    """
     return averageRaDec(cat.get('coord_ra'), cat.get('coord_dec'))
 
 
@@ -138,6 +217,114 @@ def sphDist(ra1, dec1, ra2, dec2):
     #    dist = afwCoord.angularSeparation(ra1-ra2, dec1-dec2, np.cos(dec1), np.cos(dec2))
 
     return dist
+
+
+def averageRaFromCat(cat):
+    """Compute the average right ascension from a catalog of measurements.
+
+    This function is used as an aggregate function to extract just RA
+    from an lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+
+    The actual computation involves both RA and Dec.
+
+    The intent is to use this for a set of measurements of the same source
+    but that's neither enforced nor required.
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'coord_ra', 'coord_dec' that returns radians.
+
+    Returns
+    -------
+    float
+        Average right ascension [radians]
+    """
+    meanRa, meanDec = averageRaDecFromCat(cat)
+    return meanRa
+
+
+def averageDecFromCat(cat):
+    """Compute the average declination from a catalog of measurements.
+
+    This function is used as an aggregate function to extract just declination
+    from an lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+
+    The actual computation involves both RA and Dec.
+
+    The intent is to use this for a set of measurements of the same source
+    but that's neither enforced nor required.
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'coord_ra', 'coord_dec' that returns radians.
+
+    Returns
+    -------
+    float
+        Average right ascension [radians]
+    """
+    meanRa, meanDec = averageRaDecFromCat(cat)
+    return meanDec
+
+
+def medianEllipticityResidualsFromCat(cat):
+    """Compute the median ellipticty residuals from a catalog of measurements.
+
+    This function is used as an aggregate function to extract just declination
+    from an lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+
+    The intent is to use this for a set of measurements of the same source
+    but that's neither enforced nor required.
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'e1', 'e2' that returns radians.
+
+    Returns
+    -------
+    float, float
+        median real ellipticity residual, median imaginary ellipticity residual
+    """
+    e1_median = np.median(cat.get('e1') - cat.get('psf_e1'))
+    e2_median = np.median(cat.get('e2') - cat.get('psf_e2'))
+    return e1_median, e2_median
+
+
+def medianEllipticity1ResidualsFromCat(cat):
+    """Compute the median real ellipticty residuals from a catalog of measurements.
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'e1', 'e2' that returns radians.
+
+    Returns
+    -------
+    float
+        median real ellipticity residual
+    """
+    e1_median = np.median(cat.get('e1') - cat.get('psf_e1'))
+    return e1_median
+
+
+def medianEllipticity2ResidualsFromCat(cat):
+    """Compute the median imaginary ellipticty residuals from a catalog of measurements.
+
+    Parameters
+    ----------
+    cat -- collection with a .get method
+         for 'e1', 'e2' that returns radians.
+
+    Returns
+    -------
+    float
+        median imaginary ellipticity residual
+    """
+    e2_median = np.median(cat.get('e2') - cat.get('psf_e2'))
+    return e2_median
 
 
 def getCcdKeyName(dataid):
