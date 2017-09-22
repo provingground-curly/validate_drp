@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export DYLD_LIBRARY_PATH=$LSST_LIBRARY_PATH
+
 # Setup
 # We don't want threading
 export OMP_NUM_THREADS=1
@@ -39,7 +41,7 @@ ALL_VISITS=903332^903340^903982^904006^904350^904378^904828^904846
 
 # Heavy lifting
 singleFrameDriver.py ${REPO} --calib "${CALIB_DIR}" --rerun ${RERUN} --job singleFrame --cores ${NUMPROC} --id visit=${ALL_VISITS} -C "${CONFIG_FILE}"
-makeDiscreteSkyMap.py ${REPO} --rerun ${RERUN} --id ccd=0..103 visit=${ALL_VISITS}
+makeDiscreteSkyMap.py ${REPO} --calib "${CALIB_DIR}" --rerun ${RERUN} --id ccd=0..103 visit=${ALL_VISITS}
 # makeDiscreteSkyMap INFO: tract 0 has corners (321.714, -1.294), (318.915, -1.294), (318.915, 1.504), (321.714, 1.504) (RA, Dec deg) and 15 x 15 patches
 
 
