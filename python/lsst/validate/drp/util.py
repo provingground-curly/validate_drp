@@ -47,7 +47,7 @@ def ellipticity_from_cat(cat, slot_shape='slot_Shape'):
        And 'base_SdssShape_xx', 'base_SdssShape_xy', 'base_SdssShape_yy' defined.
     slot_shape : str, optional
        Specify what slot shape requested.  Intended use is to get the PSF shape
-       estimates by specifying 'slot_shape=slot_Shape_psf'
+       estimates by specifying 'slot_shape=slot_PsfShape'
        instead of the default 'slot_shape=slot_Shape'.
 
     Returns
