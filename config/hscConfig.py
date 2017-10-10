@@ -17,6 +17,6 @@ menu = { "ps1*": {}, # No changes
          "2mass*": { "filterMap": {ff:"J" for ff in 'grizy'} }, # No optical; use J 
        }
 
+# Both configs need to have the filterMap set
+setAstrometryConfigFromEups(config.processCcd.calibrate.photoRefObjLoader, menu)
 setAstrometryConfigFromEups(config.processCcd.calibrate.astromRefObjLoader, menu)
-
-
