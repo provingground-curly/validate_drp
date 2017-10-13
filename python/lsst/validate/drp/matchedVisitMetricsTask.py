@@ -27,6 +27,7 @@ class MatchedVisitMetricsRunner(TaskRunner):
         # we call run() once with each filter
         return [(parsedCmd.butler,
                  filterName,
+                 parsedCmd.output,
                  idListDict[filterName],
                  ) for filterName in sorted(idListDict.keys())]
 
@@ -37,8 +38,8 @@ class MatchedVisitMetricsRunner(TaskRunner):
 
 class MatchedVisitMetricsConfig(Config):
     outputPrefix = Field(
-        dtype=str, default=".",
-        doc="Root path for output files."
+        dtype=str, default="matchedVisit",
+        doc="Root name for output files: the filter name is appended to this+'_'."
     )
     metricsFile = Field(
         dtype=str, optional=True,
@@ -102,15 +103,26 @@ class MatchedVisitMetricsTask(CmdLineTask):
             metricsFile = os.path.join(getPackageDir('validate_drp'), 'etc', 'metrics.yaml')
         self.metrics = load_metrics(metricsFile)
 
-    def run(self, butler, filterName, dataIds):
+    def run(self, butler, filterName, output, dataIds):
+        """
+        Compute cross-visit metrics for one filter.
+
+        Parameters
+        ----------
+        butler      The initialized butler.
+        filterName  The filter name to be processed.
+        output      The output repository to save files to.
+        dataIds     The butler dataIds to process.
+        """
+        outputPrefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
         job = runOneFilter(butler, dataIds, metrics=self.metrics,
                            brightSnr=self.config.brightSnr,
                            makeJson=self.config.makeJson,
                            filterName=filterName,
-                           outputPrefix=self.config.outputPrefix,
+                           outputPrefix=outputPrefix,
                            useJointCal=self.config.useJointCal)
         if self.config.makePlots:
-            plot_metrics(job, filterName, outputPrefix=self.config.outputPrefix)
+            plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
     @classmethod
     def _makeArgumentParser(cls):
