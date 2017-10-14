@@ -48,6 +48,19 @@ color = {'all': 'grey', 'bright': 'blue',
          'iqr': 'green', 'rms': 'red'}
 
 
+def makeFilename(prefix, formatStr, **kwargs):
+    """Return a filename for writing to.
+
+    Return prefix_formatStr.format(kwargs) if prefix is not empty, otherwise
+    just return formatStr.format(kwargs).
+    """
+    formatted = formatStr.format(**kwargs)
+    if prefix is None or prefix == "":
+        return formatted
+    else:
+        return "{}_{}".format(prefix, formatted)
+
+
 def plotOutlinedAxline(axMethod, x, **kwargs):
     """Plot an axis line with a white shadow for better contrast.
 
@@ -159,11 +172,10 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
     # Using title rather than suptitle because I can't get the top padding
     plt.suptitle("Astrometry Check : %s" % outputPrefix,
                  fontsize=30)
-    if outputPrefix == '':
-        plotPath = "check_astrometry.png"
-    else:
-        plotPath = "%s_%s" % (outputPrefix, "check_astrometry.png")
-    plt.savefig(plotPath, format="png")
+    ext = 'png'
+    pathFormat = "{name}.{ext}"
+    plotPath = makeFilename(outputPrefix, pathFormat, name="check_astrometry", ext=ext)
+    plt.savefig(plotPath, format=ext)
     plt.close(fig)
 
 
@@ -396,8 +408,10 @@ def plotPhotometryErrorModel(dataset, photomModel,
 
     plt.suptitle("Photometry Check : %s" % outputPrefix,
                  fontsize=30)
-    plotPath = outputPrefix+"check_photometry.png"
-    plt.savefig(plotPath, format="png")
+    ext = 'png'
+    pathFormat = "{name}.{ext}"
+    plotPath = makeFilename(outputPrefix, pathFormat, name="check_photometry", ext=ext)
+    plt.savefig(plotPath, format=ext)
     plt.close(fig)
 
 
@@ -452,11 +466,10 @@ def plotPA1(pa1, outputPrefix=""):
         label.set_visible(False)
 
     plt.tight_layout()  # fix padding
-    if outputPrefix == '':
-        plotPath = "PA1.png"
-    else:
-        plotPath = "%s_%s" % (outputPrefix, "PA1.png")
-    plt.savefig(plotPath, format="png")
+    ext = 'png'
+    pathFormat = "{name}.{ext}"
+    plotPath = makeFilename(outputPrefix, pathFormat, name="PA1", ext=ext)
+    plt.savefig(plotPath, format=ext)
     plt.close(fig)
 
 
@@ -538,19 +551,20 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
 
     ax1.legend(loc='upper right', fontsize=16)
 
-    pathFormat = '{prefix}{metric}_D_{D:d}_{Dunits}_' + \
-                 '{magBright.value}_{magFaint.value}_{magFaint.unit}.{ext}'
-    plotPath = pathFormat.format(
-        prefix=outputPrefix,
-        metric=amx.label,
-        D=int(amx.D.value),
-        Dunits=amx.parameters['D'].unit,
-        magBright=amx.magRange[0],
-        magFaint=amx.magRange[1],
-        ext='png')
+    ext = 'png'
+    pathFormat = '{metric}_D_{D:d}_{Dunits}_' + \
+        '{magBright.value}_{magFaint.value}_{magFaint.unit}.{ext}'
+    plotPath = makeFilename(outputPrefix,
+                            pathFormat,
+                            metric=amx.label,
+                            D=int(amx.D.value),
+                            Dunits=amx.parameters['D'].unit,
+                            magBright=amx.magRange[0],
+                            magFaint=amx.magRange[1],
+                            ext=ext)
 
     plt.tight_layout()  # fix padding
-    plt.savefig(plotPath, dpi=300)
+    plt.savefig(plotPath, dpi=300, format=ext)
     plt.close(fig)
 
 
@@ -620,14 +634,15 @@ def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
 
     ax1.legend(loc='upper right', fontsize=16)
 
-    pathFormat = '{prefix}{metric}_D_{D:d}_{Dunits}.{ext}'
-    plotPath = pathFormat.format(
-        prefix=outputPrefix,
-        metric=tex.label,
-        D=int(tex.D.value),
-        Dunits=tex.parameters['D'].unit,
-        ext='png')
+    ext = 'png'
+    pathFormat = '{metric}_D_{D:d}_{Dunits}.{ext}'
+    plotPath = makeFilename(outputPrefix,
+                            pathFormat,
+                            metric=tex.label,
+                            D=int(tex.D.value),
+                            Dunits=tex.parameters['D'].unit,
+                            ext=ext)
 
     plt.tight_layout()  # fix padding
-    plt.savefig(plotPath, dpi=300)
+    plt.savefig(plotPath, dpi=300, ext=ext)
     plt.close(fig)
