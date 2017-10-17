@@ -27,8 +27,8 @@ import os.path
 import sys
 
 from lsst.utils import getPackageDir
-from lsst.validate.base import load_metrics
 from lsst.validate.drp import validate, util
+from lsst.verify import MetricSet
 
 
 description = """
@@ -60,10 +60,9 @@ if __name__ == "__main__":
                         """)
     parser.add_argument('--configFile', '-c', type=str, default=None,
                         help='YAML configuration file validation parameters and dataIds.')
-    parser.add_argument('--metricsFile',
-                        default=os.path.join(getPackageDir('validate_drp'),
-                                             'etc', 'metrics.yaml'),
-                        help='Path of YAML file with LPM-17 metric definitions.')
+    parser.add_argument('--metricsPackage',
+                        default='verify_metrics',
+                        help='Name of the repository with YAML definitions of LPM-17 metrics.')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
                         help='Display additional information about the analysis.')
     parser.add_argument('--noplot', dest='makePlot',
@@ -92,11 +91,7 @@ if __name__ == "__main__":
             if args.verbose:
                 print("VISITDATAIDS: ", kwargs['dataIds'])
 
-        if not os.path.exists(args.metricsFile):
-            print('Could not find metric definitions: {0}'.format(args.metricsFile))
-            sys.exit(1)
-        metrics = load_metrics(args.metricsFile)
-        kwargs['metrics'] = metrics
+        kwargs['metrics_package'] = args.metricsPackage
 
     kwargs['verbose'] = args.verbose
     kwargs['makePlot'] = args.makePlot

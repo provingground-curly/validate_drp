@@ -23,11 +23,10 @@ from __future__ import print_function, absolute_import
 import numpy as np
 import astropy.units as u
 
-from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement
 
 
-class ADxMeasurement(MeasurementBase):
-    """Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
+"""Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
     distances which deviate by more than ADx milliarcsec (see AMx) (%).
 
     Parameters
@@ -95,48 +94,16 @@ class ADxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
-                 job=None, linkedBlobs=None, verbose=False):
-        MeasurementBase.__init__(self)
 
-        self.metric = metric
-        self.filter_name = filter_name
-        self.spec_name = spec_name
-
-        # register input parameters for serialization
-        # note that matchedDataset is treated as a blob, separately
-        self.register_parameter('D', datum=amx.parameters['D'])
-        self.register_parameter('annulus', datum=amx.parameters['annulus'])
-        self.register_parameter('magRange', datum=amx.parameters['magRange'])
-        self.register_parameter('AMx', datum=amx.datum)
-
-        self.matchedDataset = matchedDataset
-
-        # Add external blobs so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        # AFx's value at this spec level and filter must be known to measure
-        self.register_parameter(
-            'AFx',
-            datum=self.metric.get_spec_dependency(
-                self.spec_name,
-                'AF{0:d}'.format(self.metric.x.quantity),
-                filter_name=self.filter_name))
-
-        if amx.quantity is not None:
-            # No more than AFx of values will deviate by more than the
-            # AMx (50th) + AFx percentiles
-            # To compute ADx, use measured AMx and spec for AFx.
-            afxAtPercentile = np.percentile(
-                amx.rmsDistMas.to(u.marcsec),
-                100. - self.AFx) * u.marcsec
-            self.quantity = afxAtPercentile - amx.quantity
-        else:
-            # FIXME previously would raise ValidateErrorNoStars
-            self.quantity = None
-
-        if job:
-            job.register_measurement(self)
+def measureADx(metric, amx, afx_spec):
+    if not np.isnan(amx.quantity):
+        # No more than AFx of values will deviate by more than the
+        # AMx (50th) + AFx percentiles
+        # To compute ADx, use measured AMx and spec for AFx.
+        afxAtPercentile = np.percentile(
+            amx.extras['rmsDistMas'].quantity.to(u.marcsec),
+            100. - afx_spec.threshold.value) * u.marcsec
+        quantity = afxAtPercentile - amx.quantity
+    else:
+        quantity = np.nan * amx.quantity.unit
+    return Measurement(metric, quantity, extras=amx.extras)

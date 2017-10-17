@@ -33,7 +33,7 @@ class ReportPerformanceFromJob(unittest.TestCase):
 
     def setUp(self):
         test_data_dir = os.path.dirname(__file__)
-        self.release_metrics_file = os.path.join(test_data_dir, '../', 'etc', 'release_metrics.yaml')
+        self.release_specs_package = 'verify_metrics'
         self.srd_levels = ['design', 'minimum']
         self.release_levels = ['FY17', 'FY18']
         self.report_files = [os.path.join(test_data_dir, f) for f in
@@ -62,7 +62,7 @@ class ReportPerformanceFromJob(unittest.TestCase):
                 [self.json_file],
                 out_file_name,
                 srd_level=srd_level,
-                release_metrics_file=self.release_metrics_file,
+                release_specs_package='verify_metrics',
                 release_level=release_level)
 
             assert(os.path.exists(out_file_name))

@@ -23,11 +23,10 @@ from __future__ import print_function, absolute_import
 import numpy as np
 import astropy.units as u
 
-from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement
 
 
-class AFxMeasurement(MeasurementBase):
-    """Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
+"""Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
     distances which deviate by more than ADx milliarcsec (see AMx) (%).
 
     Parameters
@@ -95,42 +94,13 @@ class AFxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
-                 job=None, linkedBlobs=None, verbose=False):
-        MeasurementBase.__init__(self)
 
-        self.metric = metric
-        self.spec_name = spec_name
-        self.filter_name = filter_name
-
-        # register input parameters for serialization
-        # note that matchedDataset is treated as a blob, separately
-        self.register_parameter('D', datum=amx.parameters['D'])
-        self.register_parameter('annulus', datum=amx.parameters['annulus'])
-        self.register_parameter('magRange', datum=amx.parameters['magRange'])
-        self.register_parameter('AMx', datum=amx.datum)
-
-        self.matchedDataset = matchedDataset
-
-        # Add external blob so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        self.register_parameter(
-            'ADx',
-            datum=self.metric.get_spec_dependency(
-                self.spec_name,
-                'AD{0:d}'.format(self.metric.x.quantity),
-                filter_name=self.filter_name))
-
-        if amx.quantity:
-            v = 100. * np.mean(amx.rmsDistMas > amx.quantity + self.ADx) * u.Unit('')
-            self.quantity = v
-        else:
-            # FIXME previously would raise ValidateErrorNoStars
-            self.quantity = None
-
-        if job:
-            job.register_measurement(self)
+def measureAFx(metric, amx, adx, adx_spec):
+    datums = {}
+    datums['ADx'] = adx.datum
+    if not np.isnan(amx.quantity):
+        quantity = 100.*np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity + adx_spec.threshold)*u.Unit('percent')
+    else:
+        quantity = np.nan*u.Unit('percent')
+    datums.update(amx.extras)
+    return Measurement(metric, quantity, extras=datums)
