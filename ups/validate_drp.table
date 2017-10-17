@@ -6,6 +6,7 @@ setupRequired(daf_persistence)
 setupRequired(afw)
 setupRequired(pipe_base)
 setupRequired(validate_base)
+setupRequired(verify)
 
 setupRequired(pyyaml)
 setupRequired(scipy)

@@ -279,10 +279,11 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     build_blob(astromModel, new_astromModel)
 
     linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
-    new_linkedBlobs = {'photomModel': new_photomModel, 'astromModel': new_astromModel}
+    new_linkedBlobs = [new_matchedDataset, new_photomModel, new_astromModel]
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
     new_job = verify_Job.load_metrics_package()
+    new_metrics = new_job.metrics()
 
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
@@ -301,9 +302,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                            job.get_measurement(amxName), filterName, specName,
                            job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs,
-                   verbose=verbose)
+    pa1 = measurePa1(new_metrics['validate_drp.PA1'], new_matchedDataset, filterName)
+    for blob in new_linkedBlobs:
+        pa1.link_blob(blob)
+    new_job.measurements.insert(pa1)
 
     for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
         PA2Measurement(metrics['PA2'], matchedDataset,
