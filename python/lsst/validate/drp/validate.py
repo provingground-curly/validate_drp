@@ -29,6 +29,8 @@ import os
 from textwrap import TextWrapper
 
 from lsst.validate.base import Job
+from lsst.verify import Blob, Datum
+from lsst.verify import Job as verify_Job
 
 from .util import repoNameToPrefix
 from .matchreduce import MatchedMultiVisitDataset
@@ -216,6 +218,13 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     return jobs
 
 
+def build_blob(oldBlob, newBlob):
+    for key, old_datum in oldBlob.datums.items():
+        new_datum = Datum(quantity=old_datum.quantity, unit=old_datum.unit, label=old_datum.label,
+                          description=old_datum.description)
+        newBlob[key] = new_datum
+
+
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makeJson=True, filterName=None, outputPrefix='',
                  useJointCal=False, verbose=False,
@@ -258,11 +267,22 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               useJointCal=useJointCal,
                                               verbose=verbose)
+    new_matchedDataset = Blob(matchedDataset.name)
+    build_blob(matchedDataset, new_matchedDataset)
+
     photomModel = PhotometricErrorModel(matchedDataset)
+    new_photomModel = Blob(photomModel.name)
+    build_blob(photomModel, new_photomModel)
+
     astromModel = AstrometricErrorModel(matchedDataset)
+    new_astromModel = Blob(astromModel.name)
+    build_blob(astromModel, new_astromModel)
+
     linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
+    new_linkedBlobs = {'photomModel': new_photomModel, 'astromModel': new_astromModel}
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
+    new_job = verify_Job.load_metrics_package()
 
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
