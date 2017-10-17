@@ -29,6 +29,7 @@ import astropy.units as u
 
 import lsst.pipe.base as pipeBase
 from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement, Datum
 
 
 class PA1Measurement(MeasurementBase):
@@ -123,6 +124,26 @@ class PA1Measurement(MeasurementBase):
 
         if job:
             job.register_measurement(self)
+
+
+def measurePa1(metric, matchedDataset, filterName, numRandomShuffles=50):
+    matches = matchedDataset.safeMatches
+    magKey = matchedDataset.magKey
+    results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
+    datums = {}
+    datums['rms'] = Datum(results['rms'], label='RMS',
+                          description='Photometric repeatability RMS of stellar pairs for '
+                          'each random sampling')
+    datums['iqr'] = Datum(results['iqr'], label='IQR',
+                          description='Photometric repeatability IQR of stellar pairs for '
+                          'each random sample')
+    datums['magDiff'] = Datum(results['magDiff'], label='Delta mag',
+                              description='Photometric repeatability differences magnitudes for '
+                              'stellar pairs for each random sample')
+    datums['magMean'] = Datum(results['magMean'], label='mag',
+                              description='Mean magnitude of pairs of stellar sources matched '
+                              'across visits, for each random sample.')
+    return Measurement(metric, results['PA1'], extras=datums)
 
 
 def calcPa1(matches, magKey, numRandomShuffles=50):
