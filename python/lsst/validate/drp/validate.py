@@ -39,6 +39,7 @@ from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
                       PA1Measurement, PA2Measurement, PF1Measurement,
                       TExMeasurement)
+from .calcsrd import (measurePa1, measurePa2)
 from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
@@ -267,8 +268,13 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               useJointCal=useJointCal,
                                               verbose=verbose)
+
     new_matchedDataset = Blob(matchedDataset.name)
     build_blob(matchedDataset, new_matchedDataset)
+    # Don't know if we should do something better here
+    new_matchedDataset.safeMatches = matchedDataset.safeMatches
+    new_matchedDataset.goodMatches = matchedDataset.goodMatches
+    new_matchedDataset.magKey = matchedDataset._matchedCatalog.schema.find("base_PsfFlux_mag").key
 
     photomModel = PhotometricErrorModel(matchedDataset)
     new_photomModel = Blob(photomModel.name)
@@ -283,7 +289,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
     new_job = verify_Job.load_metrics_package()
-    new_metrics = new_job.metrics()
+    new_metrics = new_job.metrics
 
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
