@@ -25,6 +25,7 @@ from __future__ import print_function, absolute_import
 from builtins import object
 import json
 import os
+import astropy.units as u
 
 from textwrap import TextWrapper
 
@@ -39,7 +40,8 @@ from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
                       PA1Measurement, PA2Measurement, PF1Measurement,
                       TExMeasurement)
-from .calcsrd import (measurePa1, measurePa2)
+from .calcsrd import (measurePA1, measurePA2, measurePF1, measureAMx,
+                      measureAFx, measureADx, measureTEx)
 from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
@@ -288,10 +290,21 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     new_linkedBlobs = [new_matchedDataset, new_photomModel, new_astromModel]
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
-    new_job = verify_Job.load_metrics_package()
+    try:
+        instrument = kwargs['instrument']
+    except KeyError:
+        raise ValueError("Instrument name must be set in config file")
+    new_job = verify_Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName})
     new_metrics = new_job.metrics
 
-    for x in (1, 2, 3):
+    specs = new_job.specs
+
+    def add_measurement(measurement):
+        for blob in new_linkedBlobs:
+            measurement.link_blob(blob)
+        new_job.measurements.insert(measurement)
+
+    for x, D in zip((1, 2, 3), (5., 20., 200.)):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
         adxName = 'AD{0:d}'.format(x)
@@ -308,10 +321,28 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                            job.get_measurement(amxName), filterName, specName,
                            job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-    pa1 = measurePa1(new_metrics['validate_drp.PA1'], new_matchedDataset, filterName)
-    for blob in new_linkedBlobs:
-        pa1.link_blob(blob)
-    new_job.measurements.insert(pa1)
+        ## New verify
+        amx = measureAMx(metrics[amxName], new_matchedDataset, D*u.arcmin)
+        add_measurement(amx)
+
+        spec_set = specs.subset(spec_tags=['afxName',])
+        for spec in spec_set:
+            afx = measureAFx(new_metrics['validate_drp.'+spec.metric], amx, spec)
+            add_measurement(afx)
+
+        spec_set = specs.subset(spec_tags=['adxName',])
+        for spec in spec_set:
+            adx = measureADx(new_metrics['validate_drp.'+spec.metric], amx, spec)
+            add_measurement(adx)
+        ##
+
+    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
+                   job=job, linkedBlobs=linkedBlobs,
+                   verbose=verbose)
+    ## New verify
+    pa1 = measurePA1(new_metrics['validate_drp.PA1'], new_matchedDataset, filterName)
+    add_measurement(pa1)
+    ##
 
     for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
         PA2Measurement(metrics['PA2'], matchedDataset,
@@ -319,19 +350,46 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        spec_name=specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
+    ## New verify
+    pf1_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
+                                           spec_tags=['PF1',])
+    pa2_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
+                                           spec_tags=['PA2',])
+    # I worry these might not always be in the right order.  Should we sort?
+    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_set, pa2_spec_set):
+        pf1_spec = pf1_spec_set[pf1_spec_key]
+        pa2_spec = pa2_spec_set[pa2_spec_key]
+        pa2 = measurePA2(new_metrics[pa2_spec.metric_name], pa1, pf1_spec.threshold)
+        add_measurement(pa2)
+    ##
+
     for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
         PF1Measurement(metrics['PF1'], matchedDataset,
                        job.get_measurement('PA1'),
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    for x in (1, 2):
+    ## New verify
+    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_set, pa2_spec_set):
+        pa2_spec = pa2_spec_set[pa2_spec_key]
+        pf1_spec = pf1_spec_set[pf1_spec_key]
+        pf1 = measurePF1(new_metrics[pf1_spec.metric_name], pa1, pa2_spec)
+        add_measurement(pa2)
+    ##
+
+    for x, D, bin_range_operator in zip((1, 2), (1.0, 5.0), ("<=", ">=")):
         texName = 'TE{0:d}'.format(x)
         TExMeasurement(metrics[texName], matchedDataset, filterName,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
+        ## New verify
+        tex = measureTEx(new_metrics['validate_drp.'+texName], new_matchedDataset, D*u.arcmin, bin_range_operator)
+        add_measurement(tex)
+        ##
+
     if makeJson:
         job.write_json(outputPrefix + '.json')
+        new_job.write(outputPrefix+'_new'+'.json')
 
     return job
 

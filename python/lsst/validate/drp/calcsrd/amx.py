@@ -25,6 +25,7 @@ import numpy as np
 import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement, Datum
 
 from ..util import (averageRaDecFromCat, averageRaFromCat, averageDecFromCat,
                     sphDist)
@@ -176,6 +177,48 @@ class AMxMeasurement(MeasurementBase):
         if job:
             job.register_measurement(self)
 
+
+def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False):
+    matches = matchedDataset.safeMatches
+
+    datums = {}
+
+    # Measurement Parameters
+    datums['D'] = Datum(quantity=D, label="Distance", description="Radial distance of annulus (arcmin)")
+
+    if not isinstance(width, u.Quantity):
+        width = width * u.arcmin
+    datums['Width'] = Datum(quantity=width, label='Width', description='Width of annulus')
+    if magRange is None:
+        magRange = np.array([17.0, 21.5]) * u.mag
+    else:
+        assert len(magRange) == 2
+        if not isinstance(magRange, u.Quantity):
+            magRange = np.array(magRange) * u.mag
+    datums['magRange'] = Datum(quantity=magRange, description='Stellar magnitude selection range.')
+
+    annulus = D + (width/2)*np.array([-1, +1])
+    datums['annulus'] = Datum(quantity=annulus, label='annulus radii',
+                             description='Inner and outer radii of selection annulus.')
+
+    # Register measurement extras
+    rmsDistances = calcRmsDistances(
+        matches,
+        annulus,
+        magRange=magRange,
+        verbose=verbose)
+
+    if len(rmsDistances) == 0:
+        # Should be a proper log message
+        print('No stars found that are {0:.1f}--{1:.1f} apart.'.format(
+              annulus[0], annulus[1]))
+        datums['rmsDistMas'] = Datum(quantity=None, label='RMS')
+        quantity = None
+    else:
+        datums['rmsDistMas'] = Datum(quantity=rmsDistances.to(u.marcsec), label='RMS')
+        quantity = np.median(rmsDistances.to(u.marcsec))
+
+    return Measurement(metric.name, quantity, extras=datums)
 
 def calcRmsDistances(groupView, annulus, magRange, verbose=False):
     """Calculate the RMS distance of a set of matched objects over visits.

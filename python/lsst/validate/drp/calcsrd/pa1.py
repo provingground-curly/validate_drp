@@ -126,7 +126,7 @@ class PA1Measurement(MeasurementBase):
             job.register_measurement(self)
 
 
-def measurePa1(metric, matchedDataset, filterName, numRandomShuffles=50):
+def measurePA1(metric, matchedDataset, filterName, numRandomShuffles=50):
     matches = matchedDataset.safeMatches
     magKey = matchedDataset.magKey
     results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
