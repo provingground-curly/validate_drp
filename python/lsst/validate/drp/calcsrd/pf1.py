@@ -24,6 +24,7 @@ import numpy as np
 import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement, Datum
 
 
 class PF1Measurement(MeasurementBase):
@@ -87,3 +88,14 @@ class PF1Measurement(MeasurementBase):
 
         if job:
             job.register_measurement(self)
+
+
+def measurePF1(metric, pa1, pa2_spec):
+    datums = {}
+    datums['pa2_spec'] = Datum(quantity=pa2_spec.threshold, description="Threshold applied to PA2")
+    # Use first random sample from original PA1 measurement
+    magDiff = pa1.extras['magDiff'].quantity
+    magDiffs = magDiff[0, :]
+
+    quantity = 100 * np.mean(pa2_spec.check(np.abs(magDiffs))) * u.Unit('')
+    return Measurement(metric, quantity, extras=datums)

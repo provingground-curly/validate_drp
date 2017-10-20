@@ -23,7 +23,7 @@ from __future__ import print_function, absolute_import
 import numpy as np
 
 from lsst.validate.base import MeasurementBase
-from lsst.verify import Measurement
+from lsst.verify import Measurement, Datum
 
 
 class PA2Measurement(MeasurementBase):
@@ -89,13 +89,14 @@ class PA2Measurement(MeasurementBase):
         if job:
             job.register_measurement(self)
 
-def measurePa2(metric, pa1, filter_name, spec_quantity): 
+
+def measurePA2(metric, pa1, pf1_thresh): 
         datums = {}
-        datums['pf1'] = spec_quantity
+        datums['pf1_thresh'] = Datum(quantity=pf1_thresh, description="Threshold from the PF1 specification")
 
         # Use first random sample from original PA1 measurement
         magDiffs = pa1.extras['magDiff'].quantity[0, :]
 
-        pf1Percentile = 100. - datums['pf1'].quantity
+        pf1Percentile = 100. - pf1_thresh
         return Measurement(metric, np.percentile(np.abs(magDiffs), pf1Percentile) * magDiffs.unit,
                            extras=datums)

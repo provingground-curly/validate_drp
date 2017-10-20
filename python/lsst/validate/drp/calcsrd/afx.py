@@ -134,3 +134,17 @@ class AFxMeasurement(MeasurementBase):
 
         if job:
             job.register_measurement(self)
+
+
+def measureAFx(metric, amx, adx):
+    datums = {}
+    datums['ADx'] = adx
+    datums['D'] = amx.extras['D']
+    datums['annulus'] = amx.extras['annulus']
+    datums['magRange'] = amx.extras['magRange']
+    datums['AMx'] = amx
+    if amx.quantity is not None:
+        v = 100. * np.mean(amx.extras['rmsDistMas'] > amx.quantity + adx) * u.Unit('')
+    else:
+        quantity = None
+    return Measurement(metric, quantity, extras=datums)

@@ -26,6 +26,7 @@ import numpy as np
 import treecorr
 
 from lsst.validate.base import MeasurementBase, Metric
+from lsst.verify import Measurement, Datum, ThresholdSpecification
 
 from ..util import (averageRaFromCat, averageDecFromCat,
                     medianEllipticity1ResidualsFromCat,
@@ -143,6 +144,23 @@ class TExMeasurement(MeasurementBase):
             job.register_measurement(self)
 
 
+def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
+    matches = matchedDataset.safeMatches
+
+    datums = {}
+    datums['D'] = Datum(quantity=D, description="Separation distance")
+
+    radius, xip, xip_err = correlation_function_ellipticity_from_matches(matches, verbose=verbose)
+    datums['radius'] = Datum(quantity=radius, description="Correlation radius")
+    datums['xip'] = Datum(quantity=xip, description="Correlation strength")
+    datums['xip_err'] = Datum(quantity=xip_err, description="Correlation strength uncertainty")
+
+    corr, corr_err = select_bin_from_corr(radius, xip, xip_err, radius=D,
+                                          operator=ThresholdSpecification.convert_operator_str(bin_range_operator))
+    quantity = np.abs(corr) * u.Unit('')
+    return Measurement(metric, quantity, extras=datums)
+
+
 def correlation_function_ellipticity_from_matches(matches, **kwargs):
     """Compute shear-shear correlation function for ellipticity residual from a 'MatchedMultiVisitDataset' object.
 
@@ -222,7 +240,7 @@ def correlation_function_ellipticity(ra, dec, e1_res, e2_res,
     return (r, xip, xip_err)
 
 
-def select_bin_from_corr(r, xip, xip_err, radius=1, operator=operator.le):
+def select_bin_from_corr(r, xip, xip_err, radius=1*u.arcmin, operator=operator.le):
     """Aggregate measurements for r less than (or greater than) radius.
 
     Returns aggregate measurement for all entries where operator(r, radius).
@@ -248,7 +266,6 @@ def select_bin_from_corr(r, xip, xip_err, radius=1, operator=operator.le):
     -------
     avg_xip, avg_xip_err : (float, float)
     """
-
     w, = np.where(operator(r, radius))
 
     avg_xip = np.average(xip[w])
