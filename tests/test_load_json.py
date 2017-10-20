@@ -41,6 +41,7 @@ class ParseJsonJob(unittest.TestCase):
         self.metricsFile = os.path.join(testDataDir, 'metrics.yaml')
         self.jsonFile = os.path.join(testDataDir, 'CfhtQuick_output_r.json')
         self.jsonFile_filter = 'r'
+        self.longMessage = True
 
     def testLoadJsonJob(self):
         """Can we load a Job from a JSON file?"""
@@ -91,13 +92,23 @@ class ParseJsonJob(unittest.TestCase):
         job = load_json_output(self.jsonFile)
         filterName = get_filter_name_from_job(job)
 
+        noOutputPrefixFiles = ['check_astrometry.png',
+                               'check_photometry.png',
+                               'PA1.png',
+                               'AM1_D_5_arcmin_17.0_21.5_mag.png']
+        # test with no output prefix.
         plot_metrics(job, filterName)
-        assert os.path.exists('check_astrometry.png')
+        for filename in noOutputPrefixFiles:
+            assert os.path.exists(filename), "File not created: %s"%filename
+            os.remove(filename)
 
+        # test that outputPrefix is prepended correctly.
         outputPrefix = repoNameToPrefix(self.jsonFile)
+        outputPrefixFiles = ['%s_%s' % (outputPrefix, f) for f in noOutputPrefixFiles]
         plot_metrics(job, filterName, outputPrefix=outputPrefix)
-        expectedCheckAstrometryFile = '%s_%s' % (outputPrefix, 'check_astrometry.png')
-        assert os.path.exists(expectedCheckAstrometryFile)
+        for filename in outputPrefixFiles:
+            assert os.path.exists(filename), "File not created: %s"%filename
+            os.remove(filename)
 
 
 def setup_module(module):
