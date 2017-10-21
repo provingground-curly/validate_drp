@@ -24,6 +24,7 @@ import numpy as np
 import astropy.units as u
 
 from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement
 
 
 class AFxMeasurement(MeasurementBase):
@@ -137,14 +138,8 @@ class AFxMeasurement(MeasurementBase):
 
 
 def measureAFx(metric, amx, adx):
-    datums = {}
-    datums['ADx'] = adx
-    datums['D'] = amx.extras['D']
-    datums['annulus'] = amx.extras['annulus']
-    datums['magRange'] = amx.extras['magRange']
-    datums['AMx'] = amx
     if amx.quantity is not None:
-        v = 100. * np.mean(amx.extras['rmsDistMas'] > amx.quantity + adx) * u.Unit('')
+        quantity = 100. * np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity + adx.threshold) * u.Unit('')
     else:
         quantity = None
-    return Measurement(metric, quantity, extras=datums)
+    return Measurement(metric, quantity, extras=amx.extras)

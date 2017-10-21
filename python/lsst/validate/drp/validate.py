@@ -322,17 +322,17 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                            job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
         ## New verify
-        amx = measureAMx(metrics[amxName], new_matchedDataset, D*u.arcmin)
+        amx = measureAMx(new_metrics['validate_drp.'+amxName], new_matchedDataset, D*u.arcmin)
         add_measurement(amx)
 
-        spec_set = specs.subset(spec_tags=['afxName',])
-        for spec in spec_set:
-            afx = measureAFx(new_metrics['validate_drp.'+spec.metric], amx, spec)
+        afx_spec_set = specs.subset(spec_tags=[afxName,])
+        adx_spec_set = specs.subset(spec_tags=[adxName,])
+        for afx_spec_key, adx_spec_key in zip(afx_spec_set, adx_spec_set):
+            afx_spec = afx_spec_set[afx_spec_key]
+            adx_spec = adx_spec_set[adx_spec_key]
+            afx = measureAFx(new_metrics[afx_spec.metric_name], amx, adx_spec)
             add_measurement(afx)
-
-        spec_set = specs.subset(spec_tags=['adxName',])
-        for spec in spec_set:
-            adx = measureADx(new_metrics['validate_drp.'+spec.metric], amx, spec)
+            adx = measureADx(new_metrics[adx_spec.metric_name], amx, afx_spec)
             add_measurement(adx)
         ##
 
@@ -391,7 +391,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         job.write_json(outputPrefix + '.json')
         new_job.write(outputPrefix+'_new'+'.json')
 
-    return job
+    return new_job
 
 
 def plot_metrics(job, filterName, outputPrefix=''):
