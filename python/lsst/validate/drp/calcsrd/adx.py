@@ -144,20 +144,14 @@ class ADxMeasurement(MeasurementBase):
 
 
 def measureADx(metric, amx, afx_spec):
-    datums = {}
-    datums['afx_spec'] = afx_spec.threshold.value
-    datums['D'] = amx.extras['D']
-    datums['annulus'] = amx.extras['annulus']
-    datums['magRange'] = amx.extras['magRange']
-    datums['AMx'] = amx.quantity
     if amx.quantity is not None:
         # No more than AFx of values will deviate by more than the
         # AMx (50th) + AFx percentiles
         # To compute ADx, use measured AMx and spec for AFx.
         afxAtPercentile = np.percentile(
-            amx.extras['rmsDistMas'].to(u.marcsec),
+            amx.extras['rmsDistMas'].quantity.to(u.marcsec),
             100. - afx_spec.threshold.value) * u.marcsec
         quantity = afxAtPercentile - amx.quantity
     else:
         quantity = None
-    return Measurement(metric, quantity, extras=datums)
+    return Measurement(metric, quantity, extras=amx.extras)
