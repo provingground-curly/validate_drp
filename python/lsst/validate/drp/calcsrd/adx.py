@@ -144,7 +144,7 @@ class ADxMeasurement(MeasurementBase):
 
 
 def measureADx(metric, amx, afx_spec):
-    if amx.quantity is not None:
+    if not np.isnan(amx.quantity):
         # No more than AFx of values will deviate by more than the
         # AMx (50th) + AFx percentiles
         # To compute ADx, use measured AMx and spec for AFx.
@@ -153,5 +153,5 @@ def measureADx(metric, amx, afx_spec):
             100. - afx_spec.threshold.value) * u.marcsec
         quantity = afxAtPercentile - amx.quantity
     else:
-        quantity = None
+        quantity = np.nan * amx.quantity.unit
     return Measurement(metric, quantity, extras=amx.extras)

@@ -131,6 +131,8 @@ def measurePA1(metric, matchedDataset, filterName, numRandomShuffles=50):
     magKey = matchedDataset.magKey
     results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
     datums = {}
+    datums['filter_name'] = Datum(filterName, label='filter',
+                                   description='Name of filter for this measurement')
     datums['rms'] = Datum(results['rms'], label='RMS',
                           description='Photometric repeatability RMS of stellar pairs for '
                           'each random sampling')
