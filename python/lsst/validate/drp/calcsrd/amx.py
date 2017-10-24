@@ -213,7 +213,7 @@ def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False
         print('No stars found that are {0:.1f}--{1:.1f} apart.'.format(
               annulus[0], annulus[1]))
         datums['rmsDistMas'] = Datum(quantity=None, label='RMS')
-        quantity = None
+        quantity = np.nan * u.marcsec
     else:
         datums['rmsDistMas'] = Datum(quantity=rmsDistances.to(u.marcsec), label='RMS')
         quantity = np.median(rmsDistances.to(u.marcsec))

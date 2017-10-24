@@ -25,12 +25,13 @@ from __future__ import print_function, absolute_import
 from builtins import object
 import json
 import os
+import numpy as np
 import astropy.units as u
 
 from textwrap import TextWrapper
 
 from lsst.validate.base import Job
-from lsst.verify import Blob, Datum
+from lsst.verify import Blob, Datum, Name
 from lsst.verify import Job as verify_Job
 
 from .util import repoNameToPrefix
@@ -156,9 +157,8 @@ def run(repo_or_json, metrics=None,
 
     for filterName, job in jobs.items():
         if makePrint:
-            if metrics is None:
-                metrics = {meas.metric.name: meas.metric for meas in job.measurements}
-            print_metrics(job, filterName, metrics)
+            #metrics = {str(metric): metric for metric in job.metrics}
+            print_metrics(job)
         if makePlot:
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
@@ -292,9 +292,11 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
     try:
         instrument = kwargs['instrument']
+        dataset_repo_url = kwargs['dataset_repo_url']
     except KeyError:
-        raise ValueError("Instrument name must be set in config file")
-    new_job = verify_Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName})
+        raise ValueError("Instrument name and input dataset URL must be set in config file")
+    new_job = verify_Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
+                                                    'dataset_repo_url':dataset_repo_url})
     new_metrics = new_job.metrics
 
     specs = new_job.specs
@@ -330,10 +332,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         for afx_spec_key, adx_spec_key in zip(afx_spec_set, adx_spec_set):
             afx_spec = afx_spec_set[afx_spec_key]
             adx_spec = adx_spec_set[adx_spec_key]
-            afx = measureAFx(new_metrics[afx_spec.metric_name], amx, adx_spec)
-            add_measurement(afx)
             adx = measureADx(new_metrics[adx_spec.metric_name], amx, afx_spec)
             add_measurement(adx)
+            afx = measureAFx(new_metrics[afx_spec.metric_name], amx, adx, adx_spec)
+            add_measurement(afx)
         ##
 
     PA1Measurement(metrics['PA1'], matchedDataset, filterName,
@@ -355,8 +357,12 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                                            spec_tags=['PF1',])
     pa2_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
                                            spec_tags=['PA2',])
-    # I worry these might not always be in the right order.  Should we sort?
-    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_set, pa2_spec_set):
+    # I worry these might not always be in the right order.  Sorting...
+    pf1_spec_keys = list(pf1_spec_set.keys())
+    pa2_spec_keys = list(pa2_spec_set.keys())
+    pf1_spec_keys.sort()
+    pa2_spec_keys.sort()
+    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_keys, pa2_spec_keys):
         pf1_spec = pf1_spec_set[pf1_spec_key]
         pa2_spec = pa2_spec_set[pa2_spec_key]
         pa2 = measurePA2(new_metrics[pa2_spec.metric_name], pa1, pf1_spec.threshold)
@@ -370,11 +376,11 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        job=job, linkedBlobs=linkedBlobs)
 
     ## New verify
-    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_set, pa2_spec_set):
+    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_keys, pa2_spec_keys):
         pa2_spec = pa2_spec_set[pa2_spec_key]
         pf1_spec = pf1_spec_set[pf1_spec_key]
         pf1 = measurePF1(new_metrics[pf1_spec.metric_name], pa1, pa2_spec)
-        add_measurement(pa2)
+        add_measurement(pf1)
     ##
 
     for x, D, bin_range_operator in zip((1, 2), (1.0, 5.0), ("<=", ">=")):
@@ -394,6 +400,13 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     return new_job
 
 
+def get_metric(level, metric_label, in_specs):
+    for spec in in_specs:
+        if level in str(spec) and metric_label in str(spec):
+            break
+    return Name(package=spec.package, metric=spec.metric)
+
+
 def plot_metrics(job, filterName, outputPrefix=''):
     """Plot AM1, AM2, AM3, PA1 plus related informational plots.
 
@@ -402,48 +415,52 @@ def plot_metrics(job, filterName, outputPrefix=''):
     job - an lsst.validate.base.Job object
     filterName - string identifying the filter.
     """
+
+    specs = job.specs
+    measurements = job.measurements
+    spec_name = 'design'
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
         # ADx is included on the AFx plots
-        spec_name = 'design'
 
-        amx = job.get_measurement(amxName)
-        afx = job.get_measurement(afxName, spec_name=spec_name)
+        amx = measurements[get_metric(spec_name, amxName, specs)]
+        afx = measurements[get_metric(spec_name, afxName, specs)]
 
         if amx.quantity is not None:
             try:
-                plotAMx(amx, afx, filterName, amxSpecName=spec_name,
+                plotAMx(job, amx, afx, filterName, amxSpecName=spec_name,
                         outputPrefix=outputPrefix)
             except RuntimeError as e:
                 print(e)
                 print('\tSkipped plot{}'.format(amxName))
 
     try:
-        pa1 = job.get_measurement('PA1')
+        pa1 = measurements[get_metric(spec_name, 'PA1', specs)]
         plotPA1(pa1, outputPrefix=outputPrefix)
     except RuntimeError as e:
         print(e)
         print('\tSkipped plotPA1')
 
     try:
-        matchedDataset = pa1.blobs['matchedDataset']
-        photomModel = pa1.blobs['photomModel']
-        filterName = pa1.filter_name
+        import pdb;pdb.set_trace() 
+        matchedDataset = pa1.blobs['MatchedMultiVisitDataset']
+        photomModel = pa1.blobs['PhotometricErrorModel']
+        filterName = pa1.extras['filter_name']
         plotPhotometryErrorModel(matchedDataset, photomModel,
                                  filterName=filterName,
                                  outputPrefix=outputPrefix)
-    except RuntimeError as e:
+    except KeyError as e:
         print(e)
         print('\tSkipped plotPhotometryErrorModel')
 
     try:
-        am1 = job.get_measurement('AM1')
-        matchedDataset = am1.blobs['matchedDataset']
-        astromModel = am1.blobs['astromModel']
+        am1 = measurements[get_metric(spec_name, 'AM1', specs)]
+        matchedDataset = am1.blobs['MatchedMultiVisitDataset']
+        astromModel = am1.blobs['AnalyticAstrometryModel']
         plotAstrometryErrorModel(matchedDataset, astromModel,
                                  outputPrefix=outputPrefix)
-    except RuntimeError as e:
+    except KeyError as e:
         print(e)
         print('\tSkipped plotAstrometryErrorModel')
 
@@ -451,8 +468,8 @@ def plot_metrics(job, filterName, outputPrefix=''):
         texName = 'TE{0:d}'.format(x)
 
         try:
-            measurement = job.get_measurement(texName)
-            plotTEx(measurement, filterName,
+            measurement = measurements[get_metric(spec_name, texName, specs)]
+            plotTEx(job, measurement, filterName,
                     texSpecName='design',
                     outputPrefix=outputPrefix)
         except RuntimeError as e:
@@ -460,60 +477,65 @@ def plot_metrics(job, filterName, outputPrefix=''):
             print('\tSkipped plot{}'.format(texName))
 
 
-def print_metrics(job, filterName, metrics):
-    """Print specified list of metrics.  E.g., AM1, AM2, AM3, PA1.
+def print_metrics(job):
+    # Get specs for this filter
+    subset = job.specs.subset(required_meta={'instrument':job.meta['instrument'],
+                                                 'filter_name':job.meta['filter_name']})
+    # Get specs that don't depend on filter
+    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument'],
+                                                      'filter_name':'any'}))
+    metrics = {}
+    specs = {}
+    for spec in subset:
+        metric_name = spec.metric.split('_')[0] # Take first part for linked metrics
+        if metric_name in metrics:
+            metrics[metric_name].append(Name(package=spec.package, metric=spec.metric))
+            specs[metric_name].append(spec)
+        else:
+            metrics[metric_name] = [Name(package=spec.package, metric=spec.metric),]
+            specs[metric_name] = [spec,]
 
-    Parameters
-    ---
-    job - lsst.validate.base.Job object
-    filterName - string identifying the filter.
-    metrics - Dictionary of lsst.validate.base.metric.Metric objects to print
 
-    Note: We here specify the list of metrics to plot.
-    In `plot_metrics` the list is implicitly hardcoded because of the different
-    options each plotting method needs.
-    """
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER +
-          '{band} band metric measurements'.format(band=filterName) +
+          '{band} band metric measurements'.format(band=job.meta['filter_name']) +
           bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
     wrapper = TextWrapper(width=65)
-
-    for metricName, metric in metrics.items():
+    for metric_name, metric_set in metrics.items():
+        metric = job.metrics[metric_set[0]] # Pick the first one for the description
         print(bcolors.HEADER + '{name} - {reference}'.format(
             name=metric.name, reference=metric.reference))
         print(wrapper.fill(bcolors.ENDC + '{description}'.format(
             description=metric.description).strip()))
 
-        for specName in metric.get_spec_names(filter_name=filterName):
+        for spec_key, metric_key in zip(specs[metric_name], metrics[metric_name]):
             try:
-                m = job.get_measurement(metricName,
-                                        spec_name=specName,
-                                        filter_name=filterName)
-            except RuntimeError:
-                print('\tSkipped {specName:12s} no spec'.format(
-                    specName=specName))
+                m = job.measurements[metric_key]
+            except KeyError:
+                print('\tSkipped {metric_key:12s} with spec {spec}: no such measurement'.format(
+                    metric_key=metric_key, spec=spec_key.spec))
                 continue
 
-            if m.quantity is None:
-                print('\tSkipped {specName:12s} no measurement'.format(
-                    specName=specName))
+            if np.isnan(m.quantity):
+                print('\tSkipped {metric_key:12s} no measurement'.format(
+                    metric_key=str(metric_key)))
                 continue
 
-            spec = metric.get_spec(specName, filter_name=filterName)
-            passed = m.check_spec(specName)
+            spec = job.specs[spec_key]
+            passed = spec.check(m.quantity)
             if passed:
                 prefix = bcolors.OKBLUE + '\tPassed '
             else:
                 prefix = bcolors.FAIL + '\tFailed '
             infoStr = '{specName:12s} {meas:.4g} {op} {spec:.4g}'.format(
-                specName=specName,
+                specName=spec_key.spec,
                 meas=m.quantity,
-                op=metric.operator_str,
-                spec=spec.quantity)
+                op=spec.operator_str,
+                spec=spec.threshold)
             print(prefix + infoStr + bcolors.ENDC)
+
 
 
 def print_pass_fail_summary(jobs, level='design'):

@@ -137,9 +137,12 @@ class AFxMeasurement(MeasurementBase):
             job.register_measurement(self)
 
 
-def measureAFx(metric, amx, adx):
-    if amx.quantity is not None:
-        quantity = 100. * np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity + adx.threshold) * u.Unit('')
+def measureAFx(metric, amx, adx, adx_spec):
+    datums = {}
+    datums['ADx'] = adx.datum
+    if not np.isnan(amx.quantity):
+        quantity = 100.*np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity + adx_spec.threshold)*u.Unit('percent')
     else:
-        quantity = None
-    return Measurement(metric, quantity, extras=amx.extras)
+        quantity = np.nan*u.Unit('percent')
+    datums.update(amx.extras)
+    return Measurement(metric, quantity, extras=datums)

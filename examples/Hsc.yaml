@@ -4,3 +4,4 @@ brightSnr: 100  # Only consider stars with higher S/N than this limit
 visits: [903332, 903340, 903982, 904006, 904350, 904378, 904828, 904846]
 filter: ['HSC-R', 'HSC-R', 'HSC-I', 'HSC-I', 'HSC-I', 'HSC-Y', 'HSC-Y', 'HSC-I', 'HSC-I']
 instrument: 'HSC'
+dataset_repo_url: 'https://github.com/lsst/validation_data_hsc.git'
