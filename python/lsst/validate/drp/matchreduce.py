@@ -233,14 +233,14 @@ class MatchedMultiVisitDataset(BlobBase):
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open photometric calibration for ", vId)
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
                 try:
                     wcs = butler.get("wcs", vId).getWcs()
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open updated WCS for ", vId)
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
             else:
                 try:
@@ -248,7 +248,7 @@ class MatchedMultiVisitDataset(BlobBase):
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open calibrated image file for ", vId)
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
                 except TypeError as te:
                     # DECam images that haven't been properly reformatted
@@ -261,7 +261,7 @@ class MatchedMultiVisitDataset(BlobBase):
                     # See, e.g., DM-2957 for details.
                     print(te)
                     print("Calibration image header information malformed.")
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
 
             # We don't want to put this above the first "if useJointCal block"
