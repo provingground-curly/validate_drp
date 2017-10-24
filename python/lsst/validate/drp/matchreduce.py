@@ -25,9 +25,9 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
+from sqlalchemy.exc import OperationalError
 
 import lsst.afw.geom as afwGeom
-import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
@@ -236,8 +236,7 @@ class MatchedMultiVisitDataset(BlobBase):
                     print("Skipping %s " % repr(vId))
                     continue
                 try:
-                    md = butler.get("wcs_md", vId)
-                    wcs = afwImage.makeWcs(md)
+                    wcs = butler.get("wcs", vId).getWcs()
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open updated WCS for ", vId)
@@ -245,7 +244,7 @@ class MatchedMultiVisitDataset(BlobBase):
                     continue
             else:
                 try:
-                    calexpMetadata = butler.get("calexp_md", vId)
+                    calib = butler.get("calexp_calib", vId)
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open calibrated image file for ", vId)
@@ -265,21 +264,15 @@ class MatchedMultiVisitDataset(BlobBase):
                     print("Skipping %s " % repr(vId))
                     continue
 
-                calib = afwImage.Calib(calexpMetadata)
-
             # We don't want to put this above the first "if useJointCal block"
             # because we need to use the first `butler.get` above to quickly
             # catch data IDs with no usable outputs.
             try:
                 # HSC supports these flags, which dramatically improve I/O
-                # performance; support for other cameras is DM-6927.
+                # performance; TODO: support for other cameras is DM-6927.
                 oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-                calexp = butler.get("calexp", vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-            except:
+            except OperationalError:
                 oldSrc = butler.get('src', vId)
-                calexp = butler.get("calexp", vId)
-
-            psf = calexp.getPsf()
 
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
