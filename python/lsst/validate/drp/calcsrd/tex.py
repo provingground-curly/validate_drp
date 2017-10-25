@@ -154,6 +154,7 @@ def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
     datums['radius'] = Datum(quantity=radius, description="Correlation radius")
     datums['xip'] = Datum(quantity=xip, description="Correlation strength")
     datums['xip_err'] = Datum(quantity=xip_err, description="Correlation strength uncertainty")
+    datums['bin_range_operator'] = Datum(quantity=bin_range_operator, description="Bin range operator string")
 
     corr, corr_err = select_bin_from_corr(radius, xip, xip_err, radius=D,
                                           operator=ThresholdSpecification.convert_operator_str(bin_range_operator))

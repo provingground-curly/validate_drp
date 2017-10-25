@@ -97,5 +97,5 @@ def measurePF1(metric, pa1, pa2_spec):
     magDiff = pa1.extras['magDiff'].quantity
     magDiffs = magDiff[0, :]
 
-    quantity = 100 * np.mean(pa2_spec.check(np.abs(magDiffs))) * u.Unit('percent')
+    quantity = 100 * np.mean(np.abs(magDiffs) > pa2_spec.threshold) * u.Unit('percent')
     return Measurement(metric, quantity, extras=datums)
