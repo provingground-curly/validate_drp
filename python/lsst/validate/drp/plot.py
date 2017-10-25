@@ -109,7 +109,6 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
         titles. E.g., ``outputPrefix='Cfht_output_r_'`` will result in a file
         named ``'Cfht_output_r_check_astrometry.png'``.
     """
-    import pdb;pdb.set_trace()
     bright, = np.where(dataset['snr'].quantity > astromModel['brightSnr'].quantity)
 
     dist = dataset['dist'].quantity
@@ -145,7 +144,7 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
                   s=10, color=color['all'], label='All')
     ax[1].scatter(snr[bright], dist[bright], s=10,
                   color=color['bright'],
-                  label='SNR > {0:.0f}'.format(astromModel['brightSnr']))
+                  label='SNR > {0:.0f}'.format(astromModel['brightSnr'].quantity.value))
     ax[1].set_xlabel("SNR")
     ax[1].set_xscale("log")
     ax[1].set_ylim([0., 500.])
@@ -162,7 +161,7 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
                           ax=ax[1])
 
     ax[1].legend(loc='upper right')
-    ax[1].axvline(astromModel['brightSnr'],
+    ax[1].axvline(astromModel['brightSnr'].quantity,
                   color='red', linewidth=4, linestyle='dashed')
     plotOutlinedAxline(
         ax[0].axhline,
@@ -208,9 +207,9 @@ def plotAstromErrModelFit(snr, dist, model,
 
     x_model = np.logspace(np.log10(xlim[0]), np.log10(xlim[1]), num=100)
     fit_model_mas_err = astromErrModel(x_model,
-                                       theta=model.theta,
-                                       sigmaSys=model.sigmaSys,
-                                       C=model.C)
+                                       theta=model['theta'].quantity,
+                                       sigmaSys=model['sigmaSys'].quantity,
+                                       C=model['C'].quantity)
     ax.plot(x_model, fit_model_mas_err,
             color=color, linewidth=2,
             label='Model')
@@ -220,9 +219,9 @@ def plotAstromErrModelFit(snr, dist, model,
         r'$\theta$ = {theta:.4g}',
         r'$\sigma_\mathrm{{sys}}$ = {sigmaSys.value:.2g} {sigmaSys.unit:latex}'])
     modelLabel = modelLabelTemplate.format(
-        C=model.C,
-        theta=model.theta,
-        sigmaSys=model.sigmaSys)
+        C=model['C'].quantity,
+        theta=model['theta'].quantity,
+        sigmaSys=model['sigmaSys'].quantity)
     ax.text(0.6, 0.4, modelLabel,
             transform=ax.transAxes, va='baseline', ha='left', color=color)
     # Set the x limits back to their original values.
@@ -291,7 +290,6 @@ def plotPhotometryErrorModel(dataset, photomModel,
         titles. E.g., ``outputPrefix='Cfht_output_r_'`` will result in a file
         named ``'Cfht_output_r_check_photometry.png'``.
     """
-    import pdb;pdb.set_trace()
     bright, = np.where(dataset['snr'].quantity > photomModel['brightSnr'].quantity)
 
     numMatched = len(dataset['mag'].quantity)
@@ -628,7 +626,7 @@ def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
     D = tex.extras['D'].quantity
     bin_range_operator = tex.extras['bin_range_operator'].quantity
 
-    ax1.errorbar(radius,  xip, yerr=xip_err)
+    ax1.errorbar(radius.value,  xip.value, yerr=xip_err.value)
     ax1.set_xscale('log')
     ax1.set_xlabel('Separation (arcmin)', size=19)
     ax1.set_ylabel('Median Residual Ellipticity Correlation', size=19)
@@ -664,8 +662,8 @@ def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
     ax1.set_title(title)
     ax1.set_xlim(0.0, 20.0)
     ax1.set_xlabel(
-        '{radius.label} ({radius.quantity.unit._repr_latex_()})'.format(
-            radius=radius))
+        '{radius.label} ({unit})'.format(
+            radius=tex.extras['radius'], unit=radius.unit._repr_latex_()))
     ax1.set_ylabel('Correlation')
 
     ax1.legend(loc='upper right', fontsize=16)
@@ -675,7 +673,7 @@ def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
     plotPath = makeFilename(outputPrefix,
                             pathFormat,
                             metric=tex.datum.label,
-                            D=int(D),
+                            D=int(D.value),
                             Dunits=D.unit,
                             ext=ext)
 

@@ -162,7 +162,7 @@ def run(repo_or_json, metrics=None,
         if makePlot:
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
-    print_pass_fail_summary(jobs, level=level)
+    print_pass_fail_summary(jobs, default_level=level)
 
 
 def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False, **kwargs):
@@ -443,7 +443,6 @@ def plot_metrics(job, filterName, outputPrefix=''):
         print('\tSkipped plotPA1')
 
     try:
-        import pdb;pdb.set_trace() 
         matchedDataset = pa1.blobs['MatchedMultiVisitDataset']
         photomModel = pa1.blobs['PhotometricErrorModel']
         filterName = pa1.extras['filter_name']
@@ -477,7 +476,7 @@ def plot_metrics(job, filterName, outputPrefix=''):
             print('\tSkipped plot{}'.format(texName))
 
 
-def print_metrics(job):
+def get_specs_metrics(job):
     # Get specs for this filter
     subset = job.specs.subset(required_meta={'instrument':job.meta['instrument'],
                                                  'filter_name':job.meta['filter_name']})
@@ -494,7 +493,11 @@ def print_metrics(job):
         else:
             metrics[metric_name] = [Name(package=spec.package, metric=spec.metric),]
             specs[metric_name] = [spec,]
+    return specs, metrics
 
+
+def print_metrics(job, levels=('minimum', 'design', 'stretch')):
+    specs, metrics = get_specs_metrics(job)
 
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER +
@@ -511,16 +514,20 @@ def print_metrics(job):
             description=metric.description).strip()))
 
         for spec_key, metric_key in zip(specs[metric_name], metrics[metric_name]):
+            level = None
+            for l in levels:
+                if l in str(spec_key):
+                    level = l
             try:
                 m = job.measurements[metric_key]
             except KeyError:
                 print('\tSkipped {metric_key:12s} with spec {spec}: no such measurement'.format(
-                    metric_key=metric_key, spec=spec_key.spec))
+                    metric_key=metric_name, spec=level))
                 continue
 
             if np.isnan(m.quantity):
                 print('\tSkipped {metric_key:12s} no measurement'.format(
-                    metric_key=str(metric_key)))
+                    metric_key=".".join([metric_name, level])))
                 continue
 
             spec = job.specs[spec_key]
@@ -530,7 +537,7 @@ def print_metrics(job):
             else:
                 prefix = bcolors.FAIL + '\tFailed '
             infoStr = '{specName:12s} {meas:.4g} {op} {spec:.4g}'.format(
-                specName=spec_key.spec,
+                specName=level,
                 meas=m.quantity,
                 op=spec.operator_str,
                 spec=spec.threshold)
@@ -538,27 +545,38 @@ def print_metrics(job):
 
 
 
-def print_pass_fail_summary(jobs, level='design'):
+def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), default_level='design'):
     currentTestCount = 0
     currentFailCount = 0
 
     for filterName, job in jobs.items():
+        specs, metrics = get_specs_metrics(job)
         print('')
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-        for specName in job.spec_levels:
+        for specName in levels:
             measurementCount = 0
             failCount = 0
-            for m in job.measurements:
-                if m.quantity is None:
+            for key, m in job.measurements.items():
+                if np.isnan(m.quantity):
                     continue
                 measurementCount += 1
-                if not m.check_spec(specName):
+                metric = key.metric.split("_")[0] # For compound metrics
+                spec_set = specs[metric]
+                spec = None
+                for spec_key in spec_set:
+                    if specName in spec_key.spec:
+                        spec = job.specs[spec_key]
+                if spec is None:
+                    for spec_key in spec_set:
+                        if specName in spec_key.metric: # For dependent metrics
+                            spec = job.specs[spec_key]
+                if not spec.check(m.quantity):
                     failCount += 1
 
-            if specName == level:
+            if specName == default_level:
                 currentTestCount += measurementCount
                 currentFailCount += failCount
 
@@ -574,7 +592,7 @@ def print_pass_fail_summary(jobs, level='design'):
 
     # print summary against current spec level
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(level) + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(default_level) + bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
     if currentFailCount > 0:
         msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(
