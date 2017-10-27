@@ -301,7 +301,7 @@ class MatchedMultiVisitDataset(BlobBase):
                     tmpCat['base_PsfFlux_mag'][:] = _[0]
                     tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
-            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='ext_shapeHSM_HsmPsfMoments')
+            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
             _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
             tmpCat['e1'][:] = star_e1
             tmpCat['e2'][:] = star_e2
