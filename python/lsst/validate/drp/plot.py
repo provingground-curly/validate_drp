@@ -526,7 +526,7 @@ def plotAMx(job, amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     ax1.axvline(amxSpec.threshold.value, 0, 1, linewidth=2, color='black',
                 label=amxLabel)
 
-    afxSpec = job.specs[Name(package=afx.metric_name.package, metric=afx.metric_name.metric, spec=amxSpecName)]
+    afxSpec = job.specs[Name(package=afx.metric_name.package, metric=afx.metric_name.metric, spec='srd')]
     if afxSpec.check(afx.quantity):
         afxStatus = 'passed'
     else:

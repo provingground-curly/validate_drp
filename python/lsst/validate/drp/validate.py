@@ -327,8 +327,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         amx = measureAMx(new_metrics['validate_drp.'+amxName], new_matchedDataset, D*u.arcmin)
         add_measurement(amx)
 
-        afx_spec_set = specs.subset(spec_tags=[afxName,])
-        adx_spec_set = specs.subset(spec_tags=[adxName,])
+        afx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[afxName,])
+        adx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[adxName,])
         for afx_spec_key, adx_spec_key in zip(afx_spec_set, adx_spec_set):
             afx_spec = afx_spec_set[afx_spec_key]
             adx_spec = adx_spec_set[adx_spec_key]
