@@ -19,29 +19,31 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
 from astropy.table import Column, Table
+import json
+import numpy as np
 
-from lsst.validate.base import load_metrics
-from lsst.validate.drp.validate import get_filter_name_from_job, load_json_output
+from lsst.verify import Job, SpecificationSet
+from .validate import get_specs_metrics
 
 
 def run(validation_drp_report_filenames, output_file,
         srd_level=None,
-        release_metrics_file=None, release_level=None):
+        release_specs_package=None, release_level=None):
     """
     Parameters
     ---
     validation_drp_report_filenames : [] or str, filepaths for JSON files.
     output_file : str, filepath of output RST file.
     srd_level : str, SRD level to quote.  One of ['design', 'minimum', 'stretch']
-    release_metrics_file : str [optional], filepath of metrics YAML file
+    release_specs_file : str [optional], filepath of metrics YAML file
       While the JSON file itself will store the metrics the was calculated with
         one may wish to compare against an external set of specifications.
-      E.g., ${VALIDATE_DRP_DIR}/etc/release_metrics.yaml
+      E.g., ${VALIDATE_DRP_DIR}/etc/release_specs.yaml
         contains the target levels for each fiscal year through to and including
         operational readiness review (ORR).  This file is essentially the same
         as ${VALIDATE_DRP_DIR}/etc/metrics.yaml, but defines levels in terms
         of fiscal year and ORR instead of design/minimum/stretch.
-    release_level : str, A specification level in the 'release_metrics_file'
+    release_level : str, A specification level in the 'release_specs_file'
        E.g., 'FY17' or 'ORR'
 
     Products
@@ -55,9 +57,9 @@ def run(validation_drp_report_filenames, output_file,
         print(msg)
         return
 
-    if release_metrics_file is not None and release_level is not None:
-        release_metrics = load_metrics(release_metrics_file)
-        add_release_metric(input_table, release_metrics, release_level)
+    if release_specs_package is not None and release_level is not None:
+        release_specs = SpecificationSet.load_metrics_package(release_specs_package)
+        add_release_spec(input_table, release_specs, release_level)
 
     write_report(input_table, output_file)
 
@@ -77,9 +79,11 @@ def ingest_data(filenames):
     """
     jobs = {}
     # Read in JSON output from metrics run
-    for file in filenames:
-        job = load_json_output(file)
-        filter_name = get_filter_name_from_job(job)
+    for filename in filenames:
+        with open(filename) as fh:
+            data = json.load(fh)
+            job = Job.deserialize(**data)
+        filter_name = job.meta['filter_name']
         jobs[filter_name] = job
 
     return jobs
@@ -104,25 +108,25 @@ def objects_to_table(input_objects, level='design'):
         Table with columns needed for final report.
     """
     rows = []
-    for filter_name, obj in input_objects.items():
-        for meas in obj.measurements:
-            # Skip specification levels (called .name in measurement objects)
-            #  that are not the 'level' we are looking for.
-            if meas.spec_name is not None and meas.spec_name != level:
-                continue
-            m = meas.metric
-            try:
-                spec = m.get_spec(level, filter_name=filter_name)
-            except:
-                msg_format = "Could not load meas.spec_name: '{:s}' at level: '{:s}'"
-                print(msg_format.format(meas.spec_name, level))
-                continue
-            if meas.quantity is None:
-                meas_quantity_value = "--"
+    for filter_name, job in input_objects.items():
+        specs, metrics = get_specs_metrics(job)
+        for key, m in job.measurements.items():
+            metric = key.metric.split("_")[0] # For compound metrics
+            spec_set = specs[metric]
+            spec = None
+            for spec_key in spec_set:
+                if level in spec_key.spec:
+                    spec = job.specs[spec_key]
+            if spec is None:
+                for spec_key in spec_set:
+                    if level in spec_key.metric: # For dependent metrics
+                        spec = job.specs[spec_key]
+            if np.isnan(m.quantity):
+                meas_quantity_value = "**" # -- is reserved in rst for headers
             else:
-                meas_quantity_value = meas.quantity.value
-            this_row = [m.name, filter_name, meas_quantity_value, meas.unit,
-                        m.operator_str, spec.quantity.value]
+                meas_quantity_value = m.quantity.value
+            this_row = [metric, filter_name, meas_quantity_value, m.quantity.unit,
+                        spec.operator_str, spec.threshold.value, str(spec.name.metric)]
             rows.append(this_row)
 
     if len(rows) == 0:
@@ -132,38 +136,41 @@ def objects_to_table(input_objects, level='design'):
 
     srd_requirement_col_name = 'SRD Requirement: %s' % level
     col_names = ('Metric', 'Filter', 'Value', 'Unit',
-                 'Operator', srd_requirement_col_name)
+                 'Operator', srd_requirement_col_name, 'SpecMetric')
     output = Table(rows=rows, names=col_names)
     output.add_column(Column(['']*len(output), dtype=str, name='Comments'))
     return output
 
 
 # Calculate numbers in table
-def add_release_metric(data, release_metrics, release_metrics_level):
+def add_release_spec(data, release_specs, release_specs_level):
     """Add columns of additional metric thresholds.
 
     Intended use is for specifying a set of release metrics that converge
     over time to the SRD metrics.
 
-    If release_metrics_level is not present in release_metrics,
+    If release_specs_level is not present in release_specs,
     then the original data is unchanged.
     """
     release_targets = []
     for row in data:
-        metric = release_metrics[row['Metric']]
         try:
-            spec = metric.get_spec(
-                name=release_metrics_level, filter_name=row['Filter'])
-        except:
-            msg = "Release metrics level: {:s} not available in release_metrics file."
-            print(msg.format(release_metrics_level))
-            return
-        release_targets.append(spec.quantity.value)
+            # Guess at spec name using the metric name
+            spec = release_specs['.'.join(['release',row['Metric'],release_specs_level])]
+            value = spec.threshold.value
+        except KeyError:
+            try:
+                # Maybe the spec name matches.
+                spec = release_specs[row['SpecMetric']]
+                value = spec.threshold.value
+            except KeyError:
+                value = None
+        release_targets.append(value)
 
     release_targets_col = Column(
         release_targets,
         dtype=float,
-        name='Release Target: %s' % release_metrics_level)
+        name='Release Target: %s' % release_specs_level)
     data.add_column(release_targets_col)
 
 
@@ -177,7 +184,8 @@ def float_or_dash(f, format_string='{:.2f}'):
     try:
         return format_string.format(float(f))
     except:
-        return '--'
+        # dashes are reserved
+        return '**'
 
 
 def blank_none(s):
