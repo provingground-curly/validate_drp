@@ -55,10 +55,9 @@ if __name__ == "__main__":
     # in the 'srd_metrics' file.
     parser.add_argument('--srd_level', type=str, default='design',
                         help='Level of srd_metric requirement to meet: ["design", "minimum", "stretch"]')
-    parser.add_argument('--release_metrics',
-                        default=os.path.join(getPackageDir('validate_drp'),
-                                             'etc', 'release_metrics.yaml'),
-                        help='Path of YAML file with this release specifications.')
+    parser.add_argument('--release_specs_package',
+                        default='verify_metrics',
+                        help='Package with release specifications.')
     parser.add_argument('--release_level', type=str, default='FY17',
                         help='Level of release_metric requirement to meet: ["FY17", "FY18", ...]')
 
@@ -66,5 +65,5 @@ if __name__ == "__main__":
 
     report_performance.run(args.json_files, args.output_file,
                            srd_level=args.srd_level,
-                           release_metrics_file=args.release_metrics,
+                           release_specs_package=args.release_specs_package,
                            release_level=args.release_level)
