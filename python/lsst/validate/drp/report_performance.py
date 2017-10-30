@@ -58,7 +58,7 @@ def run(validation_drp_report_filenames, output_file,
         return
 
     if release_specs_package is not None and release_level is not None:
-        release_specs = SpecificationSet.load_metrics_package(release_specs_package)
+        release_specs = SpecificationSet.load_metrics_package(release_specs_package, subset='release')
         add_release_spec(input_table, release_specs, release_level)
 
     write_report(input_table, output_file)
@@ -111,7 +111,11 @@ def objects_to_table(input_objects, level='design'):
     for filter_name, job in input_objects.items():
         specs, metrics = get_specs_metrics(job)
         for key, m in job.measurements.items():
-            metric = key.metric.split("_")[0] # For compound metrics
+            parts = key.metric.split("_")
+            metric = parts[0] # For compound metrics
+            if len(parts) > 1:
+                if not level in ".".join(parts):
+                    continue
             spec_set = specs[metric]
             spec = None
             for spec_key in spec_set:
@@ -126,7 +130,7 @@ def objects_to_table(input_objects, level='design'):
             else:
                 meas_quantity_value = m.quantity.value
             this_row = [metric, filter_name, meas_quantity_value, m.quantity.unit,
-                        spec.operator_str, spec.threshold.value, str(spec.name.metric)]
+                        spec.operator_str, spec.threshold.value, job.meta['instrument']]
             rows.append(this_row)
 
     if len(rows) == 0:
@@ -136,7 +140,7 @@ def objects_to_table(input_objects, level='design'):
 
     srd_requirement_col_name = 'SRD Requirement: %s' % level
     col_names = ('Metric', 'Filter', 'Value', 'Unit',
-                 'Operator', srd_requirement_col_name, 'SpecMetric')
+                 'Operator', srd_requirement_col_name, 'Instrument')
     output = Table(rows=rows, names=col_names)
     output.add_column(Column(['']*len(output), dtype=str, name='Comments'))
     return output
@@ -154,17 +158,14 @@ def add_release_spec(data, release_specs, release_specs_level):
     """
     release_targets = []
     for row in data:
-        try:
-            # Guess at spec name using the metric name
-            spec = release_specs['.'.join(['release',row['Metric'],release_specs_level])]
-            value = spec.threshold.value
-        except KeyError:
-            try:
-                # Maybe the spec name matches.
-                spec = release_specs[row['SpecMetric']]
-                value = spec.threshold.value
-            except KeyError:
-                value = None
+        specs = release_specs.subset(required_meta={'filter_name':row['Filter'],
+                                                    'instrument':row['Instrument']})
+        specs.update(release_specs.subset(required_meta={'filter_name':'any',
+                                                    'instrument':row['Instrument']}))
+        value = None
+        for spec in specs:
+            if spec.metric == row['Metric'] and release_specs_level in spec.spec:
+                value = specs[spec].threshold.value
         release_targets.append(value)
 
     release_targets_col = Column(
@@ -174,7 +175,7 @@ def add_release_spec(data, release_specs, release_specs_level):
     data.add_column(release_targets_col)
 
 
-def float_or_dash(f, format_string='{:.2f}'):
+def float_or_dash(f, format_string='{:.2g}'):
     """Return string of formatted float, or -- if None.
 
     Intended use is to provide formatting output for columns
@@ -240,7 +241,7 @@ def write_report(data, filename='test.rst', format='ascii.rst'):
     # Provide default formats
     for spec_col in (release_target_col_name, srd_requirement_col_name):
         if spec_col in data:
-            data[spec_col].info.format = '.1f'
+            data[spec_col].info.format = '.2E' # ellipticity correlations are really small.
     data['Value'].info.format = float_or_dash
     data['Unit'].info.format = blank_none
     # Astropy 1.2.1 (the current miniconda stack install) doesn't support
