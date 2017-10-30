@@ -127,7 +127,7 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
     blob.magKey = blob._matchedCatalog.schema.find("base_PsfFlux_mag").key
     # Reduce catalogs into summary statistics.
     # These are the serialiable attributes of this class.
-    _reduceStars(blob, _matchedCatalog, safeSnr)
+    _reduceStars(blob, blob._matchedCatalog, safeSnr)
     return blob
 
 def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
@@ -272,7 +272,7 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
                 tmpCat['base_PsfFlux_mag'][:] = _[0]
                 tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
-        _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
+        _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='ext_shapeHSM_HsmPsfMoments')
         _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
         tmpCat['e1'][:] = star_e1
         tmpCat['e2'][:] = star_e2
@@ -362,4 +362,4 @@ def _reduceStars(blob, allMatches, safeSnr=50.0):
 
     # These attributes are not serialized
     blob.goodMatches = goodMatches
-    blobsafeMatches = safeMatches
+    blob.safeMatches = safeMatches
