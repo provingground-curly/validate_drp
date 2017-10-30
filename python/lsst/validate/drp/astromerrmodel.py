@@ -26,7 +26,7 @@ import astropy.units as u
 import numpy as np
 from scipy.optimize import curve_fit
 
-from lsst.verify import Blob
+from lsst.verify import Blob, Datum
 
 
 __all__ = ['astromErrModel', 'fitAstromErrModel', 'build_astrometric_error_model']
@@ -155,7 +155,7 @@ def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
     if not isinstance(medianRef, u.Quantity):
         medianRef = medianRef * u.marcsec
 
-    _compute(
+    _compute(blob,
         matchedMultiVisitDataset['snr'],
         matchedMultiVisitDataset['dist'],
         len(matchedMultiVisitDataset.goodMatches),

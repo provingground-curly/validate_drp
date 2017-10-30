@@ -26,10 +26,10 @@ import astropy.units as u
 import numpy as np
 from scipy.optimize import curve_fit
 
-from lsst.validate.base import BlobBase
+from lsst.verify import Blob, Datum
 
 
-__all__ = ['photErrModel', 'fitPhotErrModel', 'PhotometricErrorModel']
+__all__ = ['photErrModel', 'fitPhotErrModel', 'build_photometric_error_model']
 
 
 def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):
@@ -146,8 +146,7 @@ def fitPhotErrModel(mag, mag_err):
     return params
 
 
-class PhotometricErrorModel(BlobBase):
-    """Serializable analytic photometry error model for a single visit.
+"""Serializable analytic photometry error model for a single visit.
 
     This model is originally presented in http://arxiv.org/abs/0805.2366v4
     (Eq 4, 5):
@@ -190,76 +189,66 @@ class PhotometricErrorModel(BlobBase):
     This limit is a band-dependent statement most appropriate to r.
     """
 
-    name = 'PhotometricErrorModel'
 
-    def __init__(self, matchedMultiVisitDataset, brightSnr=100, medianRef=100,
-                 matchRef=500):
-        BlobBase.__init__(self)
+def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, medianRef=100,
+                                  matchRef=500):
+    blob = Blob('PhotometricErrorModel')
 
-        self.register_datum(
-            'brightSnr',
-            label='Bright SNR',
-            description='Threshold in SNR for bright sources used in this '
-                        'model')
-        self.register_datum(
-            'sigmaSys',
-            label='sigma(sys)',
-            description='Systematic error floor')
-        self.register_datum(
-            'gamma',
-            label='gamma',
-            description='Proxy for sky brightness and read noise')
-        self.register_datum(
-            'm5',
-            label='m5',
-            description='5-sigma depth')
-        self.register_datum(
-            'photScatter',
-            label='RMS',
-            description='RMS photometric scatter for good stars')
 
-        # FIXME add a description field to blobs?
-        # self._doc['doc'] \
-        #     = "Photometric uncertainty model from " \
-        #       "http://arxiv.org/abs/0805.2366v4 (Eq 4, 5): " \
-        #       "sigma_1^2 = sigma_sys^2 + sigma_rand^2, " \
-        #       "sigma_rand^2 = (0.04 - gamma) * x + gamma * x^2 [mag^2] " \
-        #       "where x = 10**(0.4*(m-m_5))"
+    # FIXME add a description field to blobs?
+    # _doc['doc'] \
+    #     = "Photometric uncertainty model from " \
+    #       "http://arxiv.org/abs/0805.2366v4 (Eq 4, 5): " \
+    #       "sigma_1^2 = sigma_sys^2 + sigma_rand^2, " \
+    #       "sigma_rand^2 = (0.04 - gamma) * x + gamma * x^2 [mag^2] " \
+    #       "where x = 10**(0.4*(m-m_5))"
 
-        if not isinstance(medianRef, u.Quantity):
-            medianRef = medianRef * u.mmag
-        if not isinstance(brightSnr, u.Quantity):
-            brightSnr = brightSnr * u.Unit('')
-        self._compute(
-            matchedMultiVisitDataset.snr,
-            matchedMultiVisitDataset.mag,
-            matchedMultiVisitDataset.magerr,
-            matchedMultiVisitDataset.magrms,
-            matchedMultiVisitDataset.dist,
-            len(matchedMultiVisitDataset.goodMatches),
-            brightSnr,
-            medianRef,
-            matchRef)
+    if not isinstance(medianRef, u.Quantity):
+        medianRef = medianRef * u.mmag
+    if not isinstance(brightSnr, u.Quantity):
+        brightSnr = brightSnr * u.Unit('')
+    _compute(blob,
+        matchedMultiVisitDataset['snr'],
+        matchedMultiVisitDataset['mag'],
+        matchedMultiVisitDataset['magerr'],
+        matchedMultiVisitDataset['magrms'],
+        matchedMultiVisitDataset['dist'],
+        len(matchedMultiVisitDataset.goodMatches),
+        brightSnr,
+        medianRef,
+        matchRef)
+    return blob
 
-    def _compute(self, snr, mag, magErr, magRms, dist, nMatch,
-                 brightSnr, medianRef, matchRef):
-        self.brightSnr = brightSnr
+def _compute(blob, snr, mag, magErr, magRms, dist, nMatch,
+             brightSnr, medianRef, matchRef):
+    blob['brightSnr'] = Datum(quantity=brightSnr,
+                              label='Bright SNR',
+                              description='Threshold in SNR for bright sources used in this '
+                                          'model')
 
-        bright = np.where(snr > self.brightSnr)
-        self.photScatter = np.median(magRms[bright])
-        print('Photometric scatter (median) - SNR > {0:.1f} : {1:.1f}'.format(
-              self.brightSnr, self.photScatter.to(u.mmag)))
+    bright = np.where(snr > blob['brightSnr'])
+    blob['photScatter'] = Datum(quantity=np.median(magRms[bright]),
+                                label='RMS',
+                                description='RMS photometric scatter for good stars')
+    print('Photometric scatter (median) - SNR > {0:.1f} : {1:.1f}'.format(
+          blob.brightSnr, blob.photScatter.to(u.mmag)))
 
-        fit_params = fitPhotErrModel(mag[bright], magErr[bright])
-        self.sigmaSys = fit_params['sigmaSys']
-        self.gamma = fit_params['gamma']
-        self.m5 = fit_params['m5']
+    fit_params = fitPhotErrModel(mag[bright], magErr[bright])
+    blob['sigmaSys'] = Datum(quantity=fit_params['sigmaSys'],
+                             label='sigma(sys)',
+                             description='Systematic error floor')
+    blob['gamma'] = Datum(quantity=fit_params['gamma'],
+                          label='gamma',
+                          description='Proxy for sky brightness and read noise')
+    blob['m5'] = Datum(quantity=fit_params['m5'],
+                       label='m5',
+                       description='5-sigma depth')
 
-        if self.photScatter > medianRef:
-            msg = 'Median photometric scatter {0:.3f} is larger than ' \
-                  'reference : {1:.3f}'
-            print(msg.format(self.photScatter, medianRef))
-        if nMatch < matchRef:
-            msg = 'Number of matched sources {0:d} is too small ' \
-                  '(should be > %d)'
-            print(msg.format(nMatch, matchRef))
+    if blob['photScatter'] > medianRef:
+        msg = 'Median photometric scatter {0:.3f} is larger than ' \
+              'reference : {1:.3f}'
+        print(msg.format(blob['photScatter'], medianRef))
+    if nMatch < matchRef:
+        msg = 'Number of matched sources {0:d} is too small ' \
+              '(should be > %d)'
+        print(msg.format(nMatch, matchRef))
