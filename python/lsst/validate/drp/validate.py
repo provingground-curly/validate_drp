@@ -36,7 +36,7 @@ from lsst.verify import Job as verify_Job
 from .util import repoNameToPrefix
 from .matchreduce import build_matched_dataset
 from .photerrmodel import PhotometricErrorModel
-from .astromerrmodel import AstrometricErrorModel
+from .astromerrmodel import build_astrometric_error_model 
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
                       PA1Measurement, PA2Measurement, PF1Measurement,
                       TExMeasurement)
@@ -271,12 +271,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     new_photomModel = Blob(photomModel.name)
     build_blob(photomModel, new_photomModel)
 
-    astromModel = AstrometricErrorModel(matchedDataset)
-    new_astromModel = Blob(astromModel.name)
-    build_blob(astromModel, new_astromModel)
+    astromModel = build_astrometric_error_model(matchedDataset)
 
     linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
-    new_linkedBlobs = [matchedDataset, new_photomModel, new_astromModel]
+    new_linkedBlobs = [matchedDataset, new_photomModel, astromModel]
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
     try:
