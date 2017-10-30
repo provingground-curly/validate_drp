@@ -30,12 +30,11 @@ import astropy.units as u
 
 from textwrap import TextWrapper
 
-from lsst.validate.base import Job
 from lsst.verify import Blob, Datum, Name
 from lsst.verify import Job as verify_Job
 
 from .util import repoNameToPrefix
-from .matchreduce import MatchedMultiVisitDataset
+from .matchreduce import build_matched_dataset
 from .photerrmodel import PhotometricErrorModel
 from .astromerrmodel import AstrometricErrorModel
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
@@ -80,7 +79,7 @@ def load_json_output(filepath):
     with open(filepath, 'r') as infile:
         json_data = json.load(infile)
 
-    return Job.from_json(json_data)
+    return Job(**json_data)
 
 
 def get_filter_name_from_job(job):
@@ -97,11 +96,8 @@ def get_filter_name_from_job(job):
     -------
     filter_name : `str`
     """
-    measurement_iterator = job.measurements
-    measurement = next(measurement_iterator)
-    filter_name = measurement.filter_name
 
-    return filter_name
+    return job['filter_name']
 
 
 def run(repo_or_json, metrics=None,
@@ -157,7 +153,6 @@ def run(repo_or_json, metrics=None,
 
     for filterName, job in jobs.items():
         if makePrint:
-            #metrics = {str(metric): metric for metric in job.metrics}
             print_metrics(job)
         if makePlot:
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
@@ -267,16 +262,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
+    matchedDataset = build_matched_dataset(repo, visitDataIds,
                                               useJointCal=useJointCal,
                                               verbose=verbose)
 
-    new_matchedDataset = Blob(matchedDataset.name)
-    build_blob(matchedDataset, new_matchedDataset)
-    # Don't know if we should do something better here
-    new_matchedDataset.safeMatches = matchedDataset.safeMatches
-    new_matchedDataset.goodMatches = matchedDataset.goodMatches
-    new_matchedDataset.magKey = matchedDataset._matchedCatalog.schema.find("base_PsfFlux_mag").key
 
     photomModel = PhotometricErrorModel(matchedDataset)
     new_photomModel = Blob(photomModel.name)
@@ -287,7 +276,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     build_blob(astromModel, new_astromModel)
 
     linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
-    new_linkedBlobs = [new_matchedDataset, new_photomModel, new_astromModel]
+    new_linkedBlobs = [matchedDataset, new_photomModel, new_astromModel]
 
     job = Job(blobs=[matchedDataset, photomModel, astromModel])
     try:
@@ -324,7 +313,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                            job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
         ## New verify
-        amx = measureAMx(new_metrics['validate_drp.'+amxName], new_matchedDataset, D*u.arcmin)
+        amx = measureAMx(new_metrics['validate_drp.'+amxName], matchedDataset, D*u.arcmin)
         add_measurement(amx)
 
         afx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[afxName,])
@@ -342,7 +331,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                    job=job, linkedBlobs=linkedBlobs,
                    verbose=verbose)
     ## New verify
-    pa1 = measurePA1(new_metrics['validate_drp.PA1'], new_matchedDataset, filterName)
+    pa1 = measurePA1(new_metrics['validate_drp.PA1'], matchedDataset, filterName)
     add_measurement(pa1)
     ##
 
@@ -389,7 +378,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
         ## New verify
-        tex = measureTEx(new_metrics['validate_drp.'+texName], new_matchedDataset, D*u.arcmin, bin_range_operator)
+        tex = measureTEx(new_metrics['validate_drp.'+texName], matchedDataset, D*u.arcmin, bin_range_operator)
         add_measurement(tex)
         ##
 
