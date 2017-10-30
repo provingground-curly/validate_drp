@@ -31,7 +31,7 @@ import astropy.units as u
 from textwrap import TextWrapper
 
 from lsst.verify import Blob, Datum, Name
-from lsst.verify import Job as verify_Job
+from lsst.verify import Job
 
 from .util import repoNameToPrefix
 from .matchreduce import build_matched_dataset
@@ -267,29 +267,25 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                                               verbose=verbose)
 
 
-    photomModel = PhotometricErrorModel(matchedDataset)
-    new_photomModel = Blob(photomModel.name)
-    build_blob(photomModel, new_photomModel)
+    photomModel = build_photometric_error_model(matchedDataset)
 
     astromModel = build_astrometric_error_model(matchedDataset)
 
-    linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
-    new_linkedBlobs = [matchedDataset, new_photomModel, astromModel]
+    linkedBlobs = [matchedDataset, photomModel, astromModel]
 
-    job = Job(blobs=[matchedDataset, photomModel, astromModel])
     try:
         instrument = kwargs['instrument']
         dataset_repo_url = kwargs['dataset_repo_url']
     except KeyError:
         raise ValueError("Instrument name and input dataset URL must be set in config file")
-    new_job = verify_Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
+    new_job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
                                                     'dataset_repo_url':dataset_repo_url})
     new_metrics = new_job.metrics
 
     specs = new_job.specs
 
     def add_measurement(measurement):
-        for blob in new_linkedBlobs:
+        for blob in linkedBlobs:
             measurement.link_blob(blob)
         new_job.measurements.insert(measurement)
 
