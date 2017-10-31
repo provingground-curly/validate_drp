@@ -78,7 +78,9 @@ class ParseJsonJob(unittest.TestCase):
         noOutputPrefixFiles = ['check_astrometry.png',
                                'check_photometry.png',
                                'PA1.png',
-                               'AM1_D_5_arcmin_17.0_21.5_mag.png']
+                               'validate_drp.AM1_D_5_arcmin_17.0_21.5_mag.png',
+                               'validate_drp.TE1_D_1_arcmin.png',
+                               'validate_drp.TE2_D_5_arcmin.png']
         # test with no output prefix.
         plot_metrics(job, filterName)
         for filename in noOutputPrefixFiles:
