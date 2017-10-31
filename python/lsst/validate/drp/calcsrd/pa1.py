@@ -28,12 +28,10 @@ import scipy.stats
 import astropy.units as u
 
 import lsst.pipe.base as pipeBase
-from lsst.validate.base import MeasurementBase
 from lsst.verify import Measurement, Datum
 
 
-class PA1Measurement(MeasurementBase):
-    """Measurement of the PA1 metric: photometric repeatability of
+"""Measurement of the PA1 metric: photometric repeatability of
     measurements across a set of observations.
 
     Parameters
@@ -73,57 +71,6 @@ class PA1Measurement(MeasurementBase):
         multiple visits. This is the main computation function behind
         the PA1 measurement.
     """
-
-    def __init__(self, metric, matchedDataset, filter_name,
-                 numRandomShuffles=50, verbose=False, job=None,
-                 linkedBlobs=None):
-        MeasurementBase.__init__(self)
-        self.filter_name = filter_name
-        self.metric = metric
-
-        # register input parameters for serialization
-        # note that matchedDataset is treated as a blob, separately
-        self.register_parameter('numRandomShuffles',
-                                numRandomShuffles,
-                                label='shuffles',
-                                description='Number of random shuffles')
-
-        # register measurement extras
-        self.register_extra(
-            'rms', label='RMS',
-            description='Photometric repeatability RMS of stellar pairs for '
-                        'each random sampling')
-        self.register_extra(
-            'iqr', label='IQR',
-            description='Photometric repeatability IQR of stellar pairs for '
-                        'each random sample')
-        self.register_extra(
-            'magDiff', label='Delta mag',
-            description='Photometric repeatability differences magnitudes for '
-                        'stellar pairs for each random sample')
-        self.register_extra(
-            'magMean', label='mag',
-            description='Mean magnitude of pairs of stellar sources matched '
-                        'across visits, for each random sample.')
-
-        self.matchedDataset = matchedDataset
-        # Add external blob so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        matches = matchedDataset.safeMatches
-        magKey = matchedDataset.magKey
-        results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
-        self.rms = results['rms']
-        self.iqr = results['iqr']
-        self.magDiff = results['magDiff']
-        self.magMean = results['magMean']
-        self.quantity = results['PA1']
-
-        if job:
-            job.register_measurement(self)
 
 
 def measurePA1(metric, matchedDataset, filterName, numRandomShuffles=50):

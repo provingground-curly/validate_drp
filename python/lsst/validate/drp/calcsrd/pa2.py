@@ -23,12 +23,10 @@ from __future__ import print_function, absolute_import
 import numpy as np
 import astropy.units as u
 
-from lsst.validate.base import MeasurementBase
 from lsst.verify import Measurement, Datum
 
 
-class PA2Measurement(MeasurementBase):
-    """Measurement of PA2: millimag from median RMS (see PA1) of which
+"""Measurement of PA2: millimag from median RMS (see PA1) of which
     PF1 of the samples can be found.
 
     Parameters
@@ -61,34 +59,6 @@ class PA2Measurement(MeasurementBase):
     goals are PF1 = (10, 20, 5) % at PA2 = (15, 15, 10) millimag following
     LPM-17 as of 2011-07-06, available at http://ls.st/LPM-17.
     """
-
-    def __init__(self, metric, matchedDataset, pa1, filter_name, spec_name,
-                 linkedBlobs=None, job=None, verbose=False):
-        MeasurementBase.__init__(self)
-        self.filter_name = filter_name
-        self.spec_name = spec_name  # spec-dependent measure because of PF1 dep
-        self.metric = metric
-
-        pf1spec = self.metric.get_spec(spec_name, filter_name=self.filter_name).\
-            PF1.get_spec(spec_name, filter_name=self.filter_name)
-        self.register_parameter('pf1', datum=pf1spec.datum)
-
-        self.matchedDataset = matchedDataset
-
-        # Add external blob so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        # Use first random sample from original PA1 measurement
-        magDiffs = pa1.magDiff[0, :]
-
-        pf1Percentile = 100. - self.pf1
-        self.quantity = np.percentile(np.abs(magDiffs), pf1Percentile) * magDiffs.unit
-
-        if job:
-            job.register_measurement(self)
 
 
 def measurePA2(metric, pa1, pf1_thresh): 

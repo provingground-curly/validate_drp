@@ -37,9 +37,6 @@ from .util import repoNameToPrefix
 from .matchreduce import build_matched_dataset
 from .photerrmodel import build_photometric_error_model
 from .astromerrmodel import build_astrometric_error_model 
-from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
-                      PA1Measurement, PA2Measurement, PF1Measurement,
-                      TExMeasurement)
 from .calcsrd import (measurePA1, measurePA2, measurePF1, measureAMx,
                       measureAFx, measureADx, measureTEx)
 from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,

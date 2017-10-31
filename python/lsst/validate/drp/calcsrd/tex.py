@@ -25,7 +25,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 import treecorr
 
-from lsst.validate.base import MeasurementBase, Metric
 from lsst.verify import Measurement, Datum, ThresholdSpecification
 
 from ..util import (averageRaFromCat, averageDecFromCat,
@@ -33,8 +32,7 @@ from ..util import (averageRaFromCat, averageDecFromCat,
                     medianEllipticity2ResidualsFromCat)
 
 
-class TExMeasurement(MeasurementBase):
-    """Measurement of TEx (x=1,2): Correlation of PSF residual ellipticity
+"""Measurement of TEx (x=1,2): Correlation of PSF residual ellipticity
     on scales of D=(1, 5) arcmin.
 
     Parameters
@@ -98,50 +96,6 @@ class TExMeasurement(MeasurementBase):
 
     Table 27: These residual PSF ellipticity correlations apply to the r and i bands.
     """
-
-    def __init__(self, metric, matchedDataset, filter_name,
-                 linkedBlobs=None, job=None, verbose=False):
-        MeasurementBase.__init__(self)
-
-        self.metric = metric
-        self.filter_name = filter_name
-
-        # Register blob
-        self.matchedDataset = matchedDataset
-
-        # Measurement Parameters
-        self.register_parameter('D', datum=self.metric.D)
-        self.register_parameter('bin_range_operator', datum=self.metric.bin_range_operator)
-
-        # Place to save correlation function vs radius
-        # for later plotting or re-analysis
-        self.register_extra('radius', label='Correlation radius', unit=u.arcmin)
-        self.register_extra('xip', label='Correlation strength', unit=u.Unit(''))
-        self.register_extra('xip_err', label='Correlation strength uncertainty', unit=u.Unit(''))
-
-        # Add external blob so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        matches = matchedDataset.safeMatches
-
-        self.radius, self.xip, self.xip_err = \
-            correlation_function_ellipticity_from_matches(matches, verbose=verbose)
-
-        corr, corr_err = select_bin_from_corr(
-            self.radius,
-            self.xip,
-            self.xip_err,
-            radius=self.D,
-            operator=Metric.convert_operator_str(self.bin_range_operator))
-
-        # We store the absolute value.
-        self.quantity = np.abs(corr) * u.Unit('')
-
-        if job:
-            job.register_measurement(self)
 
 
 def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
