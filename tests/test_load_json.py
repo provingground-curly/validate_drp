@@ -37,7 +37,6 @@ class ParseJsonJob(unittest.TestCase):
 
     def setUp(self):
         testDataDir = os.path.dirname(__file__)
-        self.metricsFile = os.path.join(testDataDir, 'metrics.yaml')
         self.jsonFile = os.path.join(testDataDir, 'CfhtQuick_output_r.json')
         self.jsonFile_filter = 'r'
         self.longMessage = True
@@ -57,18 +56,6 @@ class ParseJsonJob(unittest.TestCase):
         filterName = get_filter_name_from_job(job)
         self.assertEqual(filterName, self.jsonFile_filter)
 
-    def testPrintMetricsFromJsonJobFromMetricsfile(self):
-        """Does printing the metrics run without error using metrics.yaml?
-
-        This is in essence half the big test.
-        If we load a file do we get printed metrics?
-        Next TODO is to actually check for the values printed.
-        """
-        job = load_json_output(self.jsonFile)
-        filterName = get_filter_name_from_job(job)
-        metrics = load_metrics(self.metricsFile)
-        print_metrics(job, filterName, metrics)
-
     def testPrintMetricsFromJsonJob(self):
         """Does printing the metrics run without error using itself?
 
@@ -78,8 +65,7 @@ class ParseJsonJob(unittest.TestCase):
         """
         job = load_json_output(self.jsonFile)
         filterName = get_filter_name_from_job(job)
-        metrics = {meas.metric.name: meas.metric for meas in job.measurements}
-        print_metrics(job, filterName, metrics)
+        print_metrics(job, filterName)
 
     def testPlotMetricsFromJsonJob(self):
         """Does plotting the metrics run and produce the correct filenames?
