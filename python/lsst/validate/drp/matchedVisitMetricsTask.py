@@ -6,7 +6,7 @@ from lsst.pipe.base import CmdLineTask, ArgumentParser, TaskRunner
 from lsst.pex.config import Config, Field
 from lsst.meas.base.forcedPhotCcd import PerTractCcdDataIdContainer
 from lsst.utils import getPackageDir
-from lsst.validate.base import load_metrics
+from lsst.verify import MetricSet
 from .validate import runOneFilter, plot_metrics
 
 
@@ -101,7 +101,7 @@ class MatchedVisitMetricsTask(CmdLineTask):
         metricsFile = self.config.metricsFile
         if metricsFile is None:
             metricsFile = os.path.join(getPackageDir('validate_drp'), 'etc', 'metrics.yaml')
-        self.metrics = load_metrics(metricsFile)
+        self.metrics = MetricSet._load_metrics_yaml(metricsFile)
 
     def run(self, butler, filterName, output, dataIds):
         """
