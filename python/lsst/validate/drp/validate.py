@@ -35,7 +35,7 @@ from lsst.verify import Job
 
 from .util import repoNameToPrefix
 from .matchreduce import build_matched_dataset
-from .photerrmodel import PhotometricErrorModel
+from .photerrmodel import build_photometric_error_model
 from .astromerrmodel import build_astrometric_error_model 
 from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
                       PA1Measurement, PA2Measurement, PF1Measurement,
@@ -79,7 +79,7 @@ def load_json_output(filepath):
     with open(filepath, 'r') as infile:
         json_data = json.load(infile)
 
-    return Job(**json_data)
+    return Job.deserialize(**json_data)
 
 
 def get_filter_name_from_job(job):
@@ -97,7 +97,7 @@ def get_filter_name_from_job(job):
     filter_name : `str`
     """
 
-    return job['filter_name']
+    return job.meta['filter_name']
 
 
 def run(repo_or_json, metrics=None,
@@ -216,13 +216,6 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     return jobs
 
 
-def build_blob(oldBlob, newBlob):
-    for key, old_datum in oldBlob.datums.items():
-        new_datum = Datum(quantity=old_datum.quantity, unit=old_datum.unit, label=old_datum.label,
-                          description=old_datum.description)
-        newBlob[key] = new_datum
-
-
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makeJson=True, filterName=None, outputPrefix='',
                  useJointCal=False, verbose=False,
@@ -263,8 +256,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         Output additional information on the analysis steps.
     """
     matchedDataset = build_matched_dataset(repo, visitDataIds,
-                                              useJointCal=useJointCal,
-                                              verbose=verbose)
+                                              useJointCal=useJointCal)
 
 
     photomModel = build_photometric_error_model(matchedDataset)
@@ -278,36 +270,25 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         dataset_repo_url = kwargs['dataset_repo_url']
     except KeyError:
         raise ValueError("Instrument name and input dataset URL must be set in config file")
-    new_job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
-                                                    'dataset_repo_url':dataset_repo_url})
-    new_metrics = new_job.metrics
+    job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
+                                         'dataset_repo_url':dataset_repo_url},
+                                   subset='validate_drp')
+    metrics = job.metrics
 
-    specs = new_job.specs
+    specs = job.specs
 
     def add_measurement(measurement):
         for blob in linkedBlobs:
             measurement.link_blob(blob)
-        new_job.measurements.insert(measurement)
+        job.measurements.insert(measurement)
 
     for x, D in zip((1, 2, 3), (5., 20., 200.)):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
         adxName = 'AD{0:d}'.format(x)
 
-        AMxMeasurement(metrics[amxName], matchedDataset, filterName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        for specName in metrics[afxName].get_spec_names(filter_name=filterName):
-            AFxMeasurement(metrics[afxName], matchedDataset,
-                           job.get_measurement(amxName), filterName, specName,
-                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
-
-            ADxMeasurement(metrics[adxName], matchedDataset,
-                           job.get_measurement(amxName), filterName, specName,
-                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
-
-        ## New verify
-        amx = measureAMx(new_metrics['validate_drp.'+amxName], matchedDataset, D*u.arcmin)
+        amx = measureAMx(metrics['validate_drp.'+amxName], matchedDataset, D*u.arcmin)
         add_measurement(amx)
 
         afx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[afxName,])
@@ -315,27 +296,15 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         for afx_spec_key, adx_spec_key in zip(afx_spec_set, adx_spec_set):
             afx_spec = afx_spec_set[afx_spec_key]
             adx_spec = adx_spec_set[adx_spec_key]
-            adx = measureADx(new_metrics[adx_spec.metric_name], amx, afx_spec)
+            adx = measureADx(metrics[adx_spec.metric_name], amx, afx_spec)
             add_measurement(adx)
-            afx = measureAFx(new_metrics[afx_spec.metric_name], amx, adx, adx_spec)
+            afx = measureAFx(metrics[afx_spec.metric_name], amx, adx, adx_spec)
             add_measurement(afx)
-        ##
 
-    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs,
-                   verbose=verbose)
-    ## New verify
-    pa1 = measurePA1(new_metrics['validate_drp.PA1'], matchedDataset, filterName)
+    pa1 = measurePA1(metrics['validate_drp.PA1'], matchedDataset, filterName)
     add_measurement(pa1)
-    ##
 
-    for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
-        PA2Measurement(metrics['PA2'], matchedDataset,
-                       pa1=job.get_measurement('PA1'), filter_name=filterName,
-                       spec_name=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
 
-    ## New verify
     pf1_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
                                            spec_tags=['PF1',])
     pa2_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
@@ -348,39 +317,22 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     for pf1_spec_key, pa2_spec_key in zip(pf1_spec_keys, pa2_spec_keys):
         pf1_spec = pf1_spec_set[pf1_spec_key]
         pa2_spec = pa2_spec_set[pa2_spec_key]
-        pa2 = measurePA2(new_metrics[pa2_spec.metric_name], pa1, pf1_spec.threshold)
+
+        pa2 = measurePA2(metrics[pa2_spec.metric_name], pa1, pf1_spec.threshold)
         add_measurement(pa2)
-    ##
 
-    for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
-        PF1Measurement(metrics['PF1'], matchedDataset,
-                       job.get_measurement('PA1'),
-                       filterName, specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
-
-    ## New verify
-    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_keys, pa2_spec_keys):
-        pa2_spec = pa2_spec_set[pa2_spec_key]
-        pf1_spec = pf1_spec_set[pf1_spec_key]
-        pf1 = measurePF1(new_metrics[pf1_spec.metric_name], pa1, pa2_spec)
+        pf1 = measurePF1(metrics[pf1_spec.metric_name], pa1, pa2_spec)
         add_measurement(pf1)
-    ##
 
     for x, D, bin_range_operator in zip((1, 2), (1.0, 5.0), ("<=", ">=")):
         texName = 'TE{0:d}'.format(x)
-        TExMeasurement(metrics[texName], matchedDataset, filterName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
-
-        ## New verify
-        tex = measureTEx(new_metrics['validate_drp.'+texName], matchedDataset, D*u.arcmin, bin_range_operator)
+        tex = measureTEx(metrics['validate_drp.'+texName], matchedDataset, D*u.arcmin, bin_range_operator)
         add_measurement(tex)
-        ##
 
     if makeJson:
-        job.write_json(outputPrefix + '.json')
-        new_job.write(outputPrefix+'_new'+'.json')
+        job.write(outputPrefix+'.json')
 
-    return new_job
+    return job
 
 
 def get_metric(level, metric_label, in_specs):
