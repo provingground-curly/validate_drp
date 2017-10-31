@@ -47,7 +47,7 @@ class ParseJsonJob(unittest.TestCase):
         # without throwing an error
         job = load_json_output(self.jsonFile)
         # Spot-check a few attributes
-        self.assertEqual(len(job._measurements), 28)
+        self.assertEqual(len(job.measurements), 30)
         self.assertEqual(set(job.spec_levels), set(['design', 'minimum', 'stretch']))
 
     def testParseJobFilterName(self):
