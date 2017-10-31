@@ -27,7 +27,6 @@ import unittest
 
 import lsst.utils
 
-from lsst.validate.base import load_metrics
 from lsst.validate.drp.validate import (
     get_filter_name_from_job, load_json_output, plot_metrics, print_metrics)
 
