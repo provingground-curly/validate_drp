@@ -269,7 +269,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         raise ValueError("Instrument name and input dataset URL must be set in config file")
     job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
                                          'dataset_repo_url':dataset_repo_url},
-                                   subset='validate_drp')
+                                   subset='validate_drp',
+                                   package_name_or_path=kwargs['metrics_package'])
     metrics = job.metrics
 
     specs = job.specs

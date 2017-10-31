@@ -175,7 +175,7 @@ def add_release_spec(data, release_specs, release_specs_level):
     data.add_column(release_targets_col)
 
 
-def float_or_dash(f, format_string='{:.2g}'):
+def float_or_dash(f, format_string='{:.2f}'):
     """Return string of formatted float, or -- if None.
 
     Intended use is to provide formatting output for columns
@@ -183,7 +183,11 @@ def float_or_dash(f, format_string='{:.2g}'):
     """
     # This try/except handles both None and non-numeric strings.
     try:
-        return format_string.format(float(f))
+        f = float(f)
+        if f > 0.001:
+            return format_string.format(f)
+        else:
+            return '{:.2e}'.format(f)
     except:
         # dashes are reserved
         return '**'
@@ -241,7 +245,7 @@ def write_report(data, filename='test.rst', format='ascii.rst'):
     # Provide default formats
     for spec_col in (release_target_col_name, srd_requirement_col_name):
         if spec_col in data:
-            data[spec_col].info.format = '.2E' # ellipticity correlations are really small.
+            data[spec_col].info.format = '.2f'
     data['Value'].info.format = float_or_dash
     data['Unit'].info.format = blank_none
     # Astropy 1.2.1 (the current miniconda stack install) doesn't support
