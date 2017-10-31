@@ -208,11 +208,11 @@ def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, media
     if not isinstance(brightSnr, u.Quantity):
         brightSnr = brightSnr * u.Unit('')
     _compute(blob,
-        matchedMultiVisitDataset['snr'],
-        matchedMultiVisitDataset['mag'],
-        matchedMultiVisitDataset['magerr'],
-        matchedMultiVisitDataset['magrms'],
-        matchedMultiVisitDataset['dist'],
+        matchedMultiVisitDataset['snr'].quantity,
+        matchedMultiVisitDataset['mag'].quantity,
+        matchedMultiVisitDataset['magerr'].quantity,
+        matchedMultiVisitDataset['magrms'].quantity,
+        matchedMultiVisitDataset['dist'].quantity,
         len(matchedMultiVisitDataset.goodMatches),
         brightSnr,
         medianRef,
@@ -226,12 +226,12 @@ def _compute(blob, snr, mag, magErr, magRms, dist, nMatch,
                               description='Threshold in SNR for bright sources used in this '
                                           'model')
 
-    bright = np.where(snr > blob['brightSnr'])
+    bright = np.where(snr > blob['brightSnr'].quantity)
     blob['photScatter'] = Datum(quantity=np.median(magRms[bright]),
                                 label='RMS',
                                 description='RMS photometric scatter for good stars')
     print('Photometric scatter (median) - SNR > {0:.1f} : {1:.1f}'.format(
-          blob.brightSnr, blob.photScatter.to(u.mmag)))
+          blob['brightSnr'].quantity, blob['photScatter'].quantity.to(u.mmag)))
 
     fit_params = fitPhotErrModel(mag[bright], magErr[bright])
     blob['sigmaSys'] = Datum(quantity=fit_params['sigmaSys'],
@@ -244,10 +244,10 @@ def _compute(blob, snr, mag, magErr, magRms, dist, nMatch,
                        label='m5',
                        description='5-sigma depth')
 
-    if blob['photScatter'] > medianRef:
+    if blob['photScatter'].quantity > medianRef:
         msg = 'Median photometric scatter {0:.3f} is larger than ' \
               'reference : {1:.3f}'
-        print(msg.format(blob['photScatter'], medianRef))
+        print(msg.format(blob['photScatter'].quantity.value, medianRef))
     if nMatch < matchRef:
         msg = 'Number of matched sources {0:d} is too small ' \
               '(should be > %d)'

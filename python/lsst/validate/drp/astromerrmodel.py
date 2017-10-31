@@ -156,10 +156,11 @@ def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
         medianRef = medianRef * u.marcsec
 
     _compute(blob,
-        matchedMultiVisitDataset['snr'],
-        matchedMultiVisitDataset['dist'],
+        matchedMultiVisitDataset['snr'].quantity,
+        matchedMultiVisitDataset['dist'].quantity,
         len(matchedMultiVisitDataset.goodMatches),
         brightSnr, medianRef, matchRef)
+    return blob
 
 def _compute(blob, snr, dist, nMatch, brightSnr, medianRef, matchRef):
     median_dist = np.median(dist)
