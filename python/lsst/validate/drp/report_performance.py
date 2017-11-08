@@ -172,7 +172,7 @@ def add_release_metric(data, release_metrics, release_metrics_level):
     data.add_column(release_targets_col)
 
 
-def float_or_dash(f, format_string='{:.2f}'):
+def float_or_dash(f, format_string='{:.3g}'):
     """Return string of formatted float, or -- if None.
 
     Intended use is to provide formatting output for columns
