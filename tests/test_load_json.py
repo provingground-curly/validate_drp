@@ -30,7 +30,6 @@ import lsst.utils
 from lsst.validate.base import load_metrics
 from lsst.validate.drp.validate import (
     get_filter_name_from_job, load_json_output, plot_metrics, print_metrics)
-from lsst.validate.drp.util import repoNameToPrefix
 
 
 class ParseJsonJob(unittest.TestCase):
@@ -103,7 +102,7 @@ class ParseJsonJob(unittest.TestCase):
             os.remove(filename)
 
         # test that outputPrefix is prepended correctly.
-        outputPrefix = repoNameToPrefix(self.jsonFile)
+        outputPrefix = 'foobarbaz'
         outputPrefixFiles = ['%s_%s' % (outputPrefix, f) for f in noOutputPrefixFiles]
         plot_metrics(job, filterName, outputPrefix=outputPrefix)
         for filename in outputPrefixFiles:
