@@ -158,12 +158,6 @@ def add_release_spec(data, release_specs, release_specs_level):
     """
     release_targets = []
     for row in data:
-        try:
-            metric = release_metrics[row['Metric']]
-        except:
-            msg = "Metric: {:s} not available in release_metrics file."
-            print(msg.format(row['Metric']))
-            return
 
         specs = release_specs.subset(required_meta={'filter_name':row['Filter'],
                                                     'instrument':row['Instrument']})

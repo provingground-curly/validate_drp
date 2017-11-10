@@ -566,30 +566,17 @@ def plotAMx(job, amx, afx, filterName, amxSpecName='design', outputPrefix=""):
 
     ax1.legend(loc='upper right', fontsize=16)
 
-<<<<<<< HEAD
     ext = 'png'
     pathFormat = '{metric}_D_{D:d}_{Dunits}_' + \
         '{magBright.value}_{magFaint.value}_{magFaint.unit}.{ext}'
     plotPath = makeFilename(outputPrefix,
                             pathFormat,
-                            metric=amx.label,
-                            D=int(amx.D.value),
-                            Dunits=amx.parameters['D'].unit,
-                            magBright=amx.magRange[0],
-                            magFaint=amx.magRange[1],
+                            metric=amx.datum.label,
+                            D=int(amx.extras['D'].quantity.value),
+                            Dunits=amx.extras['D'].quantity.unit,
+                            magBright=magRange[0],
+                            magFaint=magRange[1],
                             ext=ext)
-=======
-    pathFormat = '{prefix}{metric}_D_{D:d}_{Dunits}_' + \
-                 '{magBright.value}_{magFaint.value}_{magFaint.unit}.{ext}'
-    plotPath = pathFormat.format(
-        prefix=outputPrefix,
-        metric=amx.datum.label,
-        D=int(amx.extras['D'].quantity.value),
-        Dunits=amx.extras['D'].quantity.unit,
-        magBright=magRange[0],
-        magFaint=magRange[1],
-        ext='png')
->>>>>>> Repair reports and plots using verify
 
     plt.tight_layout()  # fix padding
     plt.savefig(plotPath, dpi=300, format=ext)
