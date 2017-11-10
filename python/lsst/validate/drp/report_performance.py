@@ -191,10 +191,7 @@ def float_or_dash(f, format_string='{:.3g}'):
     # This try/except handles both None and non-numeric strings.
     try:
         f = float(f)
-        if f > 0.001:
-            return format_string.format(f)
-        else:
-            return '{:.2e}'.format(f)
+        return format_string.format(f)
     except:
         # dashes are reserved
         return '**'
