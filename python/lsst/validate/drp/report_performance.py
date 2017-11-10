@@ -150,7 +150,12 @@ def add_release_metric(data, release_metrics, release_metrics_level):
     """
     release_targets = []
     for row in data:
-        metric = release_metrics[row['Metric']]
+        try:
+            metric = release_metrics[row['Metric']]
+        except:
+            msg = "Metric: {:s} not available in release_metrics file."
+            print(msg.format(row['Metric']))
+            return
         try:
             spec = metric.get_spec(
                 name=release_metrics_level, filter_name=row['Filter'])
@@ -167,7 +172,7 @@ def add_release_metric(data, release_metrics, release_metrics_level):
     data.add_column(release_targets_col)
 
 
-def float_or_dash(f, format_string='{:.2f}'):
+def float_or_dash(f, format_string='{:.3g}'):
     """Return string of formatted float, or -- if None.
 
     Intended use is to provide formatting output for columns
