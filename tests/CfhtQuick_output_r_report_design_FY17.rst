@@ -2,7 +2,7 @@
 Metric Filter    Unit Operator SRD Requirement: design Release Target: FY17 Value Comments
 ====== ====== ======= ======== ======================= ==================== ===== ========
    AM1      r marcsec       <=                    10.0                 30.0  8.64         
-   AF1      r               <=                    10.0                 10.0  0.59         
+   AF1      r               <=                    10.0                 10.0 0.592         
    AD1      r marcsec       <=                    20.0                 20.0  9.21         
    AM2      r               <=                    10.0                 40.0    --         
    AF2      r               <=                    10.0                 10.0    --         
@@ -10,7 +10,7 @@ Metric Filter    Unit Operator SRD Requirement: design Release Target: FY17 Valu
    AM3      r               <=                    15.0                 40.0    --         
    AF3      r               <=                    10.0                 10.0    --         
    AD3      r               <=                    30.0                 30.0    --         
-   PA1      r    mmag       <=                     5.0                  8.0 14.67         
-   PA2      r    mmag       <=                    15.0                 22.5 28.93         
-   PF1      r               <=                    10.0                 10.0 32.56         
+   PA1      r    mmag       <=                     5.0                  8.0  14.7         
+   PA2      r    mmag       <=                    15.0                 22.5  28.9         
+   PF1      r               <=                    10.0                 10.0  32.6         
 ====== ====== ======= ======== ======================= ==================== ===== ========
