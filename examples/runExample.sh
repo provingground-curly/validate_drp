@@ -78,7 +78,7 @@ NUMPROC=${NUMPROC:-$((sys_proc < max_proc ? sys_proc : max_proc))}
 
 # Extract desired dataIds runs from YAML config file
 YAMLCONFIG="${PRODUCT_DIR}"/examples/${CAMERA}.yaml
-RUNLIST="${PRODUCT_DIR}"/examples/${CAMERA}.list
+RUNLIST="${WORKSPACE}"/"${CAMERA}".list
 makeRunList.py "${YAMLCONFIG}" > "${RUNLIST}"
 
 ${PROCESSCCD} "${INPUT}" --output "${OUTPUT}" \
