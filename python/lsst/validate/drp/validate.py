@@ -124,6 +124,11 @@ def run(repo_or_json, metrics=None,
     else:
         load_json = False
 
+    import inspect
+    print(inspect.stack()[0][3])
+    print("makePlot=%s" % (makePlot))
+    print(kwargs)
+
     # I think I have to interrogate the kwargs to maintain compatibility
     # between Python 2 and Python 3
     # In Python 3 I would have let me mix in a keyword default after *args

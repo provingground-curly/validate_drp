@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set +o xtrace
+set -o xtrace
 
 PRODUCT_DIR="$VALIDATE_DRP_DIR"
 VALIDATION_DATA_DIR="${VALIDATION_DATA_CFHT_DIR}/raw"

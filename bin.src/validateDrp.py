@@ -66,6 +66,10 @@ if __name__ == "__main__":
                         help='Level of SRD requirement to meet: "minimum", "design", "stretch"')
 
     args = parser.parse_args()
+    # XXX debug
+    import inspect
+    print(inspect.stack()[0][3])
+    print(args)
 
     # Should clean up the duplication here between this and validate.run
     if args.repo[-5:] == '.json':
@@ -90,4 +94,5 @@ if __name__ == "__main__":
 
         kwargs['metrics_package'] = args.metricsPackage
 
+    print(kwargs)
     validate.run(args.repo, **kwargs)
