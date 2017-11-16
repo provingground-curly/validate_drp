@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+set +o xtrace
+
 print_error() {
     >&2 echo "$@"
 }
