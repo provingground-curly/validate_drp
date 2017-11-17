@@ -78,9 +78,6 @@ if __name__ == "__main__":
         load_json = False
 
     kwargs = {}
-    kwargs['verbose'] = args.verbose
-    kwargs['makePlot'] = args.makePlot
-    kwargs['level'] = args.level
 
     if not load_json:
         if args.configFile:
@@ -93,6 +90,10 @@ if __name__ == "__main__":
                 print("VISITDATAIDS: ", kwargs['dataIds'])
 
         kwargs['metrics_package'] = args.metricsPackage
+
+    kwargs['verbose'] = args.verbose
+    kwargs['makePlot'] = args.makePlot
+    kwargs['level'] = args.level
 
     print(kwargs)
     validate.run(args.repo, **kwargs)
