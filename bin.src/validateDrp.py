@@ -75,9 +75,6 @@ if __name__ == "__main__":
         load_json = False
 
     kwargs = {}
-    kwargs['verbose'] = args.verbose
-    kwargs['makePlot'] = args.makePlot
-    kwargs['level'] = args.level
 
     if not load_json:
         if args.configFile:
@@ -94,5 +91,9 @@ if __name__ == "__main__":
             sys.exit(1)
         metrics = load_metrics(args.metricsFile)
         kwargs['metrics'] = metrics
+
+    kwargs['verbose'] = args.verbose
+    kwargs['makePlot'] = args.makePlot
+    kwargs['level'] = args.level
 
     validate.run(args.repo, **kwargs)
