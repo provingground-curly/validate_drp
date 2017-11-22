@@ -73,6 +73,10 @@ class MatchedVisitMetricsConfig(Config):
         dtype=bool, default=False,
         doc="Skip TEx calculations (useful for older catalogs that don't have PsfShape measurements)."
     )
+    verbose = Field(
+        dtype=bool, default=False,
+        doc="More verbose output during validate calculations."
+    )
 
 
 class MatchedVisitMetricsTask(CmdLineTask):
@@ -125,7 +129,8 @@ class MatchedVisitMetricsTask(CmdLineTask):
                            filterName=filterName,
                            outputPrefix=outputPrefix,
                            useJointCal=self.config.useJointCal,
-                           skipTEx=self.config.skipTEx)
+                           skipTEx=self.config.skipTEx,
+                           verbose=self.config.verbose)
         if self.config.makePlots:
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
