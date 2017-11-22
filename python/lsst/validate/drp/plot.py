@@ -177,6 +177,7 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
     plotPath = makeFilename(outputPrefix, pathFormat, name="check_astrometry", ext=ext)
     plt.savefig(plotPath, format=ext)
     plt.close(fig)
+    print("Wrote plot:", plotPath)
 
 
 def plotAstromErrModelFit(snr, dist, model,
@@ -413,6 +414,7 @@ def plotPhotometryErrorModel(dataset, photomModel,
     plotPath = makeFilename(outputPrefix, pathFormat, name="check_photometry", ext=ext)
     plt.savefig(plotPath, format=ext)
     plt.close(fig)
+    print("Wrote plot:", plotPath)
 
 
 def plotPA1(pa1, outputPrefix=""):
@@ -471,6 +473,7 @@ def plotPA1(pa1, outputPrefix=""):
     plotPath = makeFilename(outputPrefix, pathFormat, name="PA1", ext=ext)
     plt.savefig(plotPath, format=ext)
     plt.close(fig)
+    print("Wrote plot:", plotPath)
 
 
 def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
@@ -566,6 +569,7 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     plt.tight_layout()  # fix padding
     plt.savefig(plotPath, dpi=300, format=ext)
     plt.close(fig)
+    print("Wrote plot:", plotPath)
 
 
 def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
@@ -646,3 +650,4 @@ def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
     plt.tight_layout()  # fix padding
     plt.savefig(plotPath, dpi=300, ext=ext)
     plt.close(fig)
+    print("Wrote plot:", plotPath)
