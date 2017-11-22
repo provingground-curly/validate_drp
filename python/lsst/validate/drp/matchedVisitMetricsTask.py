@@ -69,6 +69,10 @@ class MatchedVisitMetricsConfig(Config):
         dtype=bool, default=False,
         doc="Whether to use jointcal (or meas_mosaic) to calibrate measurements"
     )
+    skipTEx = Field(
+        dtype=bool, default=False,
+        doc="Skip TEx calculations (useful for older catalogs that don't have PsfShape measurements)."
+    )
 
 
 class MatchedVisitMetricsTask(CmdLineTask):
@@ -120,7 +124,8 @@ class MatchedVisitMetricsTask(CmdLineTask):
                            makeJson=self.config.makeJson,
                            filterName=filterName,
                            outputPrefix=outputPrefix,
-                           useJointCal=self.config.useJointCal)
+                           useJointCal=self.config.useJointCal,
+                           skipTEx=self.config.skipTEx)
         if self.config.makePlots:
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 

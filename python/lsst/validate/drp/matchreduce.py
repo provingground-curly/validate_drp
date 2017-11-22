@@ -60,6 +60,11 @@ class MatchedMultiVisitDataset(BlobBase):
         Radius for matching. Default is 1 arcsecond.
     safeSnr : `float`, optional
         Minimum median SNR for a match to be considered "safe".
+    useJointCal : bool, optional
+        Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
+    skipTEx : bool, optional
+        Skip TEx calculations (useful for older catalogs that don't have
+        PsfShape measurements).
     verbose : `bool`, optional
         Output additional information on the analysis steps.
 
@@ -106,10 +111,11 @@ class MatchedMultiVisitDataset(BlobBase):
     name = 'MatchedMultiVisitDataset'
 
     def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
-                 useJointCal=False, verbose=False):
+                 useJointCal=False, skipTEx=False, verbose=False):
         BlobBase.__init__(self)
 
         self.verbose = verbose
+        self.skipTEx = skipTEx
         if not matchRadius:
             matchRadius = afwGeom.Angle(1, afwGeom.arcseconds)
 
@@ -173,6 +179,8 @@ class MatchedMultiVisitDataset(BlobBase):
             calibration.
         matchRadius :  afwGeom.Angle(), optional
             Radius for matching. Default is 1 arcsecond.
+        useJointCal : bool, optional
+            Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
 
         Returns
         -------
@@ -294,12 +302,13 @@ class MatchedMultiVisitDataset(BlobBase):
                     tmpCat['base_PsfFlux_mag'][:] = _[0]
                     tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
-            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
-            _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
-            tmpCat['e1'][:] = star_e1
-            tmpCat['e2'][:] = star_e2
-            tmpCat['psf_e1'][:] = psf_e1
-            tmpCat['psf_e2'][:] = psf_e2
+            if not self.skipTEx:
+                _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
+                _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
+                tmpCat['e1'][:] = star_e1
+                tmpCat['e2'][:] = star_e2
+                tmpCat['psf_e1'][:] = psf_e1
+                tmpCat['psf_e2'][:] = psf_e2
 
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)
