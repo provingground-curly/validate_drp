@@ -32,31 +32,27 @@ from ..util import (averageRaFromCat, averageDecFromCat,
                     medianEllipticity2ResidualsFromCat)
 
 
-"""Measurement of TEx (x=1,2): Correlation of PSF residual ellipticity
+def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
+    """Measurement of TEx (x=1,2): Correlation of PSF residual ellipticity
     on scales of D=(1, 5) arcmin.
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        An TE1 or TE2 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+    metric : `lsst.verify.Metric`
+        An TE1 or TE2 `~lsst.verify.Metric` instance.
+    matchedDataset : lsst.verify.Blob
         The matched catalogs to analyze.
-    filter_name : `str`
-        filter_name (filter name) used in this measurement (e.g., ``'r'``).
+    D : `astropy.units.Quantity`
+        Radial size of annulus in arcmin
+    bin_range_operator : str
+        String representation to use in comparisons
     verbose : `bool`, optional
         Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., ``matchedDataset``).
 
-    Attributes
-    ----------
-    blob : TExBlob
-        Blob with by-products from this measurement.
+    Returns
+    -------
+    measurement : `lsst.verify.Measurement`
+        Measurement of TEx (x=1,2) and associated metadata.
 
     Notes
     -----
@@ -97,8 +93,6 @@ from ..util import (averageRaFromCat, averageDecFromCat,
     Table 27: These residual PSF ellipticity correlations apply to the r and i bands.
     """
 
-
-def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
     matches = matchedDataset.safeMatches
 
     datums = {}
@@ -110,8 +104,8 @@ def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
     datums['xip_err'] = Datum(quantity=xip_err, description="Correlation strength uncertainty")
     datums['bin_range_operator'] = Datum(quantity=bin_range_operator, description="Bin range operator string")
 
-    corr, corr_err = select_bin_from_corr(radius, xip, xip_err, radius=D,
-                                          operator=ThresholdSpecification.convert_operator_str(bin_range_operator))
+    operator = ThresholdSpecification.convert_operator_str(bin_range_operator)
+    corr, corr_err = select_bin_from_corr(radius, xip, xip_err, radius=D, operator=operator)
     quantity = np.abs(corr) * u.Unit('')
     return Measurement(metric, quantity, extras=datums)
 
@@ -123,7 +117,7 @@ def correlation_function_ellipticity_from_matches(matches, **kwargs):
 
     Parameters
     ----------
-    matches : `lsst.validate.drp.matchreduce.MatchedMultiVisitDataset`
+    matches : `lsst.verify.Blob`
         - The matched catalogs to analyze.
 
     Returns
@@ -240,6 +234,8 @@ def plot_correlation_function_ellipticity(r, xip, xip_err,
         Two-point correlation
     xip_err : numpy.array
         Uncertainty on two-point correlation
+    plotfile : Str
+        Name of file to save the figure in.
 
     Effects
     -------

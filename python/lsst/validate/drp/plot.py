@@ -100,10 +100,10 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
 
     Parameters
     ----------
-    dataset : `MatchedMultiVisitDataset`
+    dataset : `lsst.verify.Blob`
         Blob with the multi-visit photometry model.
-    photomModel : `AnalyticPhotometryModel`
-        An analyticPhotometry model object.
+    photomModel : `lsst.verify.Blob`
+        A `Blob` containing the analytic photometry model.
     outputPrefix : str, optional
         Prefix to use for filename of plot file.  Will also be used in plot
         titles. E.g., ``outputPrefix='Cfht_output_r_'`` will result in a file
@@ -197,8 +197,8 @@ def plotAstromErrModelFit(snr, dist, model,
         S/N of photometric measurements
     dist : list or numpy.array
         Separation from reference [mas]
-    model : `AnalyticAstrometryModel`
-        An `AnalyticAstrometryModel` instance.
+    model : `lsst.verify.Blob`
+        A `Blob` holding the analytic astrometric model.
     """
     if ax is None:
         ax = plt.figure()
@@ -239,8 +239,8 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
         Magnitude
     mmag_err : list or numpy.array
         Magnitude uncertainty or variation in *mmag*.
-    photomModel : `AnalyticPhotometryModel`
-        Fit parameters to display.
+    photomModel : `lsst.verify.Blob`
+        A `Blob` holding the parameters to display.
     ax : matplotlib.Axis, optional
         The Axis object to plot to.
     verbose : bool, optional
@@ -280,10 +280,10 @@ def plotPhotometryErrorModel(dataset, photomModel,
 
     Parameters
     ----------
-    dataset : `MatchedMultiVisitDataset`
-        Blob with the multi-visit photometry model.
-    photomModel : `AnalyticPhotometryModel`
-        An analyticPhotometry model object.
+    dataset : `lsst.verify.Blob`
+        A `Blob` with the multi-visit photometry model.
+    photomModel : `lsst.verify.Blob`
+        A `Blob` hlding the analytic photometry model parameters.
     filterName : str, optional
         Name of the observed filter to use on axis labels.
     outputPrefix : str, optional
@@ -430,8 +430,8 @@ def plotPA1(pa1, outputPrefix=""):
 
     Parameters
     ----------
-    pa1 : `PA1Measurement`
-        A PA1 object.
+    pa1 : `lsst.verify.Measurement`
+        A `Measurement` of the PA1 `Metric`.
     outputPrefix : `str`, optional
         Prefix to use for filename of plot file.  Will also be used in plot
         titles. E.g., outputPrefix='Cfht_output_r_' will result in a file
@@ -494,8 +494,11 @@ def plotAMx(job, amx, afx, filterName, amxSpecName='design', outputPrefix=""):
 
     Parameters
     ----------
-    amx : `AMxMeasurement`
-    afx : `AFxMeasurement`
+    job : `lsst.verify.Job`
+        `~lsst.verify.Job` providing access to metrics, specs and measurements
+    amx : `lsst.verify.Measurement`
+    afx : `lsst.verify.Measurement`
+    filterName : `str`
     amxSpecName : `str`, optional
         Name of the AMx specification to reference in the plot.
         Default: ``'design'``.
@@ -592,8 +595,10 @@ def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
 
     Parameters
     ----------
-    tex : Measurement object
-        The ellipticity residual correlation Measurement object
+    job : `lsst.verify.Job`
+        `Job` providing access to metrics, specs, and measurements
+    tex : `lsst.verify.Measurement
+        The ellipticity residual correlation `Measurement` object
     filterName : str
         Name of the filter of the images
     texSpecName : str

@@ -146,7 +146,9 @@ def fitPhotErrModel(mag, mag_err):
     return params
 
 
-"""Serializable analytic photometry error model for a single visit.
+def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, medianRef=100,
+                                  matchRef=500):
+    """Returns a serializable analytic photometry error model for a single visit.
 
     This model is originally presented in http://arxiv.org/abs/0805.2366v4
     (Eq 4, 5):
@@ -169,18 +171,16 @@ def fitPhotErrModel(mag, mag_err):
     matchRef : `int` or `astropy.unit.Quantity`, optional
         Should match at least matchRef stars.
 
-    Attributes
+    Returns
     ----------
-    brightSnr : `astropy.unit.Quantity`
-        Threshold in SNR for bright sources used in this  model.
-    sigmaSys : `astropy.unit.Quantity`
-        Systematic error floor.
-    gamma : `astropy.unit.Quantity`
-        Proxy for sky brightness and read noise.
-    m5 : `astropy.unit.Quantity`
-        5-sigma photometric depth (magnitudes).
-    photRms : `astropy.unit.Quantity`
-        RMS photometric scatter for 'good' stars (millimagnitudes).
+    blob : `lsst.verify.Blob`
+        Blob with datums:
+
+        - ``brightSnr``: Threshold in SNR for bright sources used in this  model.
+        - ``sigmaSys``: Systematic error floor.
+        - ``gamma``: Proxy for sky brightness and read noise.
+        - ``m5``: 5-sigma photometric depth (magnitudes).
+        - ``photRms``: RMS photometric scatter for 'good' stars (millimagnitudes).
 
     Notes
     -----
@@ -188,10 +188,6 @@ def fitPhotErrModel(mag, mag_err):
     For SDSS, stars with mag < 19.5 should be completely well measured.
     This limit is a band-dependent statement most appropriate to r.
     """
-
-
-def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, medianRef=100,
-                                  matchRef=500):
     blob = Blob('PhotometricErrorModel')
 
 

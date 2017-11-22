@@ -30,6 +30,7 @@ from sqlalchemy.exc import OperationalError
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image.utils as afwImageUtils
+import lsst.afw.image as afwImage
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView,
@@ -44,10 +45,12 @@ from .util import (getCcdKeyName, raftSensorToInt, positionRmsFromCat,
 __all__ = ['build_matched_dataset']
 
 
-"""Container for matched star catalogs from multple visits, with filtering,
+def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
+             useJointCal=False):
+    """Construct a container for matched star catalogs from multple visits, with filtering,
     summary statistics, and modelling.
 
-    `MatchedMultiVisitDataset` instances are serializable to JSON.
+    `lsst.verify.Blob` instances are serializable to JSON.
 
     Parameters
     ----------
@@ -66,10 +69,8 @@ __all__ = ['build_matched_dataset']
     skipTEx : bool, optional
         Skip TEx calculations (useful for older catalogs that don't have
         PsfShape measurements).
-    verbose : `bool`, optional
-        Output additional information on the analysis steps.
 
-    Attributes
+    Attributes of returned Blob
     ----------
     filterName : `str`
         Name of filter used for all observations.
@@ -85,6 +86,8 @@ __all__ = ['build_matched_dataset']
         (dimensionless).
     dist : `astropy.units.Quantity`
         RMS of sky coordinates of stars over multiple visits (milliarcseconds).
+
+        *Not serialized.*
     goodMatches
         all good matches, as an afw.table.GroupView;
         good matches contain only objects whose detections all have
@@ -154,9 +157,9 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
 
     Returns
     -------
-    afw.table.SourceCatalog
+    catalog_list : afw.table.SourceCatalog
         List of all of the catalogs
-    afw.table.GroupView
+    matched_catalog : afw.table.GroupView
         An object of matched catalog.
     """
     # Following

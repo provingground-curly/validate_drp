@@ -26,21 +26,23 @@ import astropy.units as u
 
 from lsst.verify import Measurement, Datum
 
-from ..util import (averageRaDecFromCat, averageRaFromCat, averageDecFromCat,
+from ..util import (averageRaFromCat, averageDecFromCat,
                     sphDist)
 
 
-"""Measurement of AMx (x=1,2,3): The maximum rms of the astrometric
+def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False):
+    """Measurement of AMx (x=1,2,3): The maximum rms of the astrometric
     distance distribution for stellar pairs with separations of D arcmin
     (repeatability).
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        An AM1, AM2 or AM3 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    filter_name : `str`
-        filter_name (filter name) used in this measurement (e.g., ``'r'``).
+    metric : `lsst.verify.Metric`
+        An AM1, AM2 or AM3 `~lsst.verify.Metric` instance.
+    matchedDataset : lsst.verify.Blob
+        Contains the spacially matched dataset for the measurement
+    D : `astropy.units.Quantity`
+        Radial distance of the annulus in arcmin
     width : `float` or `astropy.units.Quantity`, optional
         Width around fiducial distance to include. [arcmin]
     magRange : 2-element `list`, `tuple`, or `numpy.ndarray`, optional
@@ -48,20 +50,11 @@ from ..util import (averageRaDecFromCat, averageRaFromCat, averageDecFromCat,
         Default: ``[17.5, 21.5]`` mag.
     verbose : `bool`, optional
         Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., ``matchedDataset``).
 
-    Attributes
-    ----------
-    rmsDistMas : ndarray
-        RMS of distance repeatability between stellar pairs.
-    blob : AMxBlob
-        Blob with by-products from this measurement.
+    Returns
+    -------
+    measurement : `lsst.verify.Measurement`
+        Measurement of AMx (x=1,2,3) and associated metadata.
 
     Notes
     -----
@@ -105,8 +98,6 @@ from ..util import (averageRaDecFromCat, averageRaFromCat, averageDecFromCat,
     and to astrometric measurements performed in the r and i bands.
     """
 
-
-def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False):
     matches = matchedDataset.safeMatches
 
     datums = {}
@@ -127,7 +118,7 @@ def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False
 
     annulus = D + (width/2)*np.array([-1, +1])
     datums['annulus'] = Datum(quantity=annulus, label='annulus radii',
-                             description='Inner and outer radii of selection annulus.')
+                              description='Inner and outer radii of selection annulus.')
 
     # Register measurement extras
     rmsDistances = calcRmsDistances(
@@ -147,6 +138,7 @@ def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False
         quantity = np.median(rmsDistances.to(u.marcsec))
 
     return Measurement(metric.name, quantity, extras=datums)
+
 
 def calcRmsDistances(groupView, annulus, magRange, verbose=False):
     """Calculate the RMS distance of a set of matched objects over visits.

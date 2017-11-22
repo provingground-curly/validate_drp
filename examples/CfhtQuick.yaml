@@ -5,4 +5,4 @@ visits: [849375, 850587]
 filter: 'r'
 ccd: [12]
 instrument: 'CFHT'
-+dataset_repo_url: 'https://github.com/lsst/validation_data_cfht.git'
+dataset_repo_url: 'https://github.com/lsst/validation_data_cfht.git'
