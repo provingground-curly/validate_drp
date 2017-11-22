@@ -26,31 +26,26 @@ import astropy.units as u
 from lsst.verify import Measurement
 
 
-"""Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
+def measureAFx(metric, amx, adx, adx_spec):
+    """Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
     distances which deviate by more than ADx milliarcsec (see AMx) (%).
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        AF1, AF2 or AF3 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    amx : :class:`lsst.validate.drp.calcsrd.AMxMeasurement`
-        And AMx measurement, providing the median astrometric scatter in
+    metric : `lsst.verify.Metric`
+        AF1, AF2 or AF3 `~lsst.verify.Metric` instance.
+    amx : :class:`lsst.verify.Measurement`
+        An AMx measurement, providing the median astrometric scatter in
         the annulus.
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    spec_name : str
-        Name of a specification level to measure against (e.g., design,
-        minimum, stretch).
-    verbose : bool, optional
-        Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+    adx : :class:`lsst.verify.Measurement`
+        An ADx measurement
+    adx_spec : :class:`lsst.verify.Spec`
+        An instance of a `lsst.verify.Spec` containing the threshold against
+        which to measure.
+
+    Returns
+    -------
+    An `lsst.verify.Measurement` containing the measured value of AFx (x=1,2,3) and associated metadata.
 
     Notes
     -----
@@ -94,12 +89,11 @@ from lsst.verify import Measurement
     and to astrometric measurements performed in the r and i bands.
     """
 
-
-def measureAFx(metric, amx, adx, adx_spec):
     datums = {}
     datums['ADx'] = adx.datum
     if not np.isnan(amx.quantity):
-        quantity = 100.*np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity + adx_spec.threshold)*u.Unit('percent')
+        quantity = 100.*np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity +
+                                adx_spec.threshold)*u.Unit('percent')
     else:
         quantity = np.nan*u.Unit('percent')
     datums.update(amx.extras)

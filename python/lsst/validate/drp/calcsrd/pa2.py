@@ -26,30 +26,22 @@ import astropy.units as u
 from lsst.verify import Measurement, Datum
 
 
-"""Measurement of PA2: millimag from median RMS (see PA1) of which
+def measurePA2(metric, pa1, pf1_thresh): 
+    """Measurement of PA2: millimag from median RMS (see PA1) of which
     PF1 of the samples can be found.
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        A PA2 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    pa1 : PA1Measurement
+    metric : `lsst.verify.Metric`
+        A PA2 `~lsst.verify.Metric` instance.
+    pa1 : `lsst.verify.Measurement`
         A PA1 measurement instance.
-    filter_name : str
-        filter_name (filter name) used in this measurement (e.g., `'r'`).
-    spec_name : str
-        Name of a specification level to measure against (e.g., design,
-        minimum, stretch).
-    verbose : bool, optional
-        Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+    pf1_thresh : `astropy.units.Quantity`
+        Quantity specifying the threshold at which to calculate PA2
+
+    Returns
+    -------
+    An `lsst.verify.Measurement` containing the measured value of PA2 and associated metadata.
 
     Notes
     -----
@@ -60,14 +52,12 @@ from lsst.verify import Measurement, Datum
     LPM-17 as of 2011-07-06, available at http://ls.st/LPM-17.
     """
 
+    datums = {}
+    datums['pf1_thresh'] = Datum(quantity=pf1_thresh, description="Threshold from the PF1 specification")
 
-def measurePA2(metric, pa1, pf1_thresh): 
-        datums = {}
-        datums['pf1_thresh'] = Datum(quantity=pf1_thresh, description="Threshold from the PF1 specification")
+    # Use first random sample from original PA1 measurement
+    magDiffs = pa1.extras['magDiff'].quantity[0, :]
 
-        # Use first random sample from original PA1 measurement
-        magDiffs = pa1.extras['magDiff'].quantity[0, :]
-
-        pf1Percentile = 100.*u.percent - pf1_thresh
-        return Measurement(metric, np.percentile(np.abs(magDiffs), pf1Percentile) * magDiffs.unit,
-                           extras=datums)
+    pf1Percentile = 100.*u.percent - pf1_thresh
+    return Measurement(metric, np.percentile(np.abs(magDiffs), pf1Percentile) * magDiffs.unit,
+                       extras=datums)

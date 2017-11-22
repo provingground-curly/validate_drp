@@ -26,30 +26,22 @@ import astropy.units as u
 from lsst.verify import Measurement, Datum
 
 
-"""Measurement of PF1: fraction of samples between median RMS (PA1) and
+def measurePF1(metric, pa1, pa2_spec):
+    """Measurement of PF1: fraction of samples between median RMS (PA1) and
     PA2 specification.
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        A PF1 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    pa1 : PA1Measurement
+    metric : `lsst.verify.Metric`
+        A PF1 `~lsst.verify.Metric` instance.
+    pa1 : `lsst.verify.Measurement`
         A PA1 measurement instance.
-    filter_name : str
-        filter_name (filter name) used in this measurement (e.g., `'r'`).
-    spec_name : str
-        Name of a specification level to measure against (e.g., design,
-        minimum, stretch).
-    verbose : bool, optional
-        Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+    pa2_spec : `lsst.verify.Spec`
+        An `lsst.verify.Spec` that holds the threshold at which to measure PF1
+
+    Returns
+    -------
+    An `lsst.verify.Measurement` containing the measured value of PF1 and associated metadata.
 
     Notes
     -----
@@ -60,8 +52,6 @@ from lsst.verify import Measurement, Datum
     LPM-17 as of 2011-07-06, available at http://ls.st/LPM-17.
     """
 
-
-def measurePF1(metric, pa1, pa2_spec):
     datums = {}
     datums['pa2_spec'] = Datum(quantity=pa2_spec.threshold, description="Threshold applied to PA2")
     # Use first random sample from original PA1 measurement

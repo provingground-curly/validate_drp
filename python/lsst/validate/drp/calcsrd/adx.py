@@ -26,31 +26,24 @@ import astropy.units as u
 from lsst.verify import Measurement
 
 
-"""Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
+def measureADx(metric, amx, afx_spec):
+    """Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
     distances which deviate by more than ADx milliarcsec (see AMx) (%).
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        AD1, AD2, or AD3 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    amx : :class:`lsst.validate.drp.calcsrd.AMxMeasurement`
+    metric : `lsst.verify.Metric`
+        AD1, AD2, or AD3 `~lsst.verify.Metric` instance.
+    amx : :class:`lsst.verify.Measurement`
         And AMx measurement, providing the median astrometric scatter in
         the annulus.
-    filter_name : str
-        filter_name (filter name) used in this measurement (e.g., `'r'`).
-    spec_name : str
-        Name of a specification level to measure against (e.g., design,
+    afx_spec : `lsst.verify.Spec`
+        Specification containing the value of the level to measure against (e.g., design,
         minimum, stretch).
-    verbose : bool, optional
-        Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+
+    Returns
+    -------
+    An `lsst.verify.Measurement` containing the measured value of ADx (x=1,2,3) and associated metadata.
 
     Notes
     -----
@@ -94,8 +87,6 @@ from lsst.verify import Measurement
     and to astrometric measurements performed in the r and i bands.
     """
 
-
-def measureADx(metric, amx, afx_spec):
     if not np.isnan(amx.quantity):
         # No more than AFx of values will deviate by more than the
         # AMx (50th) + AFx percentiles
