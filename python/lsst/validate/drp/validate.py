@@ -27,6 +27,7 @@ import json
 import os
 
 from textwrap import TextWrapper
+import astropy.visualization
 
 from lsst.validate.base import Job
 
@@ -321,6 +322,8 @@ def plot_metrics(job, filterName, outputPrefix=''):
     job - an lsst.validate.base.Job object
     filterName - string identifying the filter.
     """
+    astropy.visualization.quantity_support()
+
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
