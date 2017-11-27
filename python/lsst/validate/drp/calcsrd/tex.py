@@ -51,7 +51,8 @@ def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of TEx (x=1,2) and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of TEx (x=1,2) and associated metadata.
 
     Notes
     -----

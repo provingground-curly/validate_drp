@@ -42,10 +42,12 @@ from .util import (getCcdKeyName, positionRmsFromCat, ellipticity_from_cat)
 __all__ = ['build_matched_dataset']
 
 
-"""Container for matched star catalogs from multple visits, with filtering,
+def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
+             useJointCal=False):
+    """Construct a container for matched star catalogs from multple visits, with filtering,
     summary statistics, and modelling.
 
-    `MatchedMultiVisitDataset` instances are serializable to JSON.
+    `lsst.verify.Blob` instances are serializable to JSON.
 
     Parameters
     ----------
@@ -59,10 +61,10 @@ __all__ = ['build_matched_dataset']
         Radius for matching. Default is 1 arcsecond.
     safeSnr : `float`, optional
         Minimum median SNR for a match to be considered "safe".
-    verbose : `bool`, optional
-        Output additional information on the analysis steps.
+    useJointCal : `bool`, optional
+        Indicates whether jointcal calibrations were used
 
-    Attributes
+    Attributes of returned Blob
     ----------
     filterName : `str`
         Name of filter used for all observations.
@@ -78,6 +80,8 @@ __all__ = ['build_matched_dataset']
         (dimensionless).
     dist : `astropy.units.Quantity`
         RMS of sky coordinates of stars over multiple visits (milliarcseconds).
+
+        *Not serialized.*
     goodMatches
         all good matches, as an afw.table.GroupView;
         good matches contain only objects whose detections all have
@@ -101,10 +105,6 @@ __all__ = ['build_matched_dataset']
 
         *Not serialized.*
     """
-
-
-def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
-             useJointCal=False):
     blob = Blob('MatchedMultiVisitDataset')
 
     if not matchRadius:
@@ -147,9 +147,9 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
 
     Returns
     -------
-    afw.table.SourceCatalog
+    catalog_list : afw.table.SourceCatalog
         List of all of the catalogs
-    afw.table.GroupView
+    matched_catalog : afw.table.GroupView
         An object of matched catalog.
     """
     # Following

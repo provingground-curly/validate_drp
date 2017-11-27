@@ -41,7 +41,8 @@ def measurePF1(metric, pa1, pa2_spec):
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of PF1 and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of PF1 and associated metadata.
 
     Notes
     -----

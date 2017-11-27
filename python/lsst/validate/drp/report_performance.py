@@ -32,17 +32,14 @@ def run(validation_drp_report_filenames, output_file,
     """
     Parameters
     ---
-    validation_drp_report_filenames : [] or str, filepaths for JSON files.
-    output_file : str, filepath of output RST file.
-    srd_level : str, SRD level to quote.  One of ['design', 'minimum', 'stretch']
-    release_specs_file : str [optional], filepath of metrics YAML file
-      While the JSON file itself will store the metrics the was calculated with
-        one may wish to compare against an external set of specifications.
-      E.g., ${VALIDATE_DRP_DIR}/etc/release_specs.yaml
-        contains the target levels for each fiscal year through to and including
-        operational readiness review (ORR).  This file is essentially the same
-        as ${VALIDATE_DRP_DIR}/etc/metrics.yaml, but defines levels in terms
-        of fiscal year and ORR instead of design/minimum/stretch.
+    validation_drp_report_filenames : list or str
+        filepaths for JSON files.
+    output_file : str
+        filepath of output RST file.
+    srd_level : str
+        SRD level to quote.  One of ['design', 'minimum', 'stretch']
+    release_specs_package : str, optional
+        Name of package to use in constructing the release level specs.
     release_level : str, A specification level in the 'release_specs_file'
        E.g., 'FY17' or 'ORR'
 
@@ -74,7 +71,7 @@ def ingest_data(filenames):
 
     Returns
     -------
-    list of lsst.validate.base.Job
+    job_list : list of lsst.validate.base.Job
         Each element is the Job representation of the JSON file.
     """
     jobs = {}
@@ -104,7 +101,7 @@ def objects_to_table(input_objects, level='design'):
 
     Returns
     -------
-    astropy.table.Table
+    report : astropy.table.Table
         Table with columns needed for final report.
     """
     rows = []
@@ -112,9 +109,9 @@ def objects_to_table(input_objects, level='design'):
         specs, metrics = get_specs_metrics(job)
         for key, m in job.measurements.items():
             parts = key.metric.split("_")
-            metric = parts[0] # For compound metrics
+            metric = parts[0]  # For compound metrics
             if len(parts) > 1:
-                if not level in ".".join(parts):
+                if level not in ".".join(parts):
                     continue
             spec_set = specs[metric]
             spec = None
@@ -220,9 +217,9 @@ def write_report(data, filename='test.rst', format='ascii.rst'):
     Parameters
     ----------
     data : astropy.table.Table
-    filename : str [optional]
+    filename : str, optional
         Filepath of output RST file.
-    format : str [optional]
+    format : str, optional
         astropy.table format for output table.
 
     Creates

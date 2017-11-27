@@ -48,7 +48,8 @@ def measurePA1(metric, matchedDataset, filterName, numRandomShuffles=50):
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of PA1 and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of PA1 and associated metadata.
 
     See also
     --------

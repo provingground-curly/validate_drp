@@ -102,7 +102,9 @@ def fitAstromErrModel(snr, dist):
     return params
 
 
-"""Serializable model of astrometry errors across multiple visits.
+def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
+                 medianRef=100, matchRef=500):
+    """Serializable model of astrometry errors across multiple visits.
 
     .. math::
 
@@ -120,18 +122,16 @@ def fitAstromErrModel(snr, dist):
     matchRef : int, optional
         Should match at least matchRef number of stars (dimensionless).
 
-    Attributes
-    ----------
-    brightSnr : float
-        Threshold SNR for bright sources used in this model.
-    C : float
-        Model scaling factor.
-    theta : float
-        Seeing (milliarcsecond).
-    sigmaSys : float
-        Systematic error floor (milliarcsecond).
-    astromRms : float
-        Astrometric scatter (RMS) for good stars (milliarcsecond).
+    Returns
+    -------
+    blob : `lsst.verify.Blob`
+        Blob with datums:
+
+        - ``brightSnr``: Threshold SNR for bright sources used in this model.
+        - ``C``: Model scaling factor.
+        - ``theta``: Seeing (milliarcsecond).
+        - ``sigmaSys``: Systematic error floor (milliarcsecond).
+        - ``astromRms``: Astrometric scatter (RMS) for good stars (milliarcsecond).
 
     Notes
     -----
@@ -141,9 +141,6 @@ def fitAstromErrModel(snr, dist):
     For SDSS, stars with mag < 19.5 should be completely well measured.
     """
 
-
-def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
-                 medianRef=100, matchRef=500):
     blob = Blob('AnalyticAstrometryModel')
 
     # FIXME add description field to blobs

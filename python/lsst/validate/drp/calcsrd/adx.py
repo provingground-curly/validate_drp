@@ -34,7 +34,7 @@ def measureADx(metric, amx, afx_spec):
     ----------
     metric : `lsst.verify.Metric`
         AD1, AD2, or AD3 `~lsst.verify.Metric` instance.
-    amx : :class:`lsst.verify.Measurement`
+    amx : `lsst.verify.Measurement`
         And AMx measurement, providing the median astrometric scatter in
         the annulus.
     afx_spec : `lsst.verify.Spec`
@@ -43,7 +43,8 @@ def measureADx(metric, amx, afx_spec):
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of ADx (x=1,2,3) and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of ADx (x=1,2,3) and associated metadata.
 
     Notes
     -----

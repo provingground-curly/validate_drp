@@ -41,7 +41,8 @@ def measurePA2(metric, pa1, pf1_thresh):
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of PA2 and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of PA2 and associated metadata.
 
     Notes
     -----

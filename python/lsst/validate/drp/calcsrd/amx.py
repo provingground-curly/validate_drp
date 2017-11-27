@@ -53,7 +53,8 @@ def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of AMx (x=1,2,3) and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of AMx (x=1,2,3) and associated metadata.
 
     Notes
     -----

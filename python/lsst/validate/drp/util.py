@@ -223,7 +223,7 @@ def averageRaFromCat(cat):
     """Compute the average right ascension from a catalog of measurements.
 
     This function is used as an aggregate function to extract just RA
-    from an lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+    from lsst.validate.drp.matchreduce.build_matched_dataset
 
     The actual computation involves both RA and Dec.
 
@@ -248,7 +248,7 @@ def averageDecFromCat(cat):
     """Compute the average declination from a catalog of measurements.
 
     This function is used as an aggregate function to extract just declination
-    from an lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+    from lsst.validate.drp.matchreduce.build_matched_dataset
 
     The actual computation involves both RA and Dec.
 
@@ -273,7 +273,7 @@ def medianEllipticityResidualsFromCat(cat):
     """Compute the median ellipticty residuals from a catalog of measurements.
 
     This function is used as an aggregate function to extract just declination
-    from an lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
+    from lsst.validate.drp.matchreduce.build_matched_dataset
 
     The intent is to use this for a set of measurements of the same source
     but that's neither enforced nor required.

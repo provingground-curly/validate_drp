@@ -34,18 +34,19 @@ def measureAFx(metric, amx, adx, adx_spec):
     ----------
     metric : `lsst.verify.Metric`
         AF1, AF2 or AF3 `~lsst.verify.Metric` instance.
-    amx : :class:`lsst.verify.Measurement`
+    amx : `lsst.verify.Measurement`
         An AMx measurement, providing the median astrometric scatter in
         the annulus.
-    adx : :class:`lsst.verify.Measurement`
+    adx : `lsst.verify.Measurement`
         An ADx measurement
-    adx_spec : :class:`lsst.verify.Spec`
+    adx_spec : `lsst.verify.Spec`
         An instance of a `lsst.verify.Spec` containing the threshold against
         which to measure.
 
     Returns
     -------
-    An `lsst.verify.Measurement` containing the measured value of AFx (x=1,2,3) and associated metadata.
+    measurement : `lsst.verify.Measurement`
+        Measurement of AFx (x=1,2,3) and associated metadata.
 
     Notes
     -----
