@@ -29,6 +29,10 @@ import os
 from textwrap import TextWrapper
 import astropy.visualization
 
+# explicity set non-interactive backend
+import matplotlib
+matplotlib.use('Agg')
+
 from lsst.validate.base import Job
 
 from .util import repoNameToPrefix
