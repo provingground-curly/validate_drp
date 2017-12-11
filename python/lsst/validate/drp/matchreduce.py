@@ -25,9 +25,9 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
+from sqlalchemy.exc import OperationalError
 
 import lsst.afw.geom as afwGeom
-import lsst.afw.image as afwImage
 import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
@@ -60,6 +60,11 @@ class MatchedMultiVisitDataset(BlobBase):
         Radius for matching. Default is 1 arcsecond.
     safeSnr : `float`, optional
         Minimum median SNR for a match to be considered "safe".
+    useJointCal : bool, optional
+        Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
+    skipTEx : bool, optional
+        Skip TEx calculations (useful for older catalogs that don't have
+        PsfShape measurements).
     verbose : `bool`, optional
         Output additional information on the analysis steps.
 
@@ -106,10 +111,11 @@ class MatchedMultiVisitDataset(BlobBase):
     name = 'MatchedMultiVisitDataset'
 
     def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
-                 useJointCal=False, verbose=False):
+                 useJointCal=False, skipTEx=False, verbose=False):
         BlobBase.__init__(self)
 
         self.verbose = verbose
+        self.skipTEx = skipTEx
         if not matchRadius:
             matchRadius = afwGeom.Angle(1, afwGeom.arcseconds)
 
@@ -173,6 +179,8 @@ class MatchedMultiVisitDataset(BlobBase):
             calibration.
         matchRadius :  afwGeom.Angle(), optional
             Radius for matching. Default is 1 arcsecond.
+        useJointCal : bool, optional
+            Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
 
         Returns
         -------
@@ -233,23 +241,22 @@ class MatchedMultiVisitDataset(BlobBase):
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open photometric calibration for ", vId)
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
                 try:
-                    md = butler.get("wcs_md", vId)
-                    wcs = afwImage.makeWcs(md)
+                    wcs = butler.get("wcs", vId).getWcs()
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open updated WCS for ", vId)
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
             else:
                 try:
-                    calexpMetadata = butler.get("calexp_md", vId)
+                    calib = butler.get("calexp_calib", vId)
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open calibrated image file for ", vId)
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
                 except TypeError as te:
                     # DECam images that haven't been properly reformatted
@@ -262,24 +269,18 @@ class MatchedMultiVisitDataset(BlobBase):
                     # See, e.g., DM-2957 for details.
                     print(te)
                     print("Calibration image header information malformed.")
-                    print("Skipping %s " % repr(vId))
+                    print("Skipping this dataId.")
                     continue
-
-                calib = afwImage.Calib(calexpMetadata)
 
             # We don't want to put this above the first "if useJointCal block"
             # because we need to use the first `butler.get` above to quickly
             # catch data IDs with no usable outputs.
             try:
                 # HSC supports these flags, which dramatically improve I/O
-                # performance; support for other cameras is DM-6927.
+                # performance; TODO: support for other cameras is DM-6927.
                 oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-                calexp = butler.get("calexp", vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-            except:
+            except OperationalError:
                 oldSrc = butler.get('src', vId)
-                calexp = butler.get("calexp", vId)
-
-            psf = calexp.getPsf()
 
             print(len(oldSrc), "sources in ccd %s  visit %s" %
                   (vId[ccdKeyName], vId["visit"]))
@@ -301,12 +302,13 @@ class MatchedMultiVisitDataset(BlobBase):
                     tmpCat['base_PsfFlux_mag'][:] = _[0]
                     tmpCat['base_PsfFlux_magErr'][:] = _[1]
 
-            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
-            _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
-            tmpCat['e1'][:] = star_e1
-            tmpCat['e2'][:] = star_e2
-            tmpCat['psf_e1'][:] = psf_e1
-            tmpCat['psf_e2'][:] = psf_e2
+            if not self.skipTEx:
+                _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
+                _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
+                tmpCat['e1'][:] = star_e1
+                tmpCat['e2'][:] = star_e2
+                tmpCat['psf_e1'][:] = psf_e1
+                tmpCat['psf_e2'][:] = psf_e2
 
             srcVis.extend(tmpCat, False)
             mmatch.add(catalog=tmpCat, dataId=vId)

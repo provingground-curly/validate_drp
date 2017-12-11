@@ -27,6 +27,11 @@ import json
 import os
 
 from textwrap import TextWrapper
+import astropy.visualization
+
+# explicity set non-interactive backend
+import matplotlib
+matplotlib.use('Agg')
 
 from lsst.validate.base import Job
 
@@ -218,7 +223,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makeJson=True, filterName=None, outputPrefix='',
-                 useJointCal=False, verbose=False,
+                 useJointCal=False, skipTEx=False, verbose=False,
                  **kwargs):
     """Main executable for the case where there is just one filter.
 
@@ -252,11 +257,15 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         Name of the filter (bandpass).
     useJointCal : bool, optional
         Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
+    skipTEx : bool, optional
+        Skip TEx calculations (useful for older catalogs that don't have
+        PsfShape measurements).
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
     matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
                                               useJointCal=useJointCal,
+                                              skipTEx=skipTEx,
                                               verbose=verbose)
     photomModel = PhotometricErrorModel(matchedDataset)
     astromModel = AstrometricErrorModel(matchedDataset)
@@ -297,10 +306,11 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                        filterName, specName, verbose=verbose,
                        job=job, linkedBlobs=linkedBlobs)
 
-    for x in (1, 2):
-        texName = 'TE{0:d}'.format(x)
-        TExMeasurement(metrics[texName], matchedDataset, filterName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+    if not skipTEx:
+        for x in (1, 2):
+            texName = 'TE{0:d}'.format(x)
+            TExMeasurement(metrics[texName], matchedDataset, filterName,
+                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
     if makeJson:
         job.write_json(outputPrefix + '.json')
@@ -316,6 +326,8 @@ def plot_metrics(job, filterName, outputPrefix=''):
     job - an lsst.validate.base.Job object
     filterName - string identifying the filter.
     """
+    astropy.visualization.quantity_support()
+
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
