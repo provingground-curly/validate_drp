@@ -25,6 +25,7 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
+import sqlite3
 from sqlalchemy.exc import OperationalError
 
 import lsst.afw.geom as afwGeom
@@ -279,7 +280,7 @@ class MatchedMultiVisitDataset(BlobBase):
                 # HSC supports these flags, which dramatically improve I/O
                 # performance; TODO: support for other cameras is DM-6927.
                 oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-            except OperationalError:
+            except (OperationalError, sqlite3.OperationalError):
                 oldSrc = butler.get('src', vId)
 
             print(len(oldSrc), "sources in ccd %s  visit %s" %
