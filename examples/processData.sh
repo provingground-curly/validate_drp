@@ -6,32 +6,39 @@ print_error() {
 }
 
 INGEST=ingestImages.py
-PROCESSCCD=processCcd.py
+INGESTEXT=fz
+ASTROMDIR=astrometry_net_data
 
 usage() {
     print_error
-    print_error "Usage: $0 [-cmvfip] [-h] [-- <options to validateDrp.py>]"
+    print_error "Usage: $0 [-cmvfiear] [-h] [-- <options to validateDrp.py>]"
     print_error
     print_error "Specifc options:"
-    print_error "   -c          camera"
-    print_error "   -m          mapper"
-    print_error "   -v          validation data"
-    print_error "   -f          config file"
-    print_error "   -i          ingest (${INGEST})"
-    print_error "   -p          processccd (${PROCESSCCD})"
+    print_error "   -c          Camera"
+    print_error "   -m          Mapper"
+    print_error "   -v          Validation data"
+    print_error "   -f          Config file"
+    print_error "   -i          Ingest script"
+    print_error "   -e          Extension to ingest"
+    print_error "   -a          Name of astrometry to load"
+    print_error "   -r          Reduce from raw?  Implies there is a CALIB directory"
+    print_error "   -d          Path to calibs"
     print_error "   -h          show this message"
     exit 1
 }
 
 # thank OSX for not including getopt
-while getopts "c:m:v:f:i:p:h" option; do
+while getopts "c:m:v:f:i:e:a:r:d:h" option; do
     case "$option" in
         c)  CAMERA="$OPTARG";;
         m)  MAPPER="$OPTARG";;
         v)  VALIDATION_DATA="$OPTARG";;
         f)  CONFIG_FILE="$OPTARG";;
         i)  INGEST="$OPTARG";;
-        p)  PROCESSCCD="$OPTARG";;
+        e)  INGESTEXT="$OPTARG";;
+        a)  ASTROMDIR="$OPTARG";;
+        r)  DOCALIB=true;;
+        d)  CALIB_DATA="$OPTARG";;
         h)  usage;;
         *)  usage;;
     esac
@@ -60,13 +67,19 @@ echo "$MAPPER" > "${INPUT}"/_mapper
 
 # ingest raw data
 RAWDATA=${VALIDATION_DATA}
-${INGEST} "${INPUT}" "${RAWDATA}"/*.fz --mode link
+$INGEST "${INPUT}" "${RAWDATA}"/*."${INGESTEXT}" --mode link
+
+# set up calibs
+if [ "$DOCALIB" = true ] ; then
+    ln -s "${CALIB_DATA}" "${WORKSPACE}"/CALIB
+fi
 
 # Set up astrometry
-export ASTROMETRY_NET_DATA_DIR="${VALIDATION_DATA}"/../astrometry_net_data
+export SETUP_ASTROMETRY_NET_DATA="astrometry_net_data ${ASTROMDIR}"
+export ASTROMETRY_NET_DATA_DIR="${VALIDATION_DATA}"/../"${ASTROMDIR}"
 
 # Create calexps and src
-echo "running processCcd"
+echo "running singleFrameDriver"
 MACH=$(uname -s)
 if [ "$MACH" == Darwin ]; then
     sys_proc=$(sysctl -n hw.logicalcpu)
@@ -81,12 +94,15 @@ YAMLCONFIG="${PRODUCT_DIR}"/examples/${CAMERA}.yaml
 RUNLIST="${WORKSPACE}"/"${CAMERA}".list
 makeRunList.py "${YAMLCONFIG}" > "${RUNLIST}"
 
-${PROCESSCCD} "${INPUT}" --output "${OUTPUT}" \
-    @"${RUNLIST}" \
-    --configfile "${CONFIG_FILE}" \
-    -j "$NUMPROC" \
-    >& "${WORKSPACE}"/processCcd.log
+CALIBSTRING=
+if [ "$DOCALIB" = true ] ; then
+    CALIBSTRING="--calib $WORKSPACE/CALIB"
+fi
 
-# Run astrometry check on src
-echo "validating"
-validateDrp.py "${OUTPUT}" --configFile "${YAMLCONFIG}" "$@"
+
+singleFrameDriver.py "${INPUT}" ${CALIBSTRING} --output "${OUTPUT}" \
+    @"${RUNLIST}" \
+    -C "${CONFIG_FILE}" \
+    --job validate_drp \
+    --cores "$NUMPROC"
+    >& "${WORKSPACE}"/singleFrame.log

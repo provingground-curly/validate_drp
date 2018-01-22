@@ -7,11 +7,13 @@ CAMERA=DecamQuick
 CONFIG_FILE="${PRODUCT_DIR}/config/decamConfig.py"
 MAPPER=lsst.obs.decam.DecamMapper
 
-"${PRODUCT_DIR}/examples/runExample.sh" \
+"${PRODUCT_DIR}/examples/processData.sh" \
     -c "$CAMERA" \
     -m "$MAPPER" \
     -v "$VALIDATION_DATA_DIR" \
     -f "$CONFIG_FILE" \
     -i ingestImagesDecam.py \
-    -p processCcd.py \
+    -- "$@"
+"${PRODUCT_DIR}/examples/processData.sh" \
+    -c "$CAMERA" \
     -- "$@"
