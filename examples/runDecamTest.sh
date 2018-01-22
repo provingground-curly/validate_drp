@@ -14,6 +14,6 @@ MAPPER=lsst.obs.decam.DecamMapper
     -f "$CONFIG_FILE" \
     -i ingestImagesDecam.py \
     -- "$@"
-"${PRODUCT_DIR}/examples/processData.sh" \
+"${PRODUCT_DIR}/examples/validateRepo.py" \
     -c "$CAMERA" \
     -- "$@"
