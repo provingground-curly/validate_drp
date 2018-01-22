@@ -16,8 +16,8 @@ ASTROMDIR=sdss-dr9-fink-v5b
     -f "$CONFIG_FILE" \
     -e "fits" \
     -a "$ASTROMDIR" \
-    -r \
     -d "$CALIB_DATA" \
+    -r \
     -- "$@"
 "${PRODUCT_DIR}/examples/validateRepo.sh" \
     -c "$CAMERA" \
