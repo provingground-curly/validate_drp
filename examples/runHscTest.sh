@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 PRODUCT_DIR="$VALIDATE_DRP_DIR"
 VALIDATION_DATA_DIR="$VALIDATION_DATA_HSC_DIR/raw"
 CALIB_DATA="$VALIDATION_DATA_HSC_DIR/CALIB"
@@ -27,7 +29,6 @@ usage() {
     exit 1
 }
 
-# thank OSX for not including getopt
 while getopts "vp" option; do
     case "$option" in
         p)  DOPROCESS=false;;
@@ -38,7 +39,7 @@ while getopts "vp" option; do
 done
 shift $((OPTIND-1))
 
-if [ "$DOPROCESS" = true ] ; then
+if [[ $DOPROCESS == true ]]; then
     "${PRODUCT_DIR}/examples/processData.sh" \
         -c "$CAMERA" \
         -m "$MAPPER" \
@@ -50,7 +51,7 @@ if [ "$DOPROCESS" = true ] ; then
         -r
 fi
 
-if [ "$DOVERIFY" = true ] ; then
+if [[ $DOVERIFY == true ]]; then
     "${PRODUCT_DIR}/examples/validateRepo.sh" \
         -c "$CAMERA" \
         -- "$@"

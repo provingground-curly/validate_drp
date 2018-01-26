@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 print_error() {
@@ -15,7 +16,6 @@ usage() {
     exit 1
 }
 
-# thank OSX for not including getopt
 while getopts "c:h" option; do
     case "$option" in
         c)  CAMERA="$OPTARG";;
@@ -27,7 +27,7 @@ shift $((OPTIND-1))
 
 PRODUCT_DIR=${VALIDATE_DRP_DIR}
 # OS X El Capitan SIP swallows DYLD_LIBRARY_PATH so export the duplicate in LSST_LIBRARY_PATH
-if [[ -z "$DYLD_LIBRARY_PATH" ]]; then
+if [[ -z $DYLD_LIBRARY_PATH ]]; then
     export DYLD_LIBRARY_PATH=$LSST_LIBRARY_PATH
 fi
 
@@ -35,7 +35,7 @@ WORKSPACE=${CAMERA}
 
 OUTPUT=${WORKSPACE}/output
 
-if ! [ -d "${OUTPUT}" ]; then
+if ! [[ -d $OUTPUT ]]; then
     print_error "Repository does not exist.  Please run processData.sh first."
     exit 1
 fi
