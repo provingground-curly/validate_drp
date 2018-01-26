@@ -48,7 +48,11 @@ if [ "$DOPROCESS" = true ] ; then
         -c "$CAMERA" \
         -m "$MAPPER" \
         -v "$VALIDATION_DATA_DIR" \
-        -f "$CONFIG_FILE"
+        -f "$CONFIG_FILE" \
+        -e "fits" \
+        -a "$ASTROMDIR" \
+        -d "$CALIB_DATA" \
+        -r
 fi
 
 if [ "$DOVERIFY" = true ] ; then

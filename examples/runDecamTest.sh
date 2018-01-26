@@ -41,7 +41,8 @@ if [ "$DOPROCESS" = true ] ; then
         -c "$CAMERA" \
         -m "$MAPPER" \
         -v "$VALIDATION_DATA_DIR" \
-        -f "$CONFIG_FILE"
+        -f "$CONFIG_FILE" \
+        -i ingestImagesDecam.py
 fi
 
 if [ "$DOVERIFY" = true ] ; then
