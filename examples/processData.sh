@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 print_error() {
@@ -11,7 +12,7 @@ ASTROMDIR=astrometry_net_data
 
 usage() {
     print_error
-    print_error "Usage: $0 [-cmvfiear] [-h] [-- <options to validateDrp.py>]"
+    print_error "Usage: $0 [-cmvfiear] [-h]"
     print_error
     print_error "Specifc options:"
     print_error "   -c          Camera"
@@ -27,7 +28,6 @@ usage() {
     exit 1
 }
 
-# thank OSX for not including getopt
 while getopts "c:m:v:f:i:e:a:r:d:h" option; do
     case "$option" in
         c)  CAMERA="$OPTARG";;
@@ -47,12 +47,12 @@ shift $((OPTIND-1))
 
 PRODUCT_DIR=${VALIDATE_DRP_DIR}
 # OS X El Capitan SIP swallows DYLD_LIBRARY_PATH so export the duplicate in LSST_LIBRARY_PATH
-if [[ -z "$DYLD_LIBRARY_PATH" ]]; then
+if [[ -z $DYLD_LIBRARY_PATH ]]; then
     export DYLD_LIBRARY_PATH=$LSST_LIBRARY_PATH
 fi
 
 WORKSPACE=${CAMERA}
-if [ -d "${WORKSPACE}" ]; then
+if [[ -d $WORKSPACE ]]; then
    rm -rf "${WORKSPACE}"
 fi
 
@@ -70,7 +70,7 @@ RAWDATA=${VALIDATION_DATA}
 $INGEST "${INPUT}" "${RAWDATA}"/*."${INGESTEXT}" --mode link
 
 # set up calibs
-if [ "$DOCALIB" = true ] ; then
+if [[ $DOCALIB == true ]]; then
     ln -s "${CALIB_DATA}" "${WORKSPACE}"/CALIB
 fi
 
@@ -81,7 +81,7 @@ export ASTROMETRY_NET_DATA_DIR="${VALIDATION_DATA}"/../"${ASTROMDIR}"
 # Create calexps and src
 echo "running singleFrameDriver"
 MACH=$(uname -s)
-if [ "$MACH" == Darwin ]; then
+if [[ $MACH == Darwin ]]; then
     sys_proc=$(sysctl -n hw.logicalcpu)
 else
     sys_proc=$(grep -c processor /proc/cpuinfo)
@@ -95,14 +95,14 @@ RUNLIST="${WORKSPACE}"/"${CAMERA}".list
 makeRunList.py "${YAMLCONFIG}" > "${RUNLIST}"
 
 CALIBSTRING=
-if [ "$DOCALIB" = true ] ; then
+if [[ $DOCALIB == true ]]; then
     CALIBSTRING="--calib $WORKSPACE/CALIB"
 fi
 
-
-singleFrameDriver.py "${INPUT}" ${CALIBSTRING} --output "${OUTPUT}" \
+# shellcheck disable=SC2086
+singleFrameDriver.py "${INPUT}" $CALIBSTRING --output "${OUTPUT}" \
     @"${RUNLIST}" \
     -C "${CONFIG_FILE}" \
     --job validate_drp \
-    --cores "$NUMPROC"
+    --cores "$NUMPROC" \
     >& "${WORKSPACE}"/singleFrame.log
