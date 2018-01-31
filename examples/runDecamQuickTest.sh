@@ -18,19 +18,19 @@ DOVERIFY=true
 
 usage() {
     print_error
-    print_error "Usage: $0 [-pv] [-h] [-- <extra options to validateDrp.py>]"
+    print_error "Usage: $0 [-PV] [-h] [-- <extra options to validateDrp.py>]"
     print_error
     print_error "Specifc options:"
-    print_error "   -p          Skip processing?"
-    print_error "   -v          Skip verification?"
+    print_error "   -P          Skip processing?"
+    print_error "   -V          Skip verification?"
     print_error "   -h          show this message"
     exit 1
 }
 
-while getopts "vp" option; do
+while getopts "VP" option; do
     case "$option" in
-        p)  DOPROCESS=false;;
-        v)  DOVERIFY=false;;
+        P)  DOPROCESS=false;;
+        V)  DOVERIFY=false;;
         h)  usage;;
         *)  usage;;
     esac
