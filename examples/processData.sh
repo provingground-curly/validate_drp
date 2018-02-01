@@ -28,7 +28,7 @@ usage() {
     exit 1
 }
 
-while getopts "c:m:v:f:i:e:a:r:d:h" option; do
+while getopts "c:m:v:f:i:e:a:d:hr" option; do
     case "$option" in
         c)  CAMERA="$OPTARG";;
         m)  MAPPER="$OPTARG";;
