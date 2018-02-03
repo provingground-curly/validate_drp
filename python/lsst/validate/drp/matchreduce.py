@@ -37,7 +37,8 @@ from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
 from lsst.afw.fits import FitsError
 from lsst.validate.base import BlobBase
 
-from .util import (getCcdKeyName, positionRmsFromCat, ellipticity_from_cat)
+from .util import (getCcdKeyName, raftSensorToInt, positionRmsFromCat,
+                   ellipticity_from_cat)
 
 
 __all__ = ['MatchedMultiVisitDataset']
@@ -204,6 +205,12 @@ class MatchedMultiVisitDataset(BlobBase):
         #    dataRefs = [dafPersist.ButlerDataRef(butler, vId) for vId in dataIds]
 
         ccdKeyName = getCcdKeyName(dataIds[0])
+
+        # Hack to support raft and sensor 0,1 IDs as ints for multimatch
+        if ccdKeyName == 'sensor':
+            ccdKeyName = 'raft_sensor_int'
+            for vId in dataIds:
+                vId[ccdKeyName] = raftSensorToInt(vId)
 
         schema = butler.get(dataset + "_schema").schema
         mapper = SchemaMapper(schema)
