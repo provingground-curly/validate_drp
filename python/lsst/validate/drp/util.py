@@ -342,13 +342,29 @@ def getCcdKeyName(dataid):
       the different amps/ccds in the same exposure.  This function looks
       through the reference dataId to locate a field that could be the one.
     """
-    possibleCcdFieldNames = ['ccd', 'ccdnum', 'camcol']
+    possibleCcdFieldNames = ['ccd', 'ccdnum', 'camcol', 'sensor']
 
     for name in possibleCcdFieldNames:
         if name in dataid:
             return name
     else:
         return 'ccd'
+
+
+def raftSensorToInt(vId):
+    """Construct an int that encodes raft, sensor coordinates.
+
+    >>> vId = {'filter': 'y', 'raft': '2,2', 'sensor': '1,2', 'visit': 307}
+    >>> raftSensorToInt(vId)
+    2212
+    """
+    def pair_to_int(tuple_string):
+        x, y = tuple_string.split(',')
+        return 10 * int(x) + 1 * int(y)
+
+    raft_int = pair_to_int(vId['raft'])
+    sensor_int = pair_to_int(vId['sensor'])
+    return 100*raft_int + sensor_int
 
 
 def repoNameToPrefix(repo):
