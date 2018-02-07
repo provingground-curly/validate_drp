@@ -5,6 +5,8 @@ loading Pan-STARRS1 reference catalogs
 
 from lsst.pipe.tasks.setConfigFromEups import setPhotocalConfigFromEups, setAstrometryConfigFromEups
 
+# We do not have transmission curves attached to our validation repos yet
+config.processCcd.isr.doAttachTransmissionCurve = False
 
 from lsst.meas.extensions.astrometryNet import LoadAstrometryNetObjectsTask
 config.processCcd.calibrate.astromRefObjLoader.retarget(LoadAstrometryNetObjectsTask)
