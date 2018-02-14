@@ -7,6 +7,8 @@ from lsst.pipe.tasks.setConfigFromEups import setPhotocalConfigFromEups, setAstr
 
 # We do not have transmission curves attached to our validation repos yet
 config.processCcd.isr.doAttachTransmissionCurve = False
+# these commissioning data do not have the correct header info to apply the stray light correction
+config.processCcd.isr.doStrayLight = False
 
 from lsst.meas.extensions.astrometryNet import LoadAstrometryNetObjectsTask
 config.processCcd.calibrate.astromRefObjLoader.retarget(LoadAstrometryNetObjectsTask)
