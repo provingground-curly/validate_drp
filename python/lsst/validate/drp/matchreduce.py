@@ -245,14 +245,14 @@ class MatchedMultiVisitDataset(BlobBase):
 
             if useJointCal:
                 try:
-                    photoCalib = butler.get("photoCalib", vId)
+                    photoCalib = butler.get("jointcal_photoCalib", vId)
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open photometric calibration for ", vId)
                     print("Skipping this dataId.")
                     continue
                 try:
-                    wcs = butler.get("wcs", vId).getWcs()
+                    wcs = butler.get("jointcal_wcs", vId)
                 except (FitsError, dafPersist.NoResults) as e:
                     print(e)
                     print("Could not open updated WCS for ", vId)
