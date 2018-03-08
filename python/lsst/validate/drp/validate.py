@@ -160,7 +160,11 @@ def run(repo_or_json, metrics=None,
                 metrics = {meas.metric.name: meas.metric for meas in job.measurements}
             print_metrics(job, filterName, metrics)
         if makePlot:
-            plot_metrics(job, filterName, outputPrefix=outputPrefix)
+            if outputPrefix is None or outputPrefix == '':
+                thisOutputPrefix = "%s" % filterName
+            else:
+                thisOutputPrefix = "%s_%s" % (outputPrefix, filterName)
+            plot_metrics(job, filterName, outputPrefix=thisOutputPrefix)
 
     print_pass_fail_summary(jobs, level=level)
 
