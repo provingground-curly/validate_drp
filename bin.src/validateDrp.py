@@ -52,6 +52,12 @@ if __name__ == "__main__":
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('repo', type=str,
                         help='path to a repository containing the output of processCcd')
+    parser.add_argument('--outputPrefix', '-o', type=str, default=None,
+                        help="""
+                        Define basic name prefix for output files.  Can include paths.
+                        E.g., --outputPrefix="mydir/awesome_reduction" will produce
+                        "mydir/awesome_reduction_r.json" for the r-band JSON file.
+                        """)
     parser.add_argument('--configFile', '-c', type=str, default=None,
                         help='YAML configuration file validation parameters and dataIds.')
     parser.add_argument('--metricsFile',
@@ -95,5 +101,6 @@ if __name__ == "__main__":
     kwargs['verbose'] = args.verbose
     kwargs['makePlot'] = args.makePlot
     kwargs['level'] = args.level
+    kwargs['outputPrefix'] = args.outputPrefix
 
     validate.run(args.repo, **kwargs)
