@@ -62,6 +62,8 @@ class MatchedMultiVisitDataset(BlobBase):
         Radius for matching. Default is 1 arcsecond.
     safeSnr : `float`, optional
         Minimum median SNR for a match to be considered "safe".
+    safeMaxExtended : float, optional
+        Sources must have extendedness < safeMaxExtended to be "stars".
     useJointCal : bool, optional
         Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
     skipTEx : bool, optional
@@ -112,7 +114,8 @@ class MatchedMultiVisitDataset(BlobBase):
 
     name = 'MatchedMultiVisitDataset'
 
-    def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
+    def __init__(self, repo, dataIds, matchRadius=None,
+                 safeSnr=50., safeMaxExtended=1.0,
                  useJointCal=False, skipTEx=False, verbose=False):
         BlobBase.__init__(self)
 
@@ -165,7 +168,7 @@ class MatchedMultiVisitDataset(BlobBase):
         self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
         # Reduce catalogs into summary statistics.
         # These are the serialiable attributes of this class.
-        self._reduceStars(self._matchedCatalog, safeSnr)
+        self._reduceStars(self._matchedCatalog, safeSnr, safeMaxExtended)
 
     def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius,
                               useJointCal=False):
@@ -331,7 +334,8 @@ class MatchedMultiVisitDataset(BlobBase):
 
         return srcVis, allMatches
 
-    def _reduceStars(self, allMatches, safeSnr=50.0):
+    def _reduceStars(self, allMatches, safeSnr=50.0, safeMaxExtended=1.0):
+
         """Calculate summary statistics for each star. These are persisted
         as object attributes.
 
@@ -341,6 +345,8 @@ class MatchedMultiVisitDataset(BlobBase):
             GroupView object with matches.
         safeSnr : float, optional
             Minimum median SNR for a match to be considered "safe".
+        safeMaxExtended : float, optional
+            Sources must have extendedness < safeMaxExtended to be "stars".
         """
         # Filter down to matches with at least 2 sources and good flags
         flagKeys = [allMatches.schema.find("base_PixelFlags_flag_%s" % flag).key
@@ -368,8 +374,6 @@ class MatchedMultiVisitDataset(BlobBase):
 
         # Filter further to a limited range in S/N and extendedness
         # to select bright stars.
-        safeMaxExtended = 1.0
-
         def safeFilter(cat):
             psfSnr = np.median(cat.get(psfSnrKey))
             extended = np.max(cat.get(extendedKey))

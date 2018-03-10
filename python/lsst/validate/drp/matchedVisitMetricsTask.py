@@ -125,6 +125,7 @@ class MatchedVisitMetricsTask(CmdLineTask):
         outputPrefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
         job = runOneFilter(butler, dataIds, metrics=self.metrics,
                            brightSnr=self.config.brightSnr,
+                           safeMaxExtended=self.config.safeMaxExtended,
                            makeJson=self.config.makeJson,
                            filterName=filterName,
                            outputPrefix=outputPrefix,
