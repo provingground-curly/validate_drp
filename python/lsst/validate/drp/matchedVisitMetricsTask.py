@@ -9,6 +9,7 @@ from lsst.utils import getPackageDir
 from lsst.validate.base import load_metrics
 from .validate import runOneFilter, plot_metrics
 
+__all__ = ["MatchedVisitMetricsRunner", "MatchedVisitMetricsConfig", "MatchedVisitMetricsTask"]
 
 class MatchedVisitMetricsRunner(TaskRunner):
     """Subclass of TaskRunner for MatchedVisitMetrics
