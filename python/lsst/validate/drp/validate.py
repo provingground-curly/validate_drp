@@ -108,21 +108,19 @@ def run(repo_or_json, metrics=None,
         level='design', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
-    makePrint : bool, optional
-        Print calculated quantities (to stdout).
-    makePlot : bool, optional
-        Create plots for metrics.  Saved to current working directory.
-    level : str
-        Use <level> E.g., 'design', 'minimum', 'stretch'.
-
-    Arguments
-    ---------
-    repo : `str`
+    Parameters
+    ----------
+    repo_or_json : `str`
         The repository.  This is generally the directory on disk
         that contains the repository and mapper.
-
         This can also be the filepath for a JSON file that contains
         the cached output from a previous run.
+    makePrint : `bool`, optional
+        Print calculated quantities (to stdout).
+    makePlot : `bool`, optional
+        Create plots for metrics.  Saved to current working directory.
+    level : `str`
+        Use <level> E.g., 'design', 'minimum', 'stretch'.
     """
     base_name, ext = os.path.splitext(repo_or_json)
     if ext == '.json':
@@ -171,7 +169,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
     Assesses results against SRD specs at specified `level`.
 
-    Arguments
+    Parameters
     ---------
     repo : `str`
         The repository.  This is generally the directory on disk
@@ -196,10 +194,10 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     -----
     Names of plot files or JSON file are generated based on repository name,
     unless overriden by specifying `ouputPrefix`.
-    E.g., Analyzing a repository "CFHT/output"
-        will result in filenames that start with "CFHT_output_".
+    E.g., Analyzing a repository ``CFHT/output``
+    will result in filenames that start with ``CFHT_output_``.
     The filter name is added to this prefix.  If the filter name has spaces,
-        there will be annoyance and sadness as those spaces will appear in the filenames.
+    there will be annoyance and sadness as those spaces will appear in the filenames.
     """
 
     allFilters = set([d['filter'] for d in dataIds])
@@ -228,10 +226,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     """Main executable for the case where there is just one filter.
 
     Plot files and JSON files are generated in the local directory
-        prefixed with the repository name (where '_' replace path separators),
+    prefixed with the repository name (where '_' replace path separators),
     unless overriden by specifying `outputPrefix`.
-    E.g., Analyzing a repository "CFHT/output"
-        will result in filenames that start with "CFHT_output_".
+    E.g., Analyzing a repository ``CFHT/output``
+    will result in filenames that start with ``CFHT_output_``.
 
     Parameters
     ----------
@@ -322,9 +320,11 @@ def plot_metrics(job, filterName, outputPrefix=''):
     """Plot AM1, AM2, AM3, PA1 plus related informational plots.
 
     Parameters
-    ---
-    job - an lsst.validate.base.Job object
-    filterName - string identifying the filter.
+    ----------
+    job : `lsst.validate.base.Job`
+        The job to load data from.
+    filterName : `str`
+        string identifying the filter.
     """
     astropy.visualization.quantity_support()
 
@@ -390,12 +390,17 @@ def print_metrics(job, filterName, metrics):
     """Print specified list of metrics.  E.g., AM1, AM2, AM3, PA1.
 
     Parameters
-    ---
-    job - lsst.validate.base.Job object
-    filterName - string identifying the filter.
-    metrics - Dictionary of lsst.validate.base.metric.Metric objects to print
+    ----------
+    job : `lsst.validate.base.Job`
+        The job to load data from.
+    filterName : `str`
+        String identifying the filter.
+    metrics : `dict`
+        Dictionary of lsst.validate.base.metric.Metric objects to print
 
-    Note: We here specify the list of metrics to plot.
+    Notes
+    -----
+    We here specify the list of metrics to plot.
     In `plot_metrics` the list is implicitly hardcoded because of the different
     options each plotting method needs.
     """
