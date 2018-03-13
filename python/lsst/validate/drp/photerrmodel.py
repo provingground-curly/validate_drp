@@ -100,7 +100,7 @@ def fitPhotErrModel(mag, mag_err):
 
     See also
     --------
-    `photErrModel`
+    photErrModel
     """
     # if not isinstance(mag, u.Quantity):
     #     mag = mag * u.mag
@@ -167,7 +167,7 @@ class PhotometricErrorModel(BlobBase):
         Minimum SNR for a star to be considered "bright."
     medianRef : `float` or `astropy.unit.Quantity`, optional
         Median reference astrometric scatter (millimagnitudes by default).
-    matchRef : `int` or `astropy.unit.Quantity, optional
+    matchRef : `int` or `astropy.unit.Quantity`, optional
         Should match at least matchRef stars.
 
     Attributes

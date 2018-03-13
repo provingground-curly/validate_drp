@@ -556,13 +556,16 @@ def constructRunList(filter, visits, ccds, ccdKeyName='ccd'):
 
     Parameters
     ----------
-    filter : str or list
-    visits : list of int
-    ccds : list of int
+    filter : `str` or `list`
+        The desired filters.
+    visits : `list` of `int`
+        The desired visits.
+    ccds : `list` of `int`
+        The desired ccds.
 
     Returns
     -------
-    list
+    `list`
         list of strings suitable to be used with the LSST Butler.
 
     Examples
@@ -574,11 +577,11 @@ def constructRunList(filter, visits, ccds, ccdKeyName='ccd'):
     >>> print(runList)
     ['--id visit=100 ccdnum=10^11^12', '--id visit=200 ccdnum=10^11^12']
 
-    Note
+    Notes
     -----
     The LSST parsing convention is to use '^' as list separators
-        for arguments to `--id`.  While surprising, this convention
-        allows for CCD names to include ','.  E.g., 'R1,2'.
+    for arguments to `--id`.  While surprising, this convention
+    allows for CCD names to include ','.  E.g., 'R1,2'.
     Currently ignores `filter` because `visit` should be unique w.r.t filter.
     """
     runList = ["--id visit=%d %s=%s" % (v, ccdKeyName, "^".join([str(c) for c in ccds]))
