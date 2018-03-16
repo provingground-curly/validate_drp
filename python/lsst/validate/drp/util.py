@@ -33,7 +33,6 @@ import yaml
 import lsst.daf.persistence as dafPersist
 import lsst.pipe.base as pipeBase
 import lsst.afw.geom as afwGeom
-import lsst.afw.coord as afwCoord
 
 
 def ellipticity_from_cat(cat, slot_shape='slot_Shape'):
@@ -118,9 +117,9 @@ def averageRaDec(ra, dec):
 
     angleRa = [afwGeom.Angle(r, afwGeom.radians) for r in ra]
     angleDec = [afwGeom.Angle(d, afwGeom.radians) for d in dec]
-    coords = [afwCoord.IcrsCoord(ar, ad) for (ar, ad) in zip(angleRa, angleDec)]
+    coords = [afwGeom.SpherePoint(ar, ad, afwGeom.radians) for (ar, ad) in zip(angleRa, angleDec)]
 
-    meanRa, meanDec = afwCoord.averageCoord(coords)
+    meanRa, meanDec = afwGeom.averageSpherePoint(coords)
 
     return meanRa.asRadians(), meanDec.asRadians()
 
@@ -209,12 +208,13 @@ def sphDist(ra1, dec1, ra2, dec2):
     dist = 2 * np.arcsin(np.sqrt(a))
 
     # This is what the law of cosines would look like
-#    dist = np.arccos(np.sin(dec1)*np.sin(dec2) + np.cos(dec1)*np.cos(dec2)*np.cos(ra1 - ra2))
+    #    dist = np.arccos(np.sin(dec1)*np.sin(dec2) + np.cos(dec1)*np.cos(dec2)*np.cos(ra1 - ra2))
 
-    # Could use afwCoord.angularSeparation()
-    #  but (a) that hasn't been made accessible through the Python interface
-    #  and (b) I'm not sure that it would be faster than the numpy interface.
-    #    dist = afwCoord.angularSeparation(ra1-ra2, dec1-dec2, np.cos(dec1), np.cos(dec2))
+    # This will also work, but must run separately for each element
+    # whereas the numpy version will run on either scalars or arrays:
+    #   sp1 = afwGeom.SpherePoint(ra1, dec1, afwGeom.radians)
+    #   sp2 = afwGeom.SpherePoint(ra2, dec2, afwGeom.radians)
+    #   return sp1.separation(sp2).asRadians()
 
     return dist
 
