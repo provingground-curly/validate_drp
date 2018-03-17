@@ -2,6 +2,7 @@ CFHT/
 DECam/
 CFHT
 DECam
+_build*
 *.log
 *.json
 *.png
