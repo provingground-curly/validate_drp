@@ -177,6 +177,12 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
 
     ccdKeyName = getCcdKeyName(dataIds[0])
 
+    # Hack to support raft and sensor 0,1 IDs as ints for multimatch
+    if ccdKeyName == 'sensor':
+        ccdKeyName = 'raft_sensor_int'
+        for vId in dataIds:
+            vId[ccdKeyName] = raftSensorToInt(vId)
+
     schema = butler.get(dataset + "_schema").schema
     mapper = SchemaMapper(schema)
     mapper.addMinimalSchema(schema)
@@ -210,104 +216,40 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
 
         if useJointCal:
             try:
-                photoCalib = butler.get("photoCalib", vId)
+                photoCalib = butler.get("jointcal_photoCalib", vId)
             except (FitsError, dafPersist.NoResults) as e:
                 print(e)
                 print("Could not open photometric calibration for ", vId)
-                print("Skipping %s " % repr(vId))
+                print("Skipping this dataId.")
                 continue
             try:
-                md = butler.get("wcs_md", vId)
-                wcs = afwImage.makeWcs(md)
+                wcs = butler.get("jointcal_wcs", vId)
             except (FitsError, dafPersist.NoResults) as e:
                 print(e)
                 print("Could not open updated WCS for ", vId)
-                print("Skipping %s " % repr(vId))
+                print("Skipping this dataId.")
                 continue
         else:
-            butler = dafPersist.Butler(repo)
-        dataset = 'src'
-
-        # 2016-02-08 MWV:
-        # I feel like I could be doing something more efficient with
-        # something along the lines of the following:
-        #    dataRefs = [dafPersist.ButlerDataRef(butler, vId) for vId in dataIds]
-
-        ccdKeyName = getCcdKeyName(dataIds[0])
-
-        # Hack to support raft and sensor 0,1 IDs as ints for multimatch
-        if ccdKeyName == 'sensor':
-            ccdKeyName = 'raft_sensor_int'
-            for vId in dataIds:
-                vId[ccdKeyName] = raftSensorToInt(vId)
-
-        schema = butler.get(dataset + "_schema").schema
-        mapper = SchemaMapper(schema)
-        mapper.addMinimalSchema(schema)
-        mapper.addOutputField(Field[float]('base_PsfFlux_snr',
-                                           'PSF flux SNR'))
-        mapper.addOutputField(Field[float]('base_PsfFlux_mag',
-                                           'PSF magnitude'))
-        mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
-                                           'PSF magnitude uncertainty'))
-        mapper.addOutputField(Field[float]('e1',
-                                           'Source Ellipticity 1'))
-        mapper.addOutputField(Field[float]('e2',
-                                           'Source Ellipticity 1'))
-        mapper.addOutputField(Field[float]('psf_e1',
-                                           'PSF Ellipticity 1'))
-        mapper.addOutputField(Field[float]('psf_e2',
-                                           'PSF Ellipticity 1'))
-        newSchema = mapper.getOutputSchema()
-        newSchema.setAliasMap(schema.getAliasMap())
-
-        # Create an object that matches multiple catalogs with same schema
-        mmatch = MultiMatch(newSchema,
-                            dataIdFormat={'visit': np.int32, ccdKeyName: np.int32},
-                            radius=matchRadius,
-                            RecordClass=SimpleRecord)
-
-        # create the new extented source catalog
-        srcVis = SourceCatalog(newSchema)
-
-        for vId in dataIds:
-
-            if useJointCal:
-                try:
-                    photoCalib = butler.get("jointcal_photoCalib", vId)
-                except (FitsError, dafPersist.NoResults) as e:
-                    print(e)
-                    print("Could not open photometric calibration for ", vId)
-                    print("Skipping this dataId.")
-                    continue
-                try:
-                    wcs = butler.get("jointcal_wcs", vId)
-                except (FitsError, dafPersist.NoResults) as e:
-                    print(e)
-                    print("Could not open updated WCS for ", vId)
-                    print("Skipping this dataId.")
-                    continue
-            else:
-                try:
-                    calib = butler.get("calexp_calib", vId)
-                except (FitsError, dafPersist.NoResults) as e:
-                    print(e)
-                    print("Could not open calibrated image file for ", vId)
-                    print("Skipping this dataId.")
-                    continue
-                except TypeError as te:
-                    # DECam images that haven't been properly reformatted
-                    # can trigger a TypeError because of a residual FITS header
-                    # LTV2 which is a float instead of the expected integer.
-                    # This generates an error of the form:
-                    #
-                    # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
-                    #
-                    # See, e.g., DM-2957 for details.
-                    print(te)
-                    print("Calibration image header information malformed.")
-                    print("Skipping this dataId.")
-                    continue
+            try:
+                calib = butler.get("calexp_calib", vId)
+            except (FitsError, dafPersist.NoResults) as e:
+                print(e)
+                print("Could not open calibrated image file for ", vId)
+                print("Skipping this dataId.")
+                continue
+            except TypeError as te:
+                # DECam images that haven't been properly reformatted
+                # can trigger a TypeError because of a residual FITS header
+                # LTV2 which is a float instead of the expected integer.
+                # This generates an error of the form:
+                #
+                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
+                #
+                # See, e.g., DM-2957 for details.
+                print(te)
+                print("Calibration image header information malformed.")
+                print("Skipping this dataId.")
+                continue
 
             # We don't want to put this above the first "if useJointCal block"
             # because we need to use the first `butler.get` above to quickly
