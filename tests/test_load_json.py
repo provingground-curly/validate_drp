@@ -27,7 +27,6 @@ import unittest
 
 import lsst.utils
 
-from lsst.validate.base import load_metrics
 from lsst.validate.drp.validate import (
     get_filter_name_from_job, load_json_output, plot_metrics, print_metrics)
 
@@ -37,7 +36,6 @@ class ParseJsonJob(unittest.TestCase):
 
     def setUp(self):
         testDataDir = os.path.dirname(__file__)
-        self.metricsFile = os.path.join(testDataDir, 'metrics.yaml')
         self.jsonFile = os.path.join(testDataDir, 'CfhtQuick_output_r.json')
         self.jsonFile_filter = 'r'
         self.longMessage = True
@@ -48,26 +46,13 @@ class ParseJsonJob(unittest.TestCase):
         # without throwing an error
         job = load_json_output(self.jsonFile)
         # Spot-check a few attributes
-        self.assertEqual(len(job._measurements), 28)
-        self.assertEqual(set(job.spec_levels), set(['design', 'minimum', 'stretch']))
+        self.assertEqual(len(job.measurements), 30)
 
     def testParseJobFilterName(self):
         """Do we correctly read the filterName from a Job object?"""
         job = load_json_output(self.jsonFile)
         filterName = get_filter_name_from_job(job)
         self.assertEqual(filterName, self.jsonFile_filter)
-
-    def testPrintMetricsFromJsonJobFromMetricsfile(self):
-        """Does printing the metrics run without error using metrics.yaml?
-
-        This is in essence half the big test.
-        If we load a file do we get printed metrics?
-        Next TODO is to actually check for the values printed.
-        """
-        job = load_json_output(self.jsonFile)
-        filterName = get_filter_name_from_job(job)
-        metrics = load_metrics(self.metricsFile)
-        print_metrics(job, filterName, metrics)
 
     def testPrintMetricsFromJsonJob(self):
         """Does printing the metrics run without error using itself?
@@ -78,8 +63,7 @@ class ParseJsonJob(unittest.TestCase):
         """
         job = load_json_output(self.jsonFile)
         filterName = get_filter_name_from_job(job)
-        metrics = {meas.metric.name: meas.metric for meas in job.measurements}
-        print_metrics(job, filterName, metrics)
+        print_metrics(job, filterName)
 
     def testPlotMetricsFromJsonJob(self):
         """Does plotting the metrics run and produce the correct filenames?
@@ -94,7 +78,9 @@ class ParseJsonJob(unittest.TestCase):
         noOutputPrefixFiles = ['check_astrometry.png',
                                'check_photometry.png',
                                'PA1.png',
-                               'AM1_D_5_arcmin_17.0_21.5_mag.png']
+                               'validate_drp.AM1_D_5_arcmin_17.0_21.5_mag.png',
+                               'validate_drp.TE1_D_1_arcmin.png',
+                               'validate_drp.TE2_D_5_arcmin.png']
         # test with no output prefix.
         plot_metrics(job, filterName)
         for filename in noOutputPrefixFiles:

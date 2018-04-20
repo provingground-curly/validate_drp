@@ -23,35 +23,30 @@ from __future__ import print_function, absolute_import
 import numpy as np
 import astropy.units as u
 
-from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement
 
 
-class AFxMeasurement(MeasurementBase):
+def measureAFx(metric, amx, adx, adx_spec):
     """Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
     distances which deviate by more than ADx milliarcsec (see AMx) (%).
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        AF1, AF2 or AF3 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    amx : :class:`lsst.validate.drp.calcsrd.AMxMeasurement`
-        And AMx measurement, providing the median astrometric scatter in
+    metric : `lsst.verify.Metric`
+        AF1, AF2 or AF3 `~lsst.verify.Metric` instance.
+    amx : `lsst.verify.Measurement`
+        An AMx measurement, providing the median astrometric scatter in
         the annulus.
-    bandpass : str
-        Bandpass (filter name) used in this measurement (e.g., `'r'`).
-    spec_name : str
-        Name of a specification level to measure against (e.g., design,
-        minimum, stretch).
-    verbose : bool, optional
-        Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
+    adx : `lsst.verify.Measurement`
+        An ADx measurement
+    adx_spec : `lsst.verify.Spec`
+        An instance of a `lsst.verify.Spec` containing the threshold against
+        which to measure.
+
+    Returns
+    -------
+    measurement : `lsst.verify.Measurement`
+        Measurement of AFx (x=1,2,3) and associated metadata.
 
     Notes
     -----
@@ -95,42 +90,12 @@ class AFxMeasurement(MeasurementBase):
     and to astrometric measurements performed in the r and i bands.
     """
 
-    def __init__(self, metric, matchedDataset, amx, filter_name, spec_name,
-                 job=None, linkedBlobs=None, verbose=False):
-        MeasurementBase.__init__(self)
-
-        self.metric = metric
-        self.spec_name = spec_name
-        self.filter_name = filter_name
-
-        # register input parameters for serialization
-        # note that matchedDataset is treated as a blob, separately
-        self.register_parameter('D', datum=amx.parameters['D'])
-        self.register_parameter('annulus', datum=amx.parameters['annulus'])
-        self.register_parameter('magRange', datum=amx.parameters['magRange'])
-        self.register_parameter('AMx', datum=amx.datum)
-
-        self.matchedDataset = matchedDataset
-
-        # Add external blob so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        self.register_parameter(
-            'ADx',
-            datum=self.metric.get_spec_dependency(
-                self.spec_name,
-                'AD{0:d}'.format(self.metric.x.quantity),
-                filter_name=self.filter_name))
-
-        if amx.quantity:
-            v = 100. * np.mean(amx.rmsDistMas > amx.quantity + self.ADx) * u.Unit('')
-            self.quantity = v
-        else:
-            # FIXME previously would raise ValidateErrorNoStars
-            self.quantity = None
-
-        if job:
-            job.register_measurement(self)
+    datums = {}
+    datums['ADx'] = adx.datum
+    if not np.isnan(amx.quantity):
+        quantity = 100.*np.mean(amx.extras['rmsDistMas'].quantity > amx.quantity +
+                                adx_spec.threshold)*u.Unit('percent')
+    else:
+        quantity = np.nan*u.Unit('percent')
+    datums.update(amx.extras)
+    return Measurement(metric, quantity, extras=datums)

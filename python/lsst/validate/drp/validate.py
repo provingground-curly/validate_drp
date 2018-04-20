@@ -25,6 +25,8 @@ from __future__ import print_function, absolute_import
 from builtins import object
 import json
 import os
+import numpy as np
+import astropy.units as u
 
 from textwrap import TextWrapper
 import astropy.visualization
@@ -33,15 +35,15 @@ import astropy.visualization
 import matplotlib
 matplotlib.use('Agg')
 
-from lsst.validate.base import Job
+from lsst.verify import Blob, Datum, Name
+from lsst.verify import Job
 
 from .util import repoNameToPrefix
-from .matchreduce import MatchedMultiVisitDataset
-from .photerrmodel import PhotometricErrorModel
-from .astromerrmodel import AstrometricErrorModel
-from .calcsrd import (AMxMeasurement, AFxMeasurement, ADxMeasurement,
-                      PA1Measurement, PA2Measurement, PF1Measurement,
-                      TExMeasurement)
+from .matchreduce import build_matched_dataset
+from .photerrmodel import build_photometric_error_model
+from .astromerrmodel import build_astrometric_error_model 
+from .calcsrd import (measurePA1, measurePA2, measurePF1, measureAMx,
+                      measureAFx, measureADx, measureTEx)
 from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
@@ -79,7 +81,7 @@ def load_json_output(filepath):
     with open(filepath, 'r') as infile:
         json_data = json.load(infile)
 
-    return Job.from_json(json_data)
+    return Job.deserialize(**json_data)
 
 
 def get_filter_name_from_job(job):
@@ -96,11 +98,8 @@ def get_filter_name_from_job(job):
     -------
     filter_name : `str`
     """
-    measurement_iterator = job.measurements
-    measurement = next(measurement_iterator)
-    filter_name = measurement.filter_name
 
-    return filter_name
+    return job.meta['filter_name']
 
 
 def run(repo_or_json, metrics=None,
@@ -154,9 +153,7 @@ def run(repo_or_json, metrics=None,
 
     for filterName, job in jobs.items():
         if makePrint:
-            if metrics is None:
-                metrics = {meas.metric.name: meas.metric for meas in job.measurements}
-            print_metrics(job, filterName, metrics)
+            print_metrics(job)
         if makePlot:
             if outputPrefix is None or outputPrefix == '':
                 thisOutputPrefix = "%s" % filterName
@@ -164,7 +161,7 @@ def run(repo_or_json, metrics=None,
                 thisOutputPrefix = "%s_%s" % (outputPrefix, filterName)
             plot_metrics(job, filterName, outputPrefix=thisOutputPrefix)
 
-    print_pass_fail_summary(jobs, level=level)
+    print_pass_fail_summary(jobs, default_level=level)
 
 
 def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False, **kwargs):
@@ -265,59 +262,94 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    matchedDataset = MatchedMultiVisitDataset(repo, visitDataIds,
+    matchedDataset = build_matched_dataset(repo, visitDataIds,
                                               useJointCal=useJointCal,
-                                              skipTEx=skipTEx,
-                                              verbose=verbose)
-    photomModel = PhotometricErrorModel(matchedDataset)
-    astromModel = AstrometricErrorModel(matchedDataset)
-    linkedBlobs = {'photomModel': photomModel, 'astromModel': astromModel}
+                                              skipTEx=skipTEx)
 
-    job = Job(blobs=[matchedDataset, photomModel, astromModel])
 
-    for x in (1, 2, 3):
+    photomModel = build_photometric_error_model(matchedDataset)
+
+    astromModel = build_astrometric_error_model(matchedDataset)
+
+    linkedBlobs = [matchedDataset, photomModel, astromModel]
+
+    try:
+        instrument = kwargs['instrument']
+        dataset_repo_url = kwargs['dataset_repo_url']
+    except KeyError:
+        raise ValueError("Instrument name and input dataset URL must be set in config file")
+    job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
+                                         'dataset_repo_url':dataset_repo_url},
+                                   subset='validate_drp',
+                                   package_name_or_path=kwargs['metrics_package'])
+    metrics = job.metrics
+
+    specs = job.specs
+
+    def add_measurement(measurement):
+        for blob in linkedBlobs:
+            measurement.link_blob(blob)
+        job.measurements.insert(measurement)
+
+    for x, D in zip((1, 2, 3), (5., 20., 200.)):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
         adxName = 'AD{0:d}'.format(x)
 
-        AMxMeasurement(metrics[amxName], matchedDataset, filterName,
-                       job=job, linkedBlobs=linkedBlobs, verbose=verbose)
 
-        for specName in metrics[afxName].get_spec_names(filter_name=filterName):
-            AFxMeasurement(metrics[afxName], matchedDataset,
-                           job.get_measurement(amxName), filterName, specName,
-                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+        amx = measureAMx(metrics['validate_drp.'+amxName], matchedDataset, D*u.arcmin)
+        add_measurement(amx)
 
-            ADxMeasurement(metrics[adxName], matchedDataset,
-                           job.get_measurement(amxName), filterName, specName,
-                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+        afx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[afxName,])
+        adx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[adxName,])
+        for afx_spec_key, adx_spec_key in zip(afx_spec_set, adx_spec_set):
+            afx_spec = afx_spec_set[afx_spec_key]
+            adx_spec = adx_spec_set[adx_spec_key]
+            adx = measureADx(metrics[adx_spec.metric_name], amx, afx_spec)
+            add_measurement(adx)
+            afx = measureAFx(metrics[afx_spec.metric_name], amx, adx, adx_spec)
+            add_measurement(afx)
 
-    PA1Measurement(metrics['PA1'], matchedDataset, filterName,
-                   job=job, linkedBlobs=linkedBlobs,
-                   verbose=verbose)
+    pa1 = measurePA1(metrics['validate_drp.PA1'], matchedDataset, filterName)
+    add_measurement(pa1)
 
-    for specName in metrics['PA2'].get_spec_names(filter_name=filterName):
-        PA2Measurement(metrics['PA2'], matchedDataset,
-                       pa1=job.get_measurement('PA1'), filter_name=filterName,
-                       spec_name=specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
 
-    for specName in metrics['PF1'].get_spec_names(filter_name=filterName):
-        PF1Measurement(metrics['PF1'], matchedDataset,
-                       job.get_measurement('PA1'),
-                       filterName, specName, verbose=verbose,
-                       job=job, linkedBlobs=linkedBlobs)
+    pf1_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
+                                           spec_tags=['PF1',])
+    pa2_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
+                                           spec_tags=['PA2',])
+    # I worry these might not always be in the right order.  Sorting...
+    pf1_spec_keys = list(pf1_spec_set.keys())
+    pa2_spec_keys = list(pa2_spec_set.keys())
+    pf1_spec_keys.sort()
+    pa2_spec_keys.sort()
+    for pf1_spec_key, pa2_spec_key in zip(pf1_spec_keys, pa2_spec_keys):
+        pf1_spec = pf1_spec_set[pf1_spec_key]
+        pa2_spec = pa2_spec_set[pa2_spec_key]
+
+        pa2 = measurePA2(metrics[pa2_spec.metric_name], pa1, pf1_spec.threshold)
+        add_measurement(pa2)
+
+        pf1 = measurePF1(metrics[pf1_spec.metric_name], pa1, pa2_spec)
+        add_measurement(pf1)
 
     if not skipTEx:
-        for x in (1, 2):
+        for x, D, bin_range_operator in zip((1, 2), (1.0, 5.0), ("<=", ">=")):
             texName = 'TE{0:d}'.format(x)
-            TExMeasurement(metrics[texName], matchedDataset, filterName,
-                           job=job, linkedBlobs=linkedBlobs, verbose=verbose)
+            tex = measureTEx(metrics['validate_drp.'+texName], matchedDataset, D*u.arcmin, bin_range_operator)
+            add_measurement(tex)
 
     if makeJson:
-        job.write_json(outputPrefix + '.json')
+        job.write(outputPrefix+'.json')
 
     return job
+
+
+def get_metric(level, metric_label, in_specs):
+    for spec in in_specs:
+        if level in str(spec) and metric_label in str(spec):
+            break
+    return Name(package=spec.package, metric=spec.metric)
 
 
 def plot_metrics(job, filterName, outputPrefix=''):
@@ -332,48 +364,50 @@ def plot_metrics(job, filterName, outputPrefix=''):
     """
     astropy.visualization.quantity_support()
 
+    specs = job.specs
+    measurements = job.measurements
+    spec_name = 'design'
     for x in (1, 2, 3):
         amxName = 'AM{0:d}'.format(x)
         afxName = 'AF{0:d}'.format(x)
         # ADx is included on the AFx plots
-        spec_name = 'design'
 
-        amx = job.get_measurement(amxName)
-        afx = job.get_measurement(afxName, spec_name=spec_name)
+        amx = measurements[get_metric(spec_name, amxName, specs)]
+        afx = measurements[get_metric(spec_name, afxName, specs)]
 
         if amx.quantity is not None:
             try:
-                plotAMx(amx, afx, filterName, amxSpecName=spec_name,
+                plotAMx(job, amx, afx, filterName, amxSpecName=spec_name,
                         outputPrefix=outputPrefix)
             except RuntimeError as e:
                 print(e)
                 print('\tSkipped plot{}'.format(amxName))
 
     try:
-        pa1 = job.get_measurement('PA1')
+        pa1 = measurements[get_metric(spec_name, 'PA1', specs)]
         plotPA1(pa1, outputPrefix=outputPrefix)
     except RuntimeError as e:
         print(e)
         print('\tSkipped plotPA1')
 
     try:
-        matchedDataset = pa1.blobs['matchedDataset']
-        photomModel = pa1.blobs['photomModel']
-        filterName = pa1.filter_name
+        matchedDataset = pa1.blobs['MatchedMultiVisitDataset']
+        photomModel = pa1.blobs['PhotometricErrorModel']
+        filterName = pa1.extras['filter_name']
         plotPhotometryErrorModel(matchedDataset, photomModel,
                                  filterName=filterName,
                                  outputPrefix=outputPrefix)
-    except RuntimeError as e:
+    except KeyError as e:
         print(e)
         print('\tSkipped plotPhotometryErrorModel')
 
     try:
-        am1 = job.get_measurement('AM1')
-        matchedDataset = am1.blobs['matchedDataset']
-        astromModel = am1.blobs['astromModel']
+        am1 = measurements[get_metric(spec_name, 'AM1', specs)]
+        matchedDataset = am1.blobs['MatchedMultiVisitDataset']
+        astromModel = am1.blobs['AnalyticAstrometryModel']
         plotAstrometryErrorModel(matchedDataset, astromModel,
                                  outputPrefix=outputPrefix)
-    except RuntimeError as e:
+    except KeyError as e:
         print(e)
         print('\tSkipped plotAstrometryErrorModel')
 
@@ -381,8 +415,8 @@ def plot_metrics(job, filterName, outputPrefix=''):
         texName = 'TE{0:d}'.format(x)
 
         try:
-            measurement = job.get_measurement(texName)
-            plotTEx(measurement, filterName,
+            measurement = measurements[get_metric(spec_name, texName, specs)]
+            plotTEx(job, measurement, filterName,
                     texSpecName='design',
                     outputPrefix=outputPrefix)
         except RuntimeError as e:
@@ -390,88 +424,107 @@ def plot_metrics(job, filterName, outputPrefix=''):
             print('\tSkipped plot{}'.format(texName))
 
 
-def print_metrics(job, filterName, metrics):
-    """Print specified list of metrics.  E.g., AM1, AM2, AM3, PA1.
+def get_specs_metrics(job):
+    # Get specs for this filter
+    subset = job.specs.subset(required_meta={'instrument':job.meta['instrument'],
+                                                 'filter_name':job.meta['filter_name']})
+    # Get specs that don't depend on filter
+    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument'],
+                                                      'filter_name':'any'}))
+    metrics = {}
+    specs = {}
+    for spec in subset:
+        metric_name = spec.metric.split('_')[0] # Take first part for linked metrics
+        if metric_name in metrics:
+            metrics[metric_name].append(Name(package=spec.package, metric=spec.metric))
+            specs[metric_name].append(spec)
+        else:
+            metrics[metric_name] = [Name(package=spec.package, metric=spec.metric),]
+            specs[metric_name] = [spec,]
+    return specs, metrics
 
-    Parameters
-    ----------
-    job : `lsst.validate.base.Job`
-        The job to load data from.
-    filterName : `str`
-        String identifying the filter.
-    metrics : `dict`
-        Dictionary of lsst.validate.base.metric.Metric objects to print
 
-    Notes
-    -----
-    We here specify the list of metrics to plot.
-    In `plot_metrics` the list is implicitly hardcoded because of the different
-    options each plotting method needs.
-    """
+def print_metrics(job, levels=('minimum', 'design', 'stretch')):
+    specs, metrics = get_specs_metrics(job)
+
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER +
-          '{band} band metric measurements'.format(band=filterName) +
+          '{band} band metric measurements'.format(band=job.meta['filter_name']) +
           bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
     wrapper = TextWrapper(width=65)
-
-    for metricName, metric in metrics.items():
+    for metric_name, metric_set in metrics.items():
+        metric = job.metrics[metric_set[0]] # Pick the first one for the description
         print(bcolors.HEADER + '{name} - {reference}'.format(
             name=metric.name, reference=metric.reference))
         print(wrapper.fill(bcolors.ENDC + '{description}'.format(
             description=metric.description).strip()))
 
-        for specName in metric.get_spec_names(filter_name=filterName):
+        for spec_key, metric_key in zip(specs[metric_name], metrics[metric_name]):
+            level = None
+            for l in levels:
+                if l in str(spec_key):
+                    level = l
             try:
-                m = job.get_measurement(metricName,
-                                        spec_name=specName,
-                                        filter_name=filterName)
-            except RuntimeError:
-                print('\tSkipped {specName:12s} no spec'.format(
-                    specName=specName))
+                m = job.measurements[metric_key]
+            except KeyError:
+                print('\tSkipped {metric_key:12s} with spec {spec}: no such measurement'.format(
+                    metric_key=metric_name, spec=level))
                 continue
 
-            if m.quantity is None:
-                print('\tSkipped {specName:12s} no measurement'.format(
-                    specName=specName))
+            if np.isnan(m.quantity):
+                print('\tSkipped {metric_key:12s} no measurement'.format(
+                    metric_key=".".join([metric_name, level])))
                 continue
 
-            spec = metric.get_spec(specName, filter_name=filterName)
-            passed = m.check_spec(specName)
+            spec = job.specs[spec_key]
+            passed = spec.check(m.quantity)
             if passed:
                 prefix = bcolors.OKBLUE + '\tPassed '
             else:
                 prefix = bcolors.FAIL + '\tFailed '
             infoStr = '{specName:12s} {meas:.4g} {op} {spec:.4g}'.format(
-                specName=specName,
+                specName=level,
                 meas=m.quantity,
-                op=metric.operator_str,
-                spec=spec.quantity)
+                op=spec.operator_str,
+                spec=spec.threshold)
             print(prefix + infoStr + bcolors.ENDC)
 
 
-def print_pass_fail_summary(jobs, level='design'):
+
+def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), default_level='design'):
     currentTestCount = 0
     currentFailCount = 0
 
     for filterName, job in jobs.items():
+        specs, metrics = get_specs_metrics(job)
         print('')
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
 
-        for specName in job.spec_levels:
+        for specName in levels:
             measurementCount = 0
             failCount = 0
-            for m in job.measurements:
-                if m.quantity is None:
+            for key, m in job.measurements.items():
+                if np.isnan(m.quantity):
                     continue
                 measurementCount += 1
-                if not m.check_spec(specName):
+                metric = key.metric.split("_")[0] # For compound metrics
+                spec_set = specs[metric]
+                spec = None
+                for spec_key in spec_set:
+                    if specName in spec_key.spec:
+                        spec = job.specs[spec_key]
+                if spec is None:
+                    for spec_key in spec_set:
+                        if specName in spec_key.metric: # For dependent metrics
+                            spec = job.specs[spec_key]
+                if not spec.check(m.quantity):
                     failCount += 1
 
-            if specName == level:
+            if specName == default_level:
                 currentTestCount += measurementCount
                 currentFailCount += failCount
 
@@ -487,7 +540,7 @@ def print_pass_fail_summary(jobs, level='design'):
 
     # print summary against current spec level
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(level) + bcolors.ENDC)
+    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(default_level) + bcolors.ENDC)
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
     if currentFailCount > 0:
         msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(

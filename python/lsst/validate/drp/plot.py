@@ -29,6 +29,7 @@ import astropy.units as u
 import scipy.stats
 from .astromerrmodel import astromErrModel
 from .photerrmodel import photErrModel
+from lsst.verify import Name
 
 
 __all__ = ['plotOutlinedAxline',
@@ -99,30 +100,31 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
 
     Parameters
     ----------
-    dataset : `MatchedMultiVisitDataset`
+    dataset : `lsst.verify.Blob`
         Blob with the multi-visit photometry model.
-    photomModel : `AnalyticPhotometryModel`
-        An analyticPhotometry model object.
+    photomModel : `lsst.verify.Blob`
+        A `Blob` containing the analytic photometry model.
     outputPrefix : str, optional
         Prefix to use for filename of plot file.  Will also be used in plot
         titles. E.g., ``outputPrefix='Cfht_output_r_'`` will result in a file
         named ``'Cfht_output_r_check_astrometry.png'``.
     """
-    bright, = np.where(dataset.snr > astromModel.brightSnr)
+    bright, = np.where(dataset['snr'].quantity > astromModel['brightSnr'].quantity)
 
-    numMatched = len(dataset.dist)
-    dist_median = np.median(dataset.dist)
-    bright_dist_median = np.median(dataset.dist[bright])
+    dist = dataset['dist'].quantity
+    numMatched = len(dist)
+    dist_median = np.median(dist)
+    bright_dist_median = np.median(dist[bright])
 
     fig, ax = plt.subplots(ncols=2, nrows=1, figsize=(18, 12))
 
-    ax[0].hist(dataset.dist, bins=100, color=color['all'],
+    ax[0].hist(dist, bins=100, color=color['all'],
                histtype='stepfilled', orientation='horizontal')
-    ax[0].hist(dataset.dist[bright], bins=100, color=color['bright'],
+    ax[0].hist(dist[bright], bins=100, color=color['bright'],
                histtype='stepfilled', orientation='horizontal')
 
     ax[0].set_ylim([0., 500.])
-    ax[0].set_ylabel("Distance [{unit:latex}]".format(unit=dataset.dist.unit))
+    ax[0].set_ylabel("Distance [{unit:latex}]".format(unit=dist.unit))
     plotOutlinedAxline(
         ax[0].axhline,
         dist_median.value,
@@ -133,15 +135,16 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
         bright_dist_median.value,
         color=color['bright'],
         label="SNR > {snr:.0f}\nMedian RMS: {v.value:.1f} {v.unit:latex}".format(
-            snr=astromModel.brightSnr,
+            snr=astromModel['brightSnr'].quantity.value,
             v=bright_dist_median))
     ax[0].legend(loc='upper right')
 
-    ax[1].scatter(dataset.snr, dataset.dist,
+    snr = dataset['snr'].quantity
+    ax[1].scatter(snr, dist,
                   s=10, color=color['all'], label='All')
-    ax[1].scatter(dataset.snr[bright], dataset.dist[bright], s=10,
+    ax[1].scatter(snr[bright], dist[bright], s=10,
                   color=color['bright'],
-                  label='SNR > {0:.0f}'.format(astromModel.brightSnr))
+                  label='SNR > {0:.0f}'.format(astromModel['brightSnr'].quantity.value))
     ax[1].set_xlabel("SNR")
     ax[1].set_xscale("log")
     ax[1].set_ylim([0., 500.])
@@ -153,12 +156,12 @@ def plotAstrometryErrorModel(dataset, astromModel, outputPrefix=''):
                                                    nAll=numMatched),
                transform=ax[1].transAxes, ha='left', va='baseline')
 
-    w, = np.where(dataset.dist < 200 * u.marcsec)
-    plotAstromErrModelFit(dataset.snr[w], dataset.dist[w], astromModel,
+    w, = np.where(dist < 200 * u.marcsec)
+    plotAstromErrModelFit(snr[w], dist[w], astromModel,
                           ax=ax[1])
 
     ax[1].legend(loc='upper right')
-    ax[1].axvline(astromModel.brightSnr,
+    ax[1].axvline(astromModel['brightSnr'].quantity,
                   color='red', linewidth=4, linestyle='dashed')
     plotOutlinedAxline(
         ax[0].axhline,
@@ -194,8 +197,8 @@ def plotAstromErrModelFit(snr, dist, model,
         S/N of photometric measurements
     dist : list or numpy.array
         Separation from reference [mas]
-    model : `AnalyticAstrometryModel`
-        An `AnalyticAstrometryModel` instance.
+    model : `lsst.verify.Blob`
+        A `Blob` holding the analytic astrometric model.
     """
     if ax is None:
         ax = plt.figure()
@@ -205,9 +208,9 @@ def plotAstromErrModelFit(snr, dist, model,
 
     x_model = np.logspace(np.log10(xlim[0]), np.log10(xlim[1]), num=100)
     fit_model_mas_err = astromErrModel(x_model,
-                                       theta=model.theta,
-                                       sigmaSys=model.sigmaSys,
-                                       C=model.C)
+                                       theta=model['theta'].quantity,
+                                       sigmaSys=model['sigmaSys'].quantity,
+                                       C=model['C'].quantity)
     ax.plot(x_model, fit_model_mas_err,
             color=color, linewidth=2,
             label='Model')
@@ -217,9 +220,9 @@ def plotAstromErrModelFit(snr, dist, model,
         r'$\theta$ = {theta:.4g}',
         r'$\sigma_\mathrm{{sys}}$ = {sigmaSys.value:.2g} {sigmaSys.unit:latex}'])
     modelLabel = modelLabelTemplate.format(
-        C=model.C,
-        theta=model.theta,
-        sigmaSys=model.sigmaSys)
+        C=model['C'].quantity,
+        theta=model['theta'].quantity,
+        sigmaSys=model['sigmaSys'].quantity)
     ax.text(0.6, 0.4, modelLabel,
             transform=ax.transAxes, va='baseline', ha='left', color=color)
     # Set the x limits back to their original values.
@@ -236,8 +239,8 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
         Magnitude
     mmag_err : list or numpy.array
         Magnitude uncertainty or variation in *mmag*.
-    photomModel : `AnalyticPhotometryModel`
-        Fit parameters to display.
+    photomModel : `lsst.verify.Blob`
+        A `Blob` holding the parameters to display.
     ax : matplotlib.Axis, optional
         The Axis object to plot to.
     verbose : bool, optional
@@ -252,9 +255,9 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
 
     x_model = np.linspace(*xlim, num=100)
     fit_model_mag_err = photErrModel(x_model,
-                                     sigmaSys=photomModel.sigmaSys.to(u.mag).value,
-                                     gamma=photomModel.gamma.value,
-                                     m5=photomModel.m5.to(u.mag).value)
+                                     sigmaSys=photomModel['sigmaSys'].quantity.to(u.mag).value,
+                                     gamma=photomModel['gamma'].quantity.value,
+                                     m5=photomModel['m5'].quantity.to(u.mag).value)
     fit_model_mag_err = fit_model_mag_err * u.mag
     ax.plot(x_model, fit_model_mag_err.to(u.mmag).value,
             color=color, linewidth=2,
@@ -264,9 +267,9 @@ def plotPhotErrModelFit(mag, mmag_err, photomModel, color='red', ax=None,
         r'$\sigma_\mathrm{{sys}}$ = {sigmaSysMmag:.4f} mmag',
         r'$\gamma = {gamma:.4f}$',
         r'$m_5 =$ {m5:.4f}'])
-    label = labelFormatStr.format(sigmaSysMmag=1000*photomModel.sigmaSys.to(u.mag).value,
-                                  gamma=photomModel.gamma,
-                                  m5=photomModel.m5)
+    label = labelFormatStr.format(sigmaSysMmag=1000*photomModel['sigmaSys'].quantity.to(u.mag).value,
+                                  gamma=photomModel['gamma'].quantity.value,
+                                  m5=photomModel['m5'].quantity.value)
     ax.text(0.1, 0.8, label, color=color,
             transform=ax.transAxes, ha='left', va='top')
 
@@ -277,10 +280,10 @@ def plotPhotometryErrorModel(dataset, photomModel,
 
     Parameters
     ----------
-    dataset : `MatchedMultiVisitDataset`
-        Blob with the multi-visit photometry model.
-    photomModel : `AnalyticPhotometryModel`
-        An analyticPhotometry model object.
+    dataset : `lsst.verify.Blob`
+        A `Blob` with the multi-visit photometry model.
+    photomModel : `lsst.verify.Blob`
+        A `Blob` hlding the analytic photometry model parameters.
     filterName : str, optional
         Name of the observed filter to use on axis labels.
     outputPrefix : str, optional
@@ -288,12 +291,14 @@ def plotPhotometryErrorModel(dataset, photomModel,
         titles. E.g., ``outputPrefix='Cfht_output_r_'`` will result in a file
         named ``'Cfht_output_r_check_photometry.png'``.
     """
-    bright, = np.where(dataset.snr > photomModel.brightSnr)
+    bright, = np.where(dataset['snr'].quantity > photomModel['brightSnr'].quantity)
 
-    numMatched = len(dataset.mag)
-    mmagRms = dataset.magrms.to(u.mmag)
+    numMatched = len(dataset['mag'].quantity)
+    magrms = dataset['magrms'].quantity
+    mmagRms = magrms.to(u.mmag)
     mmagRmsHighSnr = mmagRms[bright]
-    mmagErr = dataset.magerr.to(u.mmag)
+    magerr = dataset['magerr'].quantity
+    mmagErr = magerr.to(u.mmag)
     mmagErrHighSnr = mmagErr[bright]
 
     mmagrms_median = np.median(mmagRms)
@@ -318,24 +323,24 @@ def plotPhotometryErrorModel(dataset, photomModel,
         bright_mmagrms_median.value,
         color=color['bright'],
         label="SNR > {snr:.0f}\nMedian RMS: {v:.1f}".format(
-            snr=photomModel.brightSnr,
+            snr=photomModel['brightSnr'].quantity.value,
             v=bright_mmagrms_median))
 
     ax[0][0].set_ylim([0, 500])
     ax[0][0].set_ylabel("{magrms.label} [{mmagrms.unit:latex}]".format(
-        magrms=dataset.datums['magrms'], mmagrms=mmagRms))
+        magrms=dataset['magrms'], mmagrms=mmagRms))
     ax[0][0].legend(loc='upper right')
-
-    ax[0][1].scatter(dataset.mag, mmagRms,
+    mag = dataset['mag'].quantity
+    ax[0][1].scatter(mag, mmagRms,
                      s=10, color=color['all'], label='All')
-    ax[0][1].scatter(dataset.mag[bright], mmagRmsHighSnr,
+    ax[0][1].scatter(mag[bright], mmagRmsHighSnr,
                      s=10, color=color['bright'],
                      label='{label} > {value:.0f}'.format(
-                         label=photomModel.datums['brightSnr'].label,
-                         value=photomModel.brightSnr))
+                         label=photomModel['brightSnr'].label,
+                         value=photomModel['brightSnr'].quantity.value))
     ax[0][1].set_xlabel("{label} [{unit:latex}]".format(label=filterName,
-                                                        unit=dataset.mag.unit))
-    ax[0][1].set_ylabel("{label} [{unit:latex}]".format(label=dataset.datums['magrms'].label,
+                                                        unit=mag.unit))
+    ax[0][1].set_ylabel("{label} [{unit:latex}]".format(label=dataset['magrms'].label,
                                                         unit=mmagRmsHighSnr.unit))
     ax[0][1].set_xlim([17, 24])
     ax[0][1].set_ylim([0, 500])
@@ -366,14 +371,14 @@ def plotPhotometryErrorModel(dataset, photomModel,
     ax[1][0].plot([0, 1000], [0, 1000],
                   linestyle='--', color='black', linewidth=2)
     ax[1][0].set_xlabel("{label} [{unit:latex}]".format(
-        label=dataset.datums['magrms'].label,
+        label=dataset['magrms'].label,
         unit=mmagRms.unit))
     ax[1][0].set_ylabel("Median Reported Magnitude Err [{unit:latex}]".format(
         unit=mmagErr.unit))
 
-    brightSnrMag = 2.5*np.log10(1 + (1/photomModel.brightSnr.value)) * u.mag
+    brightSnrMag = 2.5*np.log10(1 + (1/photomModel['brightSnr'].quantity.value)) * u.mag
     label = r'$SNR > {snr:.0f} \equiv \sigma <  {snrMag:0.1f}$'.format(
-        snr=photomModel.brightSnr,
+        snr=photomModel['brightSnr'].quantity.value,
         snrMag=brightSnrMag.to(u.mmag))
     ax[1][0].axhline(brightSnrMag.to(u.mmag).value,
                      color='red', linewidth=4,
@@ -383,15 +388,15 @@ def plotPhotometryErrorModel(dataset, photomModel,
     ax[1][0].set_ylim([1, 500])
     ax[1][0].legend(loc='upper center')
 
-    ax[1][1].scatter(dataset.mag, mmagErr,
+    ax[1][1].scatter(mag, mmagErr,
                      color=color['all'], label=None)
     ax[1][1].set_yscale('log')
-    ax[1][1].scatter(np.asarray(dataset.mag)[bright],
+    ax[1][1].scatter(np.asarray(mag)[bright],
                      mmagErrHighSnr,
                      s=10, color=color['bright'],
                      label=None)
     ax[1][1].set_xlabel("{name} [{unit:latex}]".format(
-        name=filterName, unit=dataset.mag.unit))
+        name=filterName, unit=mag.unit))
     ax[1][1].set_ylabel("Median Reported Magnitude Err [{unit:latex}]".format(
         unit=mmagErr.unit))
     ax[1][1].set_xlim([17, 24])
@@ -402,8 +407,8 @@ def plotPhotometryErrorModel(dataset, photomModel,
                      label=None)
 
     w, = np.where(mmagErr < 200. * u.mmag)
-    plotPhotErrModelFit(dataset.mag[w].to(u.mag).value,
-                        dataset.magerr[w].to(u.mmag).value,
+    plotPhotErrModelFit(mag[w].to(u.mag).value,
+                        magerr[w].to(u.mmag).value,
                         photomModel, ax=ax[1][1])
     ax[1][1].legend(loc='upper left')
 
@@ -425,8 +430,8 @@ def plotPA1(pa1, outputPrefix=""):
 
     Parameters
     ----------
-    pa1 : `PA1Measurement`
-        A PA1 object.
+    pa1 : `lsst.verify.Measurement`
+        A `Measurement` of the PA1 `Metric`.
     outputPrefix : `str`, optional
         Prefix to use for filename of plot file.  Will also be used in plot
         titles. E.g., outputPrefix='Cfht_output_r_' will result in a file
@@ -434,36 +439,40 @@ def plotPA1(pa1, outputPrefix=""):
         for an ``AMx.name=='AM1'`` and ``AMx.magRange==[17, 21.5]``.
     """
     diffRange = (-100, +100)
+    magDiff = pa1.extras['magDiff'].quantity
+    magMean = pa1.extras['magMean'].quantity
+    rms = pa1.extras['rms'].quantity
+    iqr = pa1.extras['iqr'].quantity
 
     fig = plt.figure(figsize=(18, 12))
     ax1 = fig.add_subplot(1, 2, 1)
-    ax1.scatter(pa1.magMean[0],
-                pa1.magDiff[0],
+    ax1.scatter(magMean[0],
+                magDiff[0],
                 s=10, color=color['bright'], linewidth=0)
     # index 0 because we show only the first sample from multiple trials
-    ax1.axhline(+pa1.rms[0].value, color=color['rms'], linewidth=3)
-    ax1.axhline(-pa1.rms[0].value, color=color['rms'], linewidth=3)
-    ax1.axhline(+pa1.iqr[0].value, color=color['iqr'], linewidth=3)
-    ax1.axhline(-pa1.iqr[0].value, color=color['iqr'], linewidth=3)
+    ax1.axhline(+rms[0].value, color=color['rms'], linewidth=3)
+    ax1.axhline(-rms[0].value, color=color['rms'], linewidth=3)
+    ax1.axhline(+iqr[0].value, color=color['iqr'], linewidth=3)
+    ax1.axhline(-iqr[0].value, color=color['iqr'], linewidth=3)
 
     ax2 = fig.add_subplot(1, 2, 2, sharey=ax1)
-    ax2.hist(pa1.magDiff[0], bins=25, range=diffRange,
+    ax2.hist(magDiff[0], bins=25, range=diffRange,
              orientation='horizontal', histtype='stepfilled',
              normed=True, color=color['bright'])
     ax2.set_xlabel("relative # / bin")
 
     labelTemplate = r'PA1({label}) = {q.value:4.2f} {q.unit:latex}'
     yv = np.linspace(diffRange[0], diffRange[1], 100)
-    ax2.plot(scipy.stats.norm.pdf(yv, scale=pa1.rms[0]), yv,
+    ax2.plot(scipy.stats.norm.pdf(yv, scale=rms[0]), yv,
              marker='', linestyle='-', linewidth=3, color=color['rms'],
-             label=labelTemplate.format(label='RMS', q=pa1.rms[0]))
-    ax2.plot(scipy.stats.norm.pdf(yv, scale=pa1.iqr[0]), yv,
+             label=labelTemplate.format(label='RMS', q=rms[0]))
+    ax2.plot(scipy.stats.norm.pdf(yv, scale=iqr[0]), yv,
              marker='', linestyle='-', linewidth=3, color=color['iqr'],
-             label=labelTemplate.format(label='IQR', q=pa1.iqr[0]))
+             label=labelTemplate.format(label='IQR', q=iqr[0]))
     ax2.set_ylim(*diffRange)
     ax2.legend()
     ax1.set_xlabel("psf magnitude")
-    ax1.set_ylabel(r"psf magnitude diff ({0.unit:latex})".format(pa1.extras['magDiff'].quantity))
+    ax1.set_ylabel(r"psf magnitude diff ({0.unit:latex})".format(magDiff))
     for label in ax2.get_yticklabels():
         label.set_visible(False)
 
@@ -476,7 +485,7 @@ def plotPA1(pa1, outputPrefix=""):
     print("Wrote plot:", plotPath)
 
 
-def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
+def plotAMx(job, amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     """Plot a histogram of the RMS in relative distance between pairs of
     stars.
 
@@ -485,8 +494,11 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
 
     Parameters
     ----------
-    amx : `AMxMeasurement`
-    afx : `AFxMeasurement`
+    job : `lsst.verify.Job`
+        `~lsst.verify.Job` providing access to metrics, specs and measurements
+    amx : `lsst.verify.Measurement`
+    afx : `lsst.verify.Measurement`
+    filterName : `str`
     amxSpecName : `str`, optional
         Name of the AMx specification to reference in the plot.
         Default: ``'design'``.
@@ -496,60 +508,66 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
         named ``'Cfht_output_r_AM1_D_5_arcmin_17.0-21.5.png'``
         for an ``AMx.name=='AM1'`` and ``AMx.magRange==[17, 21.5]``.
     """
+    if np.isnan(amx.quantity):
+        print("Skipping %s -- no measurement"%str(amx.metric_name))
+        return
+
     fig = plt.figure(figsize=(10, 6))
     ax1 = fig.add_subplot(1, 1, 1)
 
     histLabelTemplate = 'D: [{inner.value:.1f}{inner.unit:latex}-{outer.value:.1f}{outer.unit:latex}]\n'\
                         'Mag: [{magBright:.1f}-{magFaint:.1f}]'
-    ax1.hist(amx.rmsDistMas, bins=25, range=(0.0, 100.0),
+    annulus = amx.extras['annulus'].quantity
+    magRange = amx.extras['magRange'].quantity
+    ax1.hist(amx.extras['rmsDistMas'].quantity, bins=25, range=(0.0, 100.0),
              histtype='stepfilled',
              label=histLabelTemplate.format(
-                 inner=amx.annulus[0],
-                 outer=amx.annulus[1],
-                 magBright=amx.magRange[0],
-                 magFaint=amx.magRange[1]))
-
-    amxSpec = amx.metric.get_spec(amxSpecName, filter_name=filterName)
-    amxSpecLabelTemplate = '{amx.label} {specname}: {amxSpec.quantity:.1f}'
+                 inner=annulus[0],
+                 outer=annulus[1],
+                 magBright=magRange[0],
+                 magFaint=magRange[1]))
+    metric_name = amx.metric_name
+    amxSpec = job.specs[Name(package=metric_name.package, metric=metric_name.metric, spec=amxSpecName)]
+    amxSpecLabelTemplate = '{amx.datum.label} {specname}: {amxSpec.threshold:.1f}'
     amxSpecLabel = amxSpecLabelTemplate.format(
         amx=amx,
         specname=amxSpecName,
         amxSpec=amxSpec)
-    ax1.axvline(amxSpec.quantity.value, 0, 1, linewidth=2, color='red',
+    ax1.axvline(amxSpec.threshold.value, 0, 1, linewidth=2, color='red',
                 label=amxSpecLabel)
 
-    if amx.check_spec(amxSpecName):
+    if amxSpec.check(amx.quantity):
         amxStatus = 'passed'
     else:
         amxStatus = 'failed'
-    amxLabelTemplate = '{amx.label} measured: {amx.quantity:.1f} ({status})'
+    amxLabelTemplate = '{amx.datum.label} measured: {amx.quantity:.1f} ({status})'
     amxLabel = amxLabelTemplate.format(amx=amx, status=amxStatus)
-    ax1.axvline(amx.quantity.value, 0, 1, linewidth=2, color='black',
+    ax1.axvline(amxSpec.threshold.value, 0, 1, linewidth=2, color='black',
                 label=amxLabel)
 
-    if afx.check_spec(afx.spec_name):
+    afxSpec = job.specs[Name(package=afx.metric_name.package, metric=afx.metric_name.metric, spec='srd')]
+    if afxSpec.check(afx.quantity):
         afxStatus = 'passed'
     else:
         afxStatus = 'failed'
-    afxSpec = afx.metric.get_spec(afx.spec_name, filter_name=filterName)
-    afxLabelTemplate = '{afx.label} {afx.spec_name}: {afxSpec.quantity}%\n' + \
-                       '{afx.label} measured: {afx.quantity:.1f}% ({status})'
+    afxLabelTemplate = '{afx.datum.label} {afxSpec.name}: {afxSpec.threshold}%\n' + \
+                       '{afx.datum.label} measured: {afx.quantity:.1f}% ({status})'
     afxLabel = afxLabelTemplate.format(
         afx=afx,
         afxSpec=afxSpec,
         status=afxStatus)
-    ax1.axvline((amx.quantity + afx.ADx).value,
+    ax1.axvline((amx.quantity + afx.extras['ADx'].quantity).value,
                 0, 1, linewidth=2, color='green',
                 label=afxLabel)
 
     title = '{metric} Astrometric Repeatability over {D.value:.0f}{D.unit:latex}'.format(
-        metric=amx.label,
-        D=amx.D)
+        metric=amx.datum.label,
+        D=amx.extras['D'].quantity)
     ax1.set_title(title)
     ax1.set_xlim(0.0, 100.0)
     ax1.set_xlabel(
-        '{rmsDistMas.label} ({rmsDistMas.latex_unit})'.format(
-            rmsDistMas=amx.extras['rmsDistMas']))
+        '{rmsDistMas.label} ({unit})'.format(
+            rmsDistMas=amx.extras['rmsDistMas'], unit=amx.extras['rmsDistMas'].quantity.unit._repr_latex_()))
     ax1.set_ylabel('# pairs / bin')
 
     ax1.legend(loc='upper right', fontsize=16)
@@ -559,11 +577,11 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
         '{magBright.value}_{magFaint.value}_{magFaint.unit}.{ext}'
     plotPath = makeFilename(outputPrefix,
                             pathFormat,
-                            metric=amx.label,
-                            D=int(amx.D.value),
-                            Dunits=amx.parameters['D'].unit,
-                            magBright=amx.magRange[0],
-                            magFaint=amx.magRange[1],
+                            metric=amx.datum.label,
+                            D=int(amx.extras['D'].quantity.value),
+                            Dunits=amx.extras['D'].quantity.unit,
+                            magBright=magRange[0],
+                            magFaint=magRange[1],
                             ext=ext)
 
     plt.tight_layout()  # fix padding
@@ -572,13 +590,15 @@ def plotAMx(amx, afx, filterName, amxSpecName='design', outputPrefix=""):
     print("Wrote plot:", plotPath)
 
 
-def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
+def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
     """Plot TEx correlation function measurements and thresholds.
 
     Parameters
     ----------
-    tex : Measurement object
-        The ellipticity residual correlation Measurement object
+    job : `lsst.verify.Job`
+        `Job` providing access to metrics, specs, and measurements
+    tex : `lsst.verify.Measurement
+        The ellipticity residual correlation `Measurement` object
     filterName : str
         Name of the filter of the images
     texSpecName : str
@@ -596,27 +616,33 @@ def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
     fig = plt.figure(figsize=(10, 6))
     ax1 = fig.add_subplot(1, 1, 1)
     # Plot correlation vs. radius
-    ax1.errorbar(tex.radius.value, tex.xip.value, yerr=tex.xip_err.value)
+    radius = tex.extras['radius'].quantity
+    xip = tex.extras['xip'].quantity
+    xip_err = tex.extras['xip_err'].quantity
+    D = tex.extras['D'].quantity
+    bin_range_operator = tex.extras['bin_range_operator'].quantity
+
+    ax1.errorbar(radius.value,  xip.value, yerr=xip_err.value)
     ax1.set_xscale('log')
     ax1.set_xlabel('Separation (arcmin)', size=19)
     ax1.set_ylabel('Median Residual Ellipticity Correlation', size=19)
 
     # Overlay requirements level
-    texSpec = tex.metric.get_spec(texSpecName, filter_name=filterName)
-    texSpecLabel = '{tex.label} {specname}: {texSpec:.2g}'.format(
+    metric_name = tex.metric_name
+    texSpec = job.specs[Name(package=metric_name.package, metric=metric_name.metric, spec=texSpecName)]
+    texSpecLabel = '{tex.datum.label} {specname}: {texSpec:.2g}'.format(
         tex=tex,
-        texSpec=tex.metric.get_spec(texSpecName,
-                                    filter_name=filterName).quantity,
+        texSpec=texSpec.threshold,
         specname=texSpecName)
-    ax1.axhline(texSpec.quantity.value, 0, 1, linewidth=2, color='red',
+    ax1.axhline(texSpec.threshold.value, 0, 1, linewidth=2, color='red',
                 label=texSpecLabel)
 
     # Overlay measured KPM whether it passed or failed.
-    if tex.check_spec(texSpecName):
+    if texSpec.check(tex.quantity):
         texStatus = 'passed'
     else:
         texStatus = 'failed'
-    texLabelTemplate = '{tex.label} measured: {tex.quantity:.2g} ({status})'
+    texLabelTemplate = '{tex.datum.label} measured: {tex.quantity:.2g} ({status})'
     texLabel = texLabelTemplate.format(tex=tex, status=texStatus)
 
     ax1.axhline(tex.quantity.value, 0, 1, linewidth=2, color='black',
@@ -626,14 +652,14 @@ def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
         {metric} Residual PSF Ellipticity Correlation
         {bin_range_operator:s} {D.value:.1f}{D.unit:latex}
         """
-    title = titleTemplate.format(metric=tex.label,
-                                 bin_range_operator=tex.bin_range_operator,
-                                 D=tex.D)
+    title = titleTemplate.format(metric=tex.datum.label,
+                                 bin_range_operator=bin_range_operator,
+                                 D=D)
     ax1.set_title(title)
     ax1.set_xlim(0.0, 20.0)
     ax1.set_xlabel(
-        '{radius.label} ({radius.latex_unit})'.format(
-            radius=tex.extras['radius']))
+        '{radius.label} ({unit})'.format(
+            radius=tex.extras['radius'], unit=radius.unit._repr_latex_()))
     ax1.set_ylabel('Correlation')
 
     ax1.legend(loc='upper right', fontsize=16)
@@ -642,9 +668,9 @@ def plotTEx(tex, filterName, texSpecName='design', outputPrefix=''):
     pathFormat = '{metric}_D_{D:d}_{Dunits}.{ext}'
     plotPath = makeFilename(outputPrefix,
                             pathFormat,
-                            metric=tex.label,
-                            D=int(tex.D.value),
-                            Dunits=tex.parameters['D'].unit,
+                            metric=tex.datum.label,
+                            D=int(D.value),
+                            Dunits=D.unit,
                             ext=ext)
 
     plt.tight_layout()  # fix padding

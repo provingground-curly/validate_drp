@@ -30,25 +30,27 @@ from sqlalchemy.exc import OperationalError
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image.utils as afwImageUtils
+import lsst.afw.image as afwImage
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView,
                             SOURCE_IO_NO_FOOTPRINTS)
 from lsst.afw.fits import FitsError
-from lsst.validate.base import BlobBase
+from lsst.verify import Blob, Datum
 
 from .util import (getCcdKeyName, raftSensorToInt, positionRmsFromCat,
                    ellipticity_from_cat)
 
 
-__all__ = ['MatchedMultiVisitDataset']
+__all__ = ['build_matched_dataset']
 
 
-class MatchedMultiVisitDataset(BlobBase):
-    """Container for matched star catalogs from multple visits, with filtering,
+def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
+             useJointCal=False):
+    """Construct a container for matched star catalogs from multple visits, with filtering,
     summary statistics, and modelling.
 
-    `MatchedMultiVisitDataset` instances are serializable to JSON.
+    `lsst.verify.Blob` instances are serializable to JSON.
 
     Parameters
     ----------
@@ -67,10 +69,8 @@ class MatchedMultiVisitDataset(BlobBase):
     skipTEx : bool, optional
         Skip TEx calculations (useful for older catalogs that don't have
         PsfShape measurements).
-    verbose : `bool`, optional
-        Output additional information on the analysis steps.
 
-    Attributes
+    Attributes of returned Blob
     ----------
     filterName : `str`
         Name of filter used for all observations.
@@ -86,6 +86,8 @@ class MatchedMultiVisitDataset(BlobBase):
         (dimensionless).
     dist : `astropy.units.Quantity`
         RMS of sky coordinates of stars over multiple visits (milliarcseconds).
+
+        *Not serialized.*
     goodMatches
         all good matches, as an afw.table.GroupView;
         good matches contain only objects whose detections all have
@@ -110,282 +112,293 @@ class MatchedMultiVisitDataset(BlobBase):
         *Not serialized.*
     """
 
-    name = 'MatchedMultiVisitDataset'
 
-    def __init__(self, repo, dataIds, matchRadius=None, safeSnr=50.,
-                 useJointCal=False, skipTEx=False, verbose=False):
-        BlobBase.__init__(self)
+def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
+             useJointCal=False, skipTEx=False):
+    blob = Blob('MatchedMultiVisitDataset')
 
-        self.verbose = verbose
-        self.skipTEx = skipTEx
-        if not matchRadius:
-            matchRadius = afwGeom.Angle(1, afwGeom.arcseconds)
+    if not matchRadius:
+        matchRadius = afwGeom.Angle(1, afwGeom.arcseconds)
 
-        # Extract single filter
-        self.register_datum(
-            'filterName',
-            quantity=set([dId['filter'] for dId in dataIds]).pop(),
-            description='Filter name')
+    # Extract single filter
+    blob['filterName'] = Datum(quantity=set([dId['filter'] for dId in dataIds]).pop(),
+                               description='Filter name')
 
-        # Record important configuration
-        self.register_datum(
-            'useJointCal',
-            quantity=useJointCal,
-            description='Whether jointcal/meas_mosaic calibrations were used')
+    # Record important configuration
+    blob['useJointCal'] = Datum(quantity=useJointCal,
+                                description='Whether jointcal/meas_mosaic calibrations were used')
 
-        # Register datums stored by this blob; will be set later
-        self.register_datum(
-            'mag',
-            label='{band}'.format(band=self.filterName),
-            description='Mean PSF magnitudes of stars over multiple visits')
-        self.register_datum(
-            'magrms',
-            label='RMS({band})'.format(band=self.filterName),
-            description='RMS of PSF magnitudes over multiple visits')
-        self.register_datum(
-            'magerr',
-            label='sigma({band})'.format(band=self.filterName),
-            description='Median 1-sigma uncertainty of PSF magnitudes over '
-                        'multiple visits')
-        self.register_datum(
-            'snr',
-            label='SNR({band})'.format(band=self.filterName),
-            description='Median signal-to-noise ratio of PSF magnitudes over '
-                        'multiple visits')
-        self.register_datum(
-            'dist',
-            label='d',
-            description='RMS of sky coordinates of stars over multiple visits')
 
-        # Match catalogs across visits
-        self._catalog, self._matchedCatalog = \
-            self._loadAndMatchCatalogs(repo, dataIds, matchRadius,
-                                       useJointCal=useJointCal)
+    # Match catalogs across visits
+    blob._catalog, blob._matchedCatalog = \
+        _loadAndMatchCatalogs(repo, dataIds, matchRadius,
+                                   useJointCal=useJointCal, skipTEx=False)
 
-        self.magKey = self._matchedCatalog.schema.find("base_PsfFlux_mag").key
-        # Reduce catalogs into summary statistics.
-        # These are the serialiable attributes of this class.
-        self._reduceStars(self._matchedCatalog, safeSnr)
+    blob.magKey = blob._matchedCatalog.schema.find("base_PsfFlux_mag").key
+    # Reduce catalogs into summary statistics.
+    # These are the serialiable attributes of this class.
+    _reduceStars(blob, blob._matchedCatalog, safeSnr)
+    return blob
 
-    def _loadAndMatchCatalogs(self, repo, dataIds, matchRadius,
-                              useJointCal=False):
-        """Load data from specific visit. Match with reference.
+def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
+                          useJointCal=False, skipTEx=False):
+    """Load data from specific visit. Match with reference.
 
-        Parameters
-        ----------
-        repo : string or Butler
-            A Butler or a repository URL that can be used to construct one
-        dataIds : list of dict
-            List of `butler` data IDs of Image catalogs to compare to
-            reference. The `calexp` cpixel image is needed for the photometric
-            calibration.
-        matchRadius :  afwGeom.Angle(), optional
-            Radius for matching. Default is 1 arcsecond.
-        useJointCal : bool, optional
-            Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
+    Parameters
+    ----------
+    repo : string or Butler
+        A Butler or a repository URL that can be used to construct one
+    dataIds : list of dict
+        List of `butler` data IDs of Image catalogs to compare to
+        reference. The `calexp` cpixel image is needed for the photometric
+        calibration.
+    matchRadius :  afwGeom.Angle(), optional
+        Radius for matching. Default is 1 arcsecond.
 
-        Returns
-        -------
-        afw.table.SourceCatalog
-            List of all of the catalogs
-        afw.table.GroupView
-            An object of matched catalog.
-        """
-        # Following
-        # https://github.com/lsst/afw/blob/tickets/DM-3896/examples/repeatability.ipynb
-        if isinstance(repo, dafPersist.Butler):
-            butler = repo
-        else:
-            butler = dafPersist.Butler(repo)
-        dataset = 'src'
+    Returns
+    -------
+    catalog_list : afw.table.SourceCatalog
+        List of all of the catalogs
+    matched_catalog : afw.table.GroupView
+        An object of matched catalog.
+    """
+    # Following
+    # https://github.com/lsst/afw/blob/tickets/DM-3896/examples/repeatability.ipynb
+    if isinstance(repo, dafPersist.Butler):
+        butler = repo
+    else:
+        butler = dafPersist.Butler(repo)
+    dataset = 'src'
 
-        # 2016-02-08 MWV:
-        # I feel like I could be doing something more efficient with
-        # something along the lines of the following:
-        #    dataRefs = [dafPersist.ButlerDataRef(butler, vId) for vId in dataIds]
+    # 2016-02-08 MWV:
+    # I feel like I could be doing something more efficient with
+    # something along the lines of the following:
+    #    dataRefs = [dafPersist.ButlerDataRef(butler, vId) for vId in dataIds]
 
-        ccdKeyName = getCcdKeyName(dataIds[0])
+    ccdKeyName = getCcdKeyName(dataIds[0])
 
-        # Hack to support raft and sensor 0,1 IDs as ints for multimatch
-        if ccdKeyName == 'sensor':
-            ccdKeyName = 'raft_sensor_int'
-            for vId in dataIds:
-                vId[ccdKeyName] = raftSensorToInt(vId)
-
-        schema = butler.get(dataset + "_schema").schema
-        mapper = SchemaMapper(schema)
-        mapper.addMinimalSchema(schema)
-        mapper.addOutputField(Field[float]('base_PsfFlux_snr',
-                                           'PSF flux SNR'))
-        mapper.addOutputField(Field[float]('base_PsfFlux_mag',
-                                           'PSF magnitude'))
-        mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
-                                           'PSF magnitude uncertainty'))
-        mapper.addOutputField(Field[float]('e1',
-                                           'Source Ellipticity 1'))
-        mapper.addOutputField(Field[float]('e2',
-                                           'Source Ellipticity 1'))
-        mapper.addOutputField(Field[float]('psf_e1',
-                                           'PSF Ellipticity 1'))
-        mapper.addOutputField(Field[float]('psf_e2',
-                                           'PSF Ellipticity 1'))
-        newSchema = mapper.getOutputSchema()
-        newSchema.setAliasMap(schema.getAliasMap())
-
-        # Create an object that matches multiple catalogs with same schema
-        mmatch = MultiMatch(newSchema,
-                            dataIdFormat={'visit': np.int32, ccdKeyName: np.int32},
-                            radius=matchRadius,
-                            RecordClass=SimpleRecord)
-
-        # create the new extented source catalog
-        srcVis = SourceCatalog(newSchema)
-
+    # Hack to support raft and sensor 0,1 IDs as ints for multimatch
+    if ccdKeyName == 'sensor':
+        ccdKeyName = 'raft_sensor_int'
         for vId in dataIds:
+            vId[ccdKeyName] = raftSensorToInt(vId)
 
-            if useJointCal:
-                try:
-                    photoCalib = butler.get("jointcal_photoCalib", vId)
-                except (FitsError, dafPersist.NoResults) as e:
-                    print(e)
-                    print("Could not open photometric calibration for ", vId)
-                    print("Skipping this dataId.")
-                    continue
-                try:
-                    wcs = butler.get("jointcal_wcs", vId)
-                except (FitsError, dafPersist.NoResults) as e:
-                    print(e)
-                    print("Could not open updated WCS for ", vId)
-                    print("Skipping this dataId.")
-                    continue
-            else:
-                try:
-                    calib = butler.get("calexp_calib", vId)
-                except (FitsError, dafPersist.NoResults) as e:
-                    print(e)
-                    print("Could not open calibrated image file for ", vId)
-                    print("Skipping this dataId.")
-                    continue
-                except TypeError as te:
-                    # DECam images that haven't been properly reformatted
-                    # can trigger a TypeError because of a residual FITS header
-                    # LTV2 which is a float instead of the expected integer.
-                    # This generates an error of the form:
-                    #
-                    # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
-                    #
-                    # See, e.g., DM-2957 for details.
-                    print(te)
-                    print("Calibration image header information malformed.")
-                    print("Skipping this dataId.")
-                    continue
+    schema = butler.get(dataset + "_schema").schema
+    mapper = SchemaMapper(schema)
+    mapper.addMinimalSchema(schema)
+    mapper.addOutputField(Field[float]('base_PsfFlux_snr',
+                                       'PSF flux SNR'))
+    mapper.addOutputField(Field[float]('base_PsfFlux_mag',
+                                       'PSF magnitude'))
+    mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
+                                       'PSF magnitude uncertainty'))
+    mapper.addOutputField(Field[float]('e1',
+                                       'Source Ellipticity 1'))
+    mapper.addOutputField(Field[float]('e2',
+                                       'Source Ellipticity 1'))
+    mapper.addOutputField(Field[float]('psf_e1',
+                                       'PSF Ellipticity 1'))
+    mapper.addOutputField(Field[float]('psf_e2',
+                                       'PSF Ellipticity 1'))
+    newSchema = mapper.getOutputSchema()
+    newSchema.setAliasMap(schema.getAliasMap())
+
+    # Create an object that matches multiple catalogs with same schema
+    mmatch = MultiMatch(newSchema,
+                        dataIdFormat={'visit': np.int32, ccdKeyName: np.int32},
+                        radius=matchRadius,
+                        RecordClass=SimpleRecord)
+
+    # create the new extented source catalog
+    srcVis = SourceCatalog(newSchema)
+
+    for vId in dataIds:
+
+        if useJointCal:
+            try:
+                photoCalib = butler.get("jointcal_photoCalib", vId)
+            except (FitsError, dafPersist.NoResults) as e:
+                print(e)
+                print("Could not open photometric calibration for ", vId)
+                print("Skipping this dataId.")
+                continue
+            try:
+                wcs = butler.get("jointcal_wcs", vId)
+            except (FitsError, dafPersist.NoResults) as e:
+                print(e)
+                print("Could not open updated WCS for ", vId)
+                print("Skipping this dataId.")
+                continue
+        else:
+            try:
+                calib = butler.get("calexp_calib", vId)
+            except (FitsError, dafPersist.NoResults) as e:
+                print(e)
+                print("Could not open calibrated image file for ", vId)
+                print("Skipping this dataId.")
+                continue
+            except TypeError as te:
+                # DECam images that haven't been properly reformatted
+                # can trigger a TypeError because of a residual FITS header
+                # LTV2 which is a float instead of the expected integer.
+                # This generates an error of the form:
+                #
+                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
+                #
+                # See, e.g., DM-2957 for details.
+                print(te)
+                print("Calibration image header information malformed.")
+                print("Skipping this dataId.")
+                continue
 
             # We don't want to put this above the first "if useJointCal block"
             # because we need to use the first `butler.get` above to quickly
             # catch data IDs with no usable outputs.
             try:
-                # HSC supports these flags, which dramatically improve I/O
-                # performance; TODO: support for other cameras is DM-6927.
-                oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-            except (OperationalError, sqlite3.OperationalError):
-                oldSrc = butler.get('src', vId)
+                calexpMetadata = butler.get("calexp_md", vId)
+            except (FitsError, dafPersist.NoResults) as e:
+                print(e)
+                print("Could not open calibrated image file for ", vId)
+                print("Skipping %s " % repr(vId))
+                continue
+            except TypeError as te:
+                # DECam images that haven't been properly reformatted
+                # can trigger a TypeError because of a residual FITS header
+                # LTV2 which is a float instead of the expected integer.
+                # This generates an error of the form:
+                #
+                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
+                #
+                # See, e.g., DM-2957 for details.
+                print(te)
+                print("Calibration image header information malformed.")
+                print("Skipping %s " % repr(vId))
+                continue
 
-            print(len(oldSrc), "sources in ccd %s  visit %s" %
-                  (vId[ccdKeyName], vId["visit"]))
+            calib = afwImage.Calib(calexpMetadata)
 
-            # create temporary catalog
-            tmpCat = SourceCatalog(SourceCatalog(newSchema).table)
-            tmpCat.extend(oldSrc, mapper=mapper)
-            tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_flux'] \
-                / tmpCat['base_PsfFlux_fluxSigma']
+        # We don't want to put this above the first "if useJointCal block"
+        # because we need to use the first `butler.get` above to quickly
+        # catch data IDs with no usable outputs.
+        try:
+            # HSC supports these flags, which dramatically improve I/O
+            # performance; support for other cameras is DM-6927.
+            oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
+            calexp = butler.get("calexp", vId, flags=SOURCE_IO_NO_FOOTPRINTS)
+        except:
+            oldSrc = butler.get('src', vId)
+            calexp = butler.get("calexp", vId)
 
-            if useJointCal:
-                for record in tmpCat:
-                    record.updateCoord(wcs)
-                photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
-            else:
-                with afwImageUtils.CalibNoThrow():
-                    _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
-                                           tmpCat['base_PsfFlux_fluxSigma'])
-                    tmpCat['base_PsfFlux_mag'][:] = _[0]
-                    tmpCat['base_PsfFlux_magErr'][:] = _[1]
+        psf = calexp.getPsf()
 
-            if not self.skipTEx:
-                _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
-                _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
-                tmpCat['e1'][:] = star_e1
-                tmpCat['e2'][:] = star_e2
-                tmpCat['psf_e1'][:] = psf_e1
-                tmpCat['psf_e2'][:] = psf_e2
+        print(len(oldSrc), "sources in ccd %s  visit %s" %
+              (vId[ccdKeyName], vId["visit"]))
 
-            srcVis.extend(tmpCat, False)
-            mmatch.add(catalog=tmpCat, dataId=vId)
+        # create temporary catalog
+        tmpCat = SourceCatalog(SourceCatalog(newSchema).table)
+        tmpCat.extend(oldSrc, mapper=mapper)
+        tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_flux'] \
+            / tmpCat['base_PsfFlux_fluxSigma']
 
-        # Complete the match, returning a catalog that includes
-        # all matched sources with object IDs that can be used to group them.
-        matchCat = mmatch.finish()
+        if useJointCal:
+            for record in tmpCat:
+                record.updateCoord(wcs)
+            photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
+        else:
+            with afwImageUtils.CalibNoThrow():
+                _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
+                                       tmpCat['base_PsfFlux_fluxSigma'])
+                tmpCat['base_PsfFlux_mag'][:] = _[0]
+                tmpCat['base_PsfFlux_magErr'][:] = _[1]
+        if not skipTEx:
+            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
+            _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
+            tmpCat['e1'][:] = star_e1
+            tmpCat['e2'][:] = star_e2
+            tmpCat['psf_e1'][:] = psf_e1
+            tmpCat['psf_e2'][:] = psf_e2
 
-        # Create a mapping object that allows the matches to be manipulated
-        # as a mapping of object ID to catalog of sources.
-        allMatches = GroupView.build(matchCat)
+        srcVis.extend(tmpCat, False)
+        mmatch.add(catalog=tmpCat, dataId=vId)
 
-        return srcVis, allMatches
+    # Complete the match, returning a catalog that includes
+    # all matched sources with object IDs that can be used to group them.
+    matchCat = mmatch.finish()
 
-    def _reduceStars(self, allMatches, safeSnr=50.0):
-        """Calculate summary statistics for each star. These are persisted
-        as object attributes.
+    # Create a mapping object that allows the matches to be manipulated
+    # as a mapping of object ID to catalog of sources.
+    allMatches = GroupView.build(matchCat)
 
-        Parameters
-        ----------
-        allMatches : afw.table.GroupView
-            GroupView object with matches.
-        safeSnr : float, optional
-            Minimum median SNR for a match to be considered "safe".
-        """
-        # Filter down to matches with at least 2 sources and good flags
-        flagKeys = [allMatches.schema.find("base_PixelFlags_flag_%s" % flag).key
-                    for flag in ("saturated", "cr", "bad", "edge")]
-        nMatchesRequired = 2
+    return srcVis, allMatches
 
-        psfSnrKey = allMatches.schema.find("base_PsfFlux_snr").key
-        psfMagKey = allMatches.schema.find("base_PsfFlux_mag").key
-        psfMagErrKey = allMatches.schema.find("base_PsfFlux_magErr").key
-        extendedKey = allMatches.schema.find("base_ClassificationExtendedness_value").key
+def _reduceStars(blob, allMatches, safeSnr=50.0):
+    """Calculate summary statistics for each star. These are persisted
+    as object attributes.
 
-        def goodFilter(cat, goodSnr=3):
-            if len(cat) < nMatchesRequired:
+    Parameters
+    ----------
+    allMatches : afw.table.GroupView
+        GroupView object with matches.
+    safeSnr : float, optional
+        Minimum median SNR for a match to be considered "safe".
+    """
+    # Filter down to matches with at least 2 sources and good flags
+    flagKeys = [allMatches.schema.find("base_PixelFlags_flag_%s" % flag).key
+                for flag in ("saturated", "cr", "bad", "edge")]
+    nMatchesRequired = 2
+
+    psfSnrKey = allMatches.schema.find("base_PsfFlux_snr").key
+    psfMagKey = allMatches.schema.find("base_PsfFlux_mag").key
+    psfMagErrKey = allMatches.schema.find("base_PsfFlux_magErr").key
+    extendedKey = allMatches.schema.find("base_ClassificationExtendedness_value").key
+
+    def goodFilter(cat, goodSnr=3):
+        if len(cat) < nMatchesRequired:
+            return False
+        for flagKey in flagKeys:
+            if cat.get(flagKey).any():
                 return False
-            for flagKey in flagKeys:
-                if cat.get(flagKey).any():
-                    return False
-            if not np.isfinite(cat.get(psfMagKey)).all():
-                return False
-            psfSnr = np.median(cat.get(psfSnrKey))
-            # Note that this also implicitly checks for psfSnr being non-nan.
-            return psfSnr >= goodSnr
+        if not np.isfinite(cat.get(psfMagKey)).all():
+            return False
+        psfSnr = np.median(cat.get(psfSnrKey))
+        # Note that this also implicitly checks for psfSnr being non-nan.
+        return psfSnr >= goodSnr
 
-        goodMatches = allMatches.where(goodFilter)
+    goodMatches = allMatches.where(goodFilter)
 
-        # Filter further to a limited range in S/N and extendedness
-        # to select bright stars.
-        safeMaxExtended = 1.0
+    # Filter further to a limited range in S/N and extendedness
+    # to select bright stars.
+    safeMaxExtended = 1.0
 
-        def safeFilter(cat):
-            psfSnr = np.median(cat.get(psfSnrKey))
-            extended = np.max(cat.get(extendedKey))
-            return psfSnr >= safeSnr and extended < safeMaxExtended
+    def safeFilter(cat):
+        psfSnr = np.median(cat.get(psfSnrKey))
+        extended = np.max(cat.get(extendedKey))
+        return psfSnr >= safeSnr and extended < safeMaxExtended
 
-        safeMatches = goodMatches.where(safeFilter)
+    safeMatches = goodMatches.where(safeFilter)
 
-        # Pass field=psfMagKey so np.mean just gets that as its input
-        self.snr = goodMatches.aggregate(np.median, field=psfSnrKey) * u.Unit('')
-        self.mag = goodMatches.aggregate(np.mean, field=psfMagKey) * u.mag
-        self.magrms = goodMatches.aggregate(np.std, field=psfMagKey) * u.mag
-        self.magerr = goodMatches.aggregate(np.median, field=psfMagErrKey) * u.mag
-        # positionRmsFromCat knows how to query a group
-        # so we give it the whole thing by going with the default `field=None`.
-        self.dist = goodMatches.aggregate(positionRmsFromCat) * u.milliarcsecond
+    # Pass field=psfMagKey so np.mean just gets that as its input
+    filter_name = blob['filterName']
+    blob['snr'] = Datum(quantity=goodMatches.aggregate(np.median, field=psfSnrKey) * u.Unit(''),
+                        label='SNR({band})'.format(band=filter_name),
+                        description='Median signal-to-noise ratio of PSF magnitudes over '
+                                    'multiple visits')
+    blob['mag'] = Datum(quantity=goodMatches.aggregate(np.mean, field=psfMagKey) * u.mag,
+                        label='{band}'.format(band=filter_name),
+                        description='Mean PSF magnitudes of stars over multiple visits')
+    blob['magrms'] = Datum(quantity=goodMatches.aggregate(np.std, field=psfMagKey) * u.mag,
+                           label='RMS({band})'.format(band=filter_name),
+                           description='RMS of PSF magnitudes over multiple visits')
+    blob['magerr'] = Datum(quantity=goodMatches.aggregate(np.median, field=psfMagErrKey) * u.mag,
+                           label='sigma({band})'.format(band=filter_name),
+                           description='Median 1-sigma uncertainty of PSF magnitudes over '
+                                       'multiple visits')
+    # positionRmsFromCat knows how to query a group
+    # so we give it the whole thing by going with the default `field=None`.
+    blob['dist'] = Datum(quantity=goodMatches.aggregate(positionRmsFromCat) * u.milliarcsecond,
+                         label='d',
+                         description='RMS of sky coordinates of stars over multiple visits')
 
-        # These attributes are not serialized
-        self.goodMatches = goodMatches
-        self.safeMatches = safeMatches
+    # These attributes are not serialized
+    blob.goodMatches = goodMatches
+    blob.safeMatches = safeMatches

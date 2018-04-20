@@ -28,43 +28,28 @@ import scipy.stats
 import astropy.units as u
 
 import lsst.pipe.base as pipeBase
-from lsst.validate.base import MeasurementBase
+from lsst.verify import Measurement, Datum
 
 
-class PA1Measurement(MeasurementBase):
+def measurePA1(metric, matchedDataset, filterName, numRandomShuffles=50):
     """Measurement of the PA1 metric: photometric repeatability of
     measurements across a set of observations.
 
     Parameters
     ----------
-    metric : `lsst.validate.base.Metric`
-        A PA1 `~lsst.validate.base.Metric` instance.
-    matchedDataset : lsst.validate.drp.matchreduce.MatchedMultiVisitDataset
-    filter_name : str
-        filter_name (filter name) used in this measurement (e.g., `'r'`)
+    metric : `lsst.verify.Metric`
+        A PA1 `~lsst.verify.Metric` instance.
+    matchedDataset : `lsst.verify.Blob`
+        This contains the spacially matched catalog to do the measurement.
+    filterName : str
+        filter name used in this measurement (e.g., `'r'`)
     numRandomShuffles : int
         Number of times to draw random pairs from the different observations.
-    verbose : bool, optional
-        Output additional information on the analysis steps.
-    job : :class:`lsst.validate.drp.base.Job`, optional
-        If provided, the measurement will register itself with the Job
-        object.
-    linkedBlobs : dict, optional
-        A `dict` of additional blobs (subclasses of BlobBase) that
-        can provide additional context to the measurement, though aren't
-        direct dependencies of the computation (e.g., `matchedDataset).
 
-    Attributes
-    ----------
-    rms : ndarray
-        Photometric repeatability RMS of stellar pairs for each random
-        sampling.
-    iqr : ndarray
-       Photometric repeatability IQR of stellar pairs for each random sample.
-    magDiff : ndarray
-        Magnitude differences of stars between visits, for each random sample.
-    magMean : ndarray
-        Mean magnitude of stars seen across visits, for each random sample.
+    Returns
+    -------
+    measurement : `lsst.verify.Measurement`
+        Measurement of PA1 and associated metadata.
 
     See also
     --------
@@ -73,56 +58,25 @@ class PA1Measurement(MeasurementBase):
         the PA1 measurement.
     """
 
-    def __init__(self, metric, matchedDataset, filter_name,
-                 numRandomShuffles=50, verbose=False, job=None,
-                 linkedBlobs=None):
-        MeasurementBase.__init__(self)
-        self.filter_name = filter_name
-        self.metric = metric
-
-        # register input parameters for serialization
-        # note that matchedDataset is treated as a blob, separately
-        self.register_parameter('numRandomShuffles',
-                                numRandomShuffles,
-                                label='shuffles',
-                                description='Number of random shuffles')
-
-        # register measurement extras
-        self.register_extra(
-            'rms', label='RMS',
-            description='Photometric repeatability RMS of stellar pairs for '
-                        'each random sampling')
-        self.register_extra(
-            'iqr', label='IQR',
-            description='Photometric repeatability IQR of stellar pairs for '
-                        'each random sample')
-        self.register_extra(
-            'magDiff', label='Delta mag',
-            description='Photometric repeatability differences magnitudes for '
-                        'stellar pairs for each random sample')
-        self.register_extra(
-            'magMean', label='mag',
-            description='Mean magnitude of pairs of stellar sources matched '
-                        'across visits, for each random sample.')
-
-        self.matchedDataset = matchedDataset
-        # Add external blob so that links will be persisted with
-        # the measurement
-        if linkedBlobs is not None:
-            for name, blob in linkedBlobs.items():
-                setattr(self, name, blob)
-
-        matches = matchedDataset.safeMatches
-        magKey = matchedDataset.magKey
-        results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
-        self.rms = results['rms']
-        self.iqr = results['iqr']
-        self.magDiff = results['magDiff']
-        self.magMean = results['magMean']
-        self.quantity = results['PA1']
-
-        if job:
-            job.register_measurement(self)
+    matches = matchedDataset.safeMatches
+    magKey = matchedDataset.magKey
+    results = calcPa1(matches, magKey, numRandomShuffles=numRandomShuffles)
+    datums = {}
+    datums['filter_name'] = Datum(filterName, label='filter',
+                                  description='Name of filter for this measurement')
+    datums['rms'] = Datum(results['rms'], label='RMS',
+                          description='Photometric repeatability RMS of stellar pairs for '
+                          'each random sampling')
+    datums['iqr'] = Datum(results['iqr'], label='IQR',
+                          description='Photometric repeatability IQR of stellar pairs for '
+                          'each random sample')
+    datums['magDiff'] = Datum(results['magDiff'], label='Delta mag',
+                              description='Photometric repeatability differences magnitudes for '
+                              'stellar pairs for each random sample')
+    datums['magMean'] = Datum(results['magMean'], label='mag',
+                              description='Mean magnitude of pairs of stellar sources matched '
+                              'across visits, for each random sample.')
+    return Measurement(metric, results['PA1'], extras=datums)
 
 
 def calcPa1(matches, magKey, numRandomShuffles=50):
@@ -134,12 +88,14 @@ def calcPa1(matches, magKey, numRandomShuffles=50):
     matches : `lsst.afw.table.GroupView`
         `~lsst.afw.table.GroupView` of stars matched between visits,
         from MultiMatch, provided by
-        `lsst.validate.drp.matchreduce.MatchedMultiVisitDataset`.
+        `lsst.validate.drp.matchreduce.build_matched_dataset`.
     magKey : `lsst.afw.table` schema key
         Magnitude column key in the ``groupView``.
         E.g., ``magKey = allMatches.schema.find("base_PsfFlux_mag").key``
         where ``allMatches`` is the result of
         `lsst.afw.table.MultiMatch.finish()`.
+    numRandomShuffles : int
+        Number of times to draw random pairs from the different observations.
 
     Returns
     -------
@@ -194,8 +150,8 @@ def calcPa1(matches, magKey, numRandomShuffles=50):
 
     Examples
     --------
-    Normally ``calcPa1`` is called by `PA1Measurement`, using data from
-    `lsst.validate.drp.matchreduce.MultiVisitMatchedDataset`. Here's an
+    Normally ``calcPa1`` is called by `measurePA1`, using data from
+    `lsst.validate.drp.matchreduce.build_matched_dataset`. Here's an
     example of how to call ``calcPa1`` directly given a Butler output
     repository:
 
@@ -242,7 +198,7 @@ def calcPa1Sample(matches, magKey):
     matches : `lsst.afw.table.GroupView`
         `~lsst.afw.table.GroupView` of stars matched between visits,
         from MultiMatch, provided by
-        `lsst.validate.drp.matchreduce.MatchedMultiVisitDataset`.
+        `lsst.validate.drp.matchreduce.build_matched_dataset`.
     magKey : `lsst.afw.table` schema key
         Magnitude column key in the ``groupView``.
         E.g., ``magKey = allMatches.schema.find("base_PsfFlux_mag").key``
@@ -270,8 +226,8 @@ def calcPa1Sample(matches, magKey):
 
     Examples
     --------
-    Normally ``calcPa1`` is called by `PA1Measurement`, using data from
-    `lsst.validate.drp.matchreduce.MultiVisitMatchedDataset`. Here's an
+    Normally ``calcPa1`` is called by `measurePA1`, using data from
+    `lsst.validate.drp.matchreduce.build_matched_dataset`. Here's an
     example of how to call ``calcPa1Sample`` directly given a Butler output
     repository:
     """
