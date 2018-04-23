@@ -8,3 +8,5 @@ filter: ['z', 'z', 'z', 'z', 'z', 'z', 'z', 'z', 'z',
          'r', 'r', 'r', 'r', 'r', 'r', ]
 # ccd list is iterated through for each visit-filter pair
 ccdnum: [10, 11, 12, 13, 14, 15, 16, 17, 18]
+instrument: 'DECAM'
+dataset_repo_url: 'https://github.com/lsst/validation_data_decam.git'
