@@ -4,3 +4,5 @@ brightSnr: 100  # Only consider stars bright than this limit
 visits: [176837, 176846]
 filter: 'z'
 ccdnum: [10]
+instrument: 'DECAM'
+dataset_repo_url: 'https://github.com/lsst/validation_data_decam.git'
