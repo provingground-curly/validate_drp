@@ -5,8 +5,6 @@ import os
 from lsst.pipe.base import CmdLineTask, ArgumentParser, TaskRunner
 from lsst.pex.config import Config, Field
 from lsst.meas.base.forcedPhotCcd import PerTractCcdDataIdContainer
-from lsst.utils import getPackageDir
-from lsst.verify import MetricSet
 from .validate import runOneFilter, plot_metrics
 
 __all__ = ["MatchedVisitMetricsRunner", "MatchedVisitMetricsConfig", "MatchedVisitMetricsTask"]
@@ -42,9 +40,9 @@ class MatchedVisitMetricsConfig(Config):
         dtype=str, default="matchedVisit",
         doc="Root name for output files: the filter name is appended to this+'_'."
     )
-    metricsFile = Field(
-        dtype=str, optional=True,
-        doc="Full path to metrics file, or None to use metrics in validate_drp."
+    metricsRepository = Field(
+        dtype=str, default='verify_metrics',
+        doc="Repository to read metrics and specs from."
     )
     brightSnr = Field(
         dtype=float, default=100,
@@ -105,12 +103,6 @@ class MatchedVisitMetricsTask(CmdLineTask):
     ConfigClass = MatchedVisitMetricsConfig
     RunnerClass = MatchedVisitMetricsRunner
 
-    def __init__(self, **kwds):
-        CmdLineTask.__init__(self, **kwds)
-        metricsFile = self.config.metricsFile
-        if metricsFile is None:
-            metricsFile = os.path.join(getPackageDir('validate_drp'), 'etc', 'metrics.yaml')
-        self.metrics = MetricSet._load_metrics_yaml(metricsFile)
 
     def run(self, butler, filterName, output, dataIds):
         """
@@ -124,14 +116,16 @@ class MatchedVisitMetricsTask(CmdLineTask):
         dataIds     The butler dataIds to process.
         """
         outputPrefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
-        job = runOneFilter(butler, dataIds, metrics=self.metrics,
+        # Metrics are no longer passed. The argument will go away with DM-14274
+        job = runOneFilter(butler, dataIds, metrics=None,
                            brightSnr=self.config.brightSnr,
                            makeJson=self.config.makeJson,
                            filterName=filterName,
                            outputPrefix=outputPrefix,
                            useJointCal=self.config.useJointCal,
                            skipTEx=self.config.skipTEx,
-                           verbose=self.config.verbose)
+                           verbose=self.config.verbose,
+                           metrics_package=self.config.metricsRepository)
         if self.config.makePlots:
             plot_metrics(job, filterName, outputPrefix=outputPrefix)
 
