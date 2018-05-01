@@ -9,6 +9,7 @@ from .validate import runOneFilter, plot_metrics
 
 __all__ = ["MatchedVisitMetricsRunner", "MatchedVisitMetricsConfig", "MatchedVisitMetricsTask"]
 
+
 class MatchedVisitMetricsRunner(TaskRunner):
     """Subclass of TaskRunner for MatchedVisitMetrics
 
@@ -20,15 +21,15 @@ class MatchedVisitMetricsRunner(TaskRunner):
     @staticmethod
     def getTargetList(parsedCmd, **kwargs):
         # organize data IDs by filter
-        idListDict = {}
+        id_list_dict = {}
         for ref in parsedCmd.id.refList:
-            idListDict.setdefault(ref.dataId["filter"], []).append(ref.dataId)
+            id_list_dict.setdefault(ref.dataId["filter"], []).append(ref.dataId)
         # we call run() once with each filter
         return [(parsedCmd.butler,
                  filterName,
                  parsedCmd.output,
-                 idListDict[filterName],
-                 ) for filterName in sorted(idListDict.keys())]
+                 id_list_dict[filterName],
+                 ) for filterName in sorted(id_list_dict.keys())]
 
     def __call__(self, args):
         task = self.TaskClass(config=self.config, log=self.log)
@@ -103,7 +104,6 @@ class MatchedVisitMetricsTask(CmdLineTask):
     ConfigClass = MatchedVisitMetricsConfig
     RunnerClass = MatchedVisitMetricsRunner
 
-
     def run(self, butler, filterName, output, dataIds):
         """
         Compute cross-visit metrics for one filter.
@@ -115,19 +115,19 @@ class MatchedVisitMetricsTask(CmdLineTask):
         output      The output repository to save files to.
         dataIds     The butler dataIds to process.
         """
-        outputPrefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
+        output_prefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
         # Metrics are no longer passed. The argument will go away with DM-14274
         job = runOneFilter(butler, dataIds, metrics=None,
                            brightSnr=self.config.brightSnr,
                            makeJson=self.config.makeJson,
                            filterName=filterName,
-                           outputPrefix=outputPrefix,
+                           outputPrefix=output_prefix,
                            useJointCal=self.config.useJointCal,
                            skipTEx=self.config.skipTEx,
                            verbose=self.config.verbose,
                            metrics_package=self.config.metricsRepository)
         if self.config.makePlots:
-            plot_metrics(job, filterName, outputPrefix=outputPrefix)
+            plot_metrics(job, filterName, outputPrefix=output_prefix)
 
     @classmethod
     def _makeArgumentParser(cls):
