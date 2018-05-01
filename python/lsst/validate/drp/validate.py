@@ -429,8 +429,7 @@ def get_specs_metrics(job):
     subset = job.specs.subset(required_meta={'instrument':job.meta['instrument'],
                                                  'filter_name':job.meta['filter_name']})
     # Get specs that don't depend on filter
-    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument'],
-                                                      'filter_name':'any'}))
+    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument']}))
     metrics = {}
     specs = {}
     for spec in subset:

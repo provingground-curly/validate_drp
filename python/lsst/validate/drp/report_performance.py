@@ -158,8 +158,7 @@ def add_release_spec(data, release_specs, release_specs_level):
 
         specs = release_specs.subset(required_meta={'filter_name':row['Filter'],
                                                     'instrument':row['Instrument']})
-        specs.update(release_specs.subset(required_meta={'filter_name':'any',
-                                                    'instrument':row['Instrument']}))
+        specs.update(release_specs.subset(required_meta={'instrument':row['Instrument']}))
         value = None
         for spec in specs:
             if spec.metric == row['Metric'] and release_specs_level in spec.spec:
