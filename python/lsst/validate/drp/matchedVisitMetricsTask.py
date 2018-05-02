@@ -37,6 +37,14 @@ class MatchedVisitMetricsRunner(TaskRunner):
 
 
 class MatchedVisitMetricsConfig(Config):
+    instrumentName = Field(
+        dtype=str, optional=False,
+        doc="Instrument name to associate with verification specifications: e.g. HSC, CFHT, DECAM"
+    )
+    datasetName = Field(
+        dtype=str, optional=False,
+        doc="Dataset name to associate metric measuremnts in SQuaSH"
+    )
     outputPrefix = Field(
         dtype=str, default="matchedVisit",
         doc="Root name for output files: the filter name is appended to this+'_'."
@@ -125,7 +133,9 @@ class MatchedVisitMetricsTask(CmdLineTask):
                            useJointCal=self.config.useJointCal,
                            skipTEx=self.config.skipTEx,
                            verbose=self.config.verbose,
-                           metrics_package=self.config.metricsRepository)
+                           metrics_package=self.config.metricsRepository,
+                           instrument=self.config.instrumentName,
+                           dataset_repo_url=self.config.datasetName)
         if self.config.makePlots:
             plot_metrics(job, filterName, outputPrefix=output_prefix)
 
