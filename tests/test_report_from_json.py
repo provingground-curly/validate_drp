@@ -25,6 +25,7 @@ import os
 import tempfile
 import unittest
 
+import lsst.utils
 from lsst.validate.drp import report_performance
 
 
@@ -73,3 +74,6 @@ class ReportPerformanceFromJob(unittest.TestCase):
         # Cleanup our temp directory
         os.removedirs(tmp_dir)
 
+if __name__ == "__main__":
+    lsst.utils.tests.init()
+    unittest.main()
