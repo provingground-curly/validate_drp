@@ -22,13 +22,14 @@ from astropy.table import Column, Table
 import json
 import numpy as np
 
-from lsst.verify import Job, SpecificationSet
+from lsst.verify import Job, SpecificationSet, MetricSet
 from .validate import get_specs_metrics
 
 
 def run(validation_drp_report_filenames, output_file,
         srd_level=None,
-        release_specs_package=None, release_level=None):
+        release_specs_package=None, release_level=None,
+        metrics_package='verify_metrics'):
     """
     Parameters
     ---
@@ -47,13 +48,12 @@ def run(validation_drp_report_filenames, output_file,
     ---
     Writes table of performance metrics to an RST file.
     """
-    input_objects = ingest_data(validation_drp_report_filenames)
+    input_objects = ingest_data(validation_drp_report_filenames, metrics_package)
     input_table = objects_to_table(input_objects, level=srd_level)
     if input_table is None:
         msg = "Table from Job is None.  Returning without writing table"
         print(msg)
         return
-
     if release_specs_package is not None and release_level is not None:
         release_specs = SpecificationSet.load_metrics_package(release_specs_package, subset='release')
         add_release_spec(input_table, release_specs, release_level)
@@ -61,7 +61,7 @@ def run(validation_drp_report_filenames, output_file,
     write_report(input_table, output_file)
 
 
-def ingest_data(filenames):
+def ingest_data(filenames, metrics_package):
     """Load JSON files into a list of lsst.validate.base measurement Jobs.
 
     Parameters
@@ -81,6 +81,10 @@ def ingest_data(filenames):
             data = json.load(fh)
             job = Job.deserialize(**data)
         filter_name = job.meta['filter_name']
+        metrics = MetricSet.load_metrics_package(metrics_package)
+        job.metrics.update(metrics)
+        specs = SpecificationSet.load_metrics_package(metrics_package)
+        job.specs.update(specs)
         jobs[filter_name] = job
 
     return jobs
@@ -157,9 +161,10 @@ def add_release_spec(data, release_specs, release_specs_level):
     for row in data:
 
         specs = release_specs.subset(required_meta={'filter_name':row['Filter'],
-                                                    'instrument':row['Instrument']})
-        specs.update(release_specs.subset(required_meta={'filter_name':'any',
-                                                    'instrument':row['Instrument']}))
+                                                    'instrument':row['Instrument']},
+                                     spec_tags=['chromatic'])
+        specs.update(release_specs.subset(required_meta={'instrument':row['Instrument']},
+                                          spec_tags=['achromatic']))
         value = None
         for spec in specs:
             if spec.metric == row['Metric'] and release_specs_level in spec.spec:

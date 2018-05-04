@@ -36,7 +36,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 from lsst.verify import Blob, Datum, Name
-from lsst.verify import Job
+from lsst.verify import Job, MetricSet, SpecificationSet
 
 from .util import repoNameToPrefix
 from .matchreduce import build_matched_dataset
@@ -63,7 +63,7 @@ class bcolors(object):
     UNDERLINE = '\033[4m'
 
 
-def load_json_output(filepath):
+def load_json_output(filepath, metrics_package='verify_metrics'):
     """Read JSON from a file into a job object.
 
     Currently just does a trivial de-serialization with no checking
@@ -81,7 +81,12 @@ def load_json_output(filepath):
     with open(filepath, 'r') as infile:
         json_data = json.load(infile)
 
-    return Job.deserialize(**json_data)
+    job = Job.deserialize(**json_data)
+    metrics = MetricSet.load_metrics_package(metrics_package)
+    job.metrics.update(metrics)
+    specs = SpecificationSet.load_metrics_package(metrics_package)
+    job.specs.update(specs)
+    return job
 
 
 def get_filter_name_from_job(job):
@@ -139,7 +144,7 @@ def run(repo_or_json, metrics=None,
             return
 
         json_path = repo_or_json
-        job = load_json_output(json_path)
+        job = load_json_output(json_path, **kwargs)
         filterName = get_filter_name_from_job(job)
         jobs = {filterName: job}
     else:
@@ -427,10 +432,11 @@ def plot_metrics(job, filterName, outputPrefix=''):
 def get_specs_metrics(job):
     # Get specs for this filter
     subset = job.specs.subset(required_meta={'instrument':job.meta['instrument'],
-                                                 'filter_name':job.meta['filter_name']})
+                                             'filter_name':job.meta['filter_name']},
+                              spec_tags=['chromatic'])
     # Get specs that don't depend on filter
-    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument'],
-                                                      'filter_name':'any'}))
+    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument']},
+                                   spec_tags=['achromatic']))
     metrics = {}
     specs = {}
     for spec in subset:
