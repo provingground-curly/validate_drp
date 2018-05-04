@@ -5,11 +5,10 @@ import os
 from lsst.pipe.base import CmdLineTask, ArgumentParser, TaskRunner
 from lsst.pex.config import Config, Field
 from lsst.meas.base.forcedPhotCcd import PerTractCcdDataIdContainer
-from lsst.utils import getPackageDir
-from lsst.verify import MetricSet
 from .validate import runOneFilter, plot_metrics
 
 __all__ = ["MatchedVisitMetricsRunner", "MatchedVisitMetricsConfig", "MatchedVisitMetricsTask"]
+
 
 class MatchedVisitMetricsRunner(TaskRunner):
     """Subclass of TaskRunner for MatchedVisitMetrics
@@ -22,15 +21,15 @@ class MatchedVisitMetricsRunner(TaskRunner):
     @staticmethod
     def getTargetList(parsedCmd, **kwargs):
         # organize data IDs by filter
-        idListDict = {}
+        id_list_dict = {}
         for ref in parsedCmd.id.refList:
-            idListDict.setdefault(ref.dataId["filter"], []).append(ref.dataId)
+            id_list_dict.setdefault(ref.dataId["filter"], []).append(ref.dataId)
         # we call run() once with each filter
         return [(parsedCmd.butler,
                  filterName,
                  parsedCmd.output,
-                 idListDict[filterName],
-                 ) for filterName in sorted(idListDict.keys())]
+                 id_list_dict[filterName],
+                 ) for filterName in sorted(id_list_dict.keys())]
 
     def __call__(self, args):
         task = self.TaskClass(config=self.config, log=self.log)
@@ -38,13 +37,21 @@ class MatchedVisitMetricsRunner(TaskRunner):
 
 
 class MatchedVisitMetricsConfig(Config):
+    instrumentName = Field(
+        dtype=str, optional=False,
+        doc="Instrument name to associate with verification specifications: e.g. HSC, CFHT, DECAM"
+    )
+    datasetName = Field(
+        dtype=str, optional=False,
+        doc="Dataset name to associate metric measuremnts in SQuaSH"
+    )
     outputPrefix = Field(
         dtype=str, default="matchedVisit",
         doc="Root name for output files: the filter name is appended to this+'_'."
     )
-    metricsFile = Field(
-        dtype=str, optional=True,
-        doc="Full path to metrics file, or None to use metrics in validate_drp."
+    metricsRepository = Field(
+        dtype=str, default='verify_metrics',
+        doc="Repository to read metrics and specs from."
     )
     brightSnr = Field(
         dtype=float, default=100,
@@ -105,13 +112,6 @@ class MatchedVisitMetricsTask(CmdLineTask):
     ConfigClass = MatchedVisitMetricsConfig
     RunnerClass = MatchedVisitMetricsRunner
 
-    def __init__(self, **kwds):
-        CmdLineTask.__init__(self, **kwds)
-        metricsFile = self.config.metricsFile
-        if metricsFile is None:
-            metricsFile = os.path.join(getPackageDir('validate_drp'), 'etc', 'metrics.yaml')
-        self.metrics = MetricSet._load_metrics_yaml(metricsFile)
-
     def run(self, butler, filterName, output, dataIds):
         """
         Compute cross-visit metrics for one filter.
@@ -123,17 +123,21 @@ class MatchedVisitMetricsTask(CmdLineTask):
         output      The output repository to save files to.
         dataIds     The butler dataIds to process.
         """
-        outputPrefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
-        job = runOneFilter(butler, dataIds, metrics=self.metrics,
+        output_prefix = os.path.join(output, "%s_%s"%(self.config.outputPrefix, filterName))
+        # Metrics are no longer passed. The argument will go away with DM-14274
+        job = runOneFilter(butler, dataIds, metrics=None,
                            brightSnr=self.config.brightSnr,
                            makeJson=self.config.makeJson,
                            filterName=filterName,
-                           outputPrefix=outputPrefix,
+                           outputPrefix=output_prefix,
                            useJointCal=self.config.useJointCal,
                            skipTEx=self.config.skipTEx,
-                           verbose=self.config.verbose)
+                           verbose=self.config.verbose,
+                           metrics_package=self.config.metricsRepository,
+                           instrument=self.config.instrumentName,
+                           dataset_repo_url=self.config.datasetName)
         if self.config.makePlots:
-            plot_metrics(job, filterName, outputPrefix=outputPrefix)
+            plot_metrics(job, filterName, outputPrefix=output_prefix)
 
     @classmethod
     def _makeArgumentParser(cls):
