@@ -109,7 +109,7 @@ def get_filter_name_from_job(job):
 
 def run(repo_or_json, metrics=None,
         outputPrefix=None, makePrint=True, makePlot=True,
-        level='design', **kwargs):
+        level='design', metrics_package='verify_metrics', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
     Parameters
@@ -144,7 +144,7 @@ def run(repo_or_json, metrics=None,
             return
 
         json_path = repo_or_json
-        job = load_json_output(json_path, **kwargs)
+        job = load_json_output(json_path, metrics_package)
         filterName = get_filter_name_from_job(job)
         jobs = {filterName: job}
     else:
