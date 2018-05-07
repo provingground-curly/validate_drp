@@ -27,11 +27,12 @@ import unittest
 
 import lsst.utils
 
+from lsst.utils.tests import ExecutablesTestCase
 from lsst.validate.drp.validate import (
     get_filter_name_from_job, load_json_output, plot_metrics, print_metrics)
 
 
-class ParseJsonJob(unittest.TestCase):
+class ParseJsonJob(ExecutablesTestCase):
     """Testing loading of JSON cache files."""
 
     def setUp(self):
@@ -39,6 +40,14 @@ class ParseJsonJob(unittest.TestCase):
         self.jsonFile = os.path.join(testDataDir, 'CfhtQuick_output_r.json')
         self.jsonFile_filter = 'r'
         self.longMessage = True
+        self.executable_dir = os.path.join(lsst.utils.getPackageDir("VALIDATE_DRP"),
+                                           "bin")
+
+    def testLoadFromValidate(self):
+        self.assertExecutable("validateDrp.py",
+                              root_dir=self.executable_dir,
+                              args=[self.jsonFile, "--noplot"],
+                              msg="CFHT Quick Test failed")
 
     def testLoadJsonJob(self):
         """Can we load a Job from a JSON file?"""
