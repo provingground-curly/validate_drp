@@ -109,7 +109,7 @@ def get_filter_name_from_job(job):
 
 def run(repo_or_json, metrics=None,
         outputPrefix=None, makePrint=True, makePlot=True,
-        level='design', **kwargs):
+        level='design', metrics_package='verify_metrics', **kwargs):
     """Main entrypoint from ``validateDrp.py``.
 
     Parameters
@@ -144,7 +144,7 @@ def run(repo_or_json, metrics=None,
             return
 
         json_path = repo_or_json
-        job = load_json_output(json_path, **kwargs)
+        job = load_json_output(json_path, metrics_package)
         filterName = get_filter_name_from_job(job)
         jobs = {filterName: job}
     else:
@@ -154,7 +154,7 @@ def run(repo_or_json, metrics=None,
 
         repo_path = repo_or_json
         jobs = runOneRepo(repo_path, metrics=metrics, outputPrefix=outputPrefix,
-                          **kwargs)
+                          metrics_package=metrics_package, **kwargs)
 
     for filterName, job in jobs.items():
         if makePrint:
@@ -169,7 +169,8 @@ def run(repo_or_json, metrics=None,
     print_pass_fail_summary(jobs, default_level=level)
 
 
-def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False, **kwargs):
+def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
+               metrics_package='verify_metrics', **kwargs):
     """Calculate statistics for all filters in a repo.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
@@ -219,7 +220,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
                            verbose=verbose, filterName=filterName,
-                           **kwargs)
+                           metrics_package=metrics_package, **kwargs)
         jobs[filterName] = job
 
     return jobs
@@ -228,7 +229,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makeJson=True, filterName=None, outputPrefix='',
                  useJointCal=False, skipTEx=False, verbose=False,
-                 **kwargs):
+                 metrics_package='verify_metrics', **kwargs):
     """Main executable for the case where there is just one filter.
 
     Plot files and JSON files are generated in the local directory
@@ -286,7 +287,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
                                          'dataset_repo_url':dataset_repo_url},
                                    subset='validate_drp',
-                                   package_name_or_path=kwargs['metrics_package'])
+                                   package_name_or_path=metrics_package)
     metrics = job.metrics
 
     specs = job.specs
