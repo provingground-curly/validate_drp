@@ -43,6 +43,7 @@ if [[ $DOPROCESS == true ]]; then
         -m "$MAPPER" \
         -v "$VALIDATION_DATA_DIR" \
         -f "$CONFIG_FILE" \
+        -o "--filetype instcal" \
         -i ingestImagesDecam.py
 fi
 

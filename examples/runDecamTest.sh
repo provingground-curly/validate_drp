@@ -43,10 +43,11 @@ if [[ $DOPROCESS == true ]]; then
         -m "$MAPPER" \
         -v "$VALIDATION_DATA_DIR" \
         -f "$CONFIG_FILE" \
+        -o "--filetype instcal" \
         -i ingestImagesDecam.py
 fi
 
-if [[ $DOVERIFY = true ]]; then
+if [[ $DOVERIFY == true ]]; then
     "${PRODUCT_DIR}/examples/validateRepo.sh" \
         -c "$CAMERA" \
         -- "$@"
