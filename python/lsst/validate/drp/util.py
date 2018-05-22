@@ -342,7 +342,8 @@ def getCcdKeyName(dataid):
       the different amps/ccds in the same exposure.  This function looks
       through the reference dataId to locate a field that could be the one.
     """
-    possibleCcdFieldNames = ['ccd', 'ccdnum', 'camcol', 'sensor']
+    possibleCcdFieldNames = ['ccd', 'ccdnum', 'camcol', 'sensor',
+                             'raft_sensor_int']
 
     for name in possibleCcdFieldNames:
         if name in dataid:
