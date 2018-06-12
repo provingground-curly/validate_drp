@@ -133,7 +133,7 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
     # Match catalogs across visits
     blob._catalog, blob._matchedCatalog = \
         _loadAndMatchCatalogs(repo, dataIds, matchRadius,
-                                   useJointCal=useJointCal, skipTEx=False)
+                                   useJointCal=useJointCal, skipTEx=skipTEx)
 
     blob.magKey = blob._matchedCatalog.schema.find("base_PsfFlux_mag").key
     # Reduce catalogs into summary statistics.
