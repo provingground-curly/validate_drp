@@ -352,6 +352,20 @@ def getCcdKeyName(dataid):
         return 'ccd'
 
 
+def intToRaftSensor(vId):
+    """Construct raft, sensor coordinates from an int.
+
+    >>> vId = {'filter': 'y', 'raft_sensor_int': 2212, 'visit': 307}
+    >>> intToRaftSensor(vId)
+    ('2,2', '1,2')
+    """
+    raft_sensor_str = "%s" % vId['raft_sensor_int']
+    raft = '%s,%s' % (raft_sensor_str[0], raft_sensor_str[1])
+    sensor = '%s,%s' % (raft_sensor_str[2], raft_sensor_str[3])
+
+    return raft, sensor
+
+
 def raftSensorToInt(vId):
     """Construct an int that encodes raft, sensor coordinates.
 

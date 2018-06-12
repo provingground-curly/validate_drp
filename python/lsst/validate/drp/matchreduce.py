@@ -38,7 +38,8 @@ from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
 from lsst.afw.fits import FitsError
 from lsst.verify import Blob, Datum
 
-from .util import (getCcdKeyName, raftSensorToInt, positionRmsFromCat,
+from .util import (getCcdKeyName, raftSensorToInt, intToRaftSensor,
+                   positionRmsFromCat,
                    ellipticity_from_cat)
 
 
@@ -182,6 +183,12 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
         ccdKeyName = 'raft_sensor_int'
         for vId in dataIds:
             vId[ccdKeyName] = raftSensorToInt(vId)
+    # Ensure we have 'raft' and 'sensor' loaded
+    # Extract back from 'raft_sensor_int'
+    if ccdKeyName == 'raft_sensor_int':
+        for vId in dataIds:
+            raft, sensor = intToRaftSensor(vId)
+            vId['raft'], vId['sensor'] = raft, sensor
 
     schema = butler.get(dataset + "_schema").schema
     mapper = SchemaMapper(schema)
