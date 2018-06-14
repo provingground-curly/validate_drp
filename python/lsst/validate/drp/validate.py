@@ -264,10 +264,21 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
+    try:
+        instrument = kwargs['instrument']
+        dataset_repo_url = kwargs['dataset_repo_url']
+    except KeyError:
+        raise ValueError("Instrument name and input dataset URL must be set in config file")
+
+    job = Job.load_metrics_package(meta={'instrument': instrument,
+                                         'filter_name': filterName,
+                                         'dataset_repo_url': dataset_repo_url},
+                                   subset='validate_drp',
+                                   package_name_or_path=metrics_package)
+
     matchedDataset = build_matched_dataset(repo, visitDataIds,
                                               useJointCal=useJointCal,
                                               skipTEx=skipTEx)
-
 
     photomModel = build_photometric_error_model(matchedDataset)
 
@@ -275,17 +286,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
 
     linkedBlobs = [matchedDataset, photomModel, astromModel]
 
-    try:
-        instrument = kwargs['instrument']
-        dataset_repo_url = kwargs['dataset_repo_url']
-    except KeyError:
-        raise ValueError("Instrument name and input dataset URL must be set in config file")
-    job = Job.load_metrics_package(meta={'instrument':instrument, 'filter_name':filterName,
-                                         'dataset_repo_url':dataset_repo_url},
-                                   subset='validate_drp',
-                                   package_name_or_path=metrics_package)
     metrics = job.metrics
-
     specs = job.specs
 
     def add_measurement(measurement):
