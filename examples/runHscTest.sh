@@ -7,7 +7,7 @@ VALIDATION_DATA_DIR="$VALIDATION_DATA_HSC_DIR/raw"
 CALIB_DATA="$VALIDATION_DATA_HSC_DIR/CALIB"
 
 CAMERA=Hsc
-CONFIG_FILE="${PRODUCT_DIR}/config/hscConfig.py"
+CONFIG_FILE="${PRODUCT_DIR}/config/hscProcessCcdConfig.py"
 MAPPER=lsst.obs.hsc.HscMapper
 ASTROMDIR=sdss-dr9-fink-v5b
 

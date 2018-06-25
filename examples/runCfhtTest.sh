@@ -6,7 +6,7 @@ PRODUCT_DIR="$VALIDATE_DRP_DIR"
 VALIDATION_DATA_DIR="$VALIDATION_DATA_CFHT_DIR/raw"
 
 CAMERA=Cfht
-CONFIG_FILE="${PRODUCT_DIR}/config/cfhtConfig.py"
+CONFIG_FILE="${PRODUCT_DIR}/config/cfhtProcessCcdConfig.py"
 MAPPER=lsst.obs.cfht.MegacamMapper
 
 print_error() {

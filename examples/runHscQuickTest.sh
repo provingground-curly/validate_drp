@@ -7,7 +7,7 @@ VALIDATION_DATA_DIR="$CI_HSC_DIR/raw"
 CALIB_DATA="$CI_HSC_DIR/CALIB"
 
 CAMERA=HscQuick
-CONFIG_FILE="${PRODUCT_DIR}/config/hscConfig.py"
+CONFIG_FILE="${PRODUCT_DIR}/config/hscProcessCcdConfig.py"
 MAPPER=lsst.obs.hsc.HscMapper
 
 echo "This will not work because ci_hsc has gone over to using new style reference catalogs"

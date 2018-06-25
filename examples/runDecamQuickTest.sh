@@ -6,7 +6,7 @@ PRODUCT_DIR="$VALIDATE_DRP_DIR"
 VALIDATION_DATA_DIR="$VALIDATION_DATA_DECAM_DIR/instcal"
 
 CAMERA=DecamQuick
-CONFIG_FILE="${PRODUCT_DIR}/config/decamConfig.py"
+CONFIG_FILE="${PRODUCT_DIR}/config/decamProcessCcdConfig.py"
 MAPPER=lsst.obs.decam.DecamMapper
 
 print_error() {
