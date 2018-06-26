@@ -157,29 +157,37 @@ validateDrp.py repo_filepath
     RunnerClass = ValidateDrpTaskRunner
     _DefaultName = "validateDrp"
 
-#    def __init__(self,
-#                 **kwargs):
+    def __init__(self):
+        if not os.path.exists(self.config.metricsFile):
+            print('Could not find metric definitions: {0}'.format(self.config.metricsFile))
+            sys.exit(1)
+        self.metrics = load_metrics(self.config.metricsFile)
 
     @pipeBase.timeMethod
-    def run(self):
-        if not os.path.isdir(args.repo):
-            print("Could not find repo %r" % (args.repo,))
-            sys.exit(1)
+    def run(self, dataIdList):
+        """!
+        \brief Calculate SRD Key Performance Metrics for a set of calexp+src products.
 
-        kwargs = {}
-        kwargs['verbose'] = args.verbose
-        kwargs['level'] = args.level
+        \anchor runParams
+        \param[in] selectDataList[in]: List of data references to src catalogs.
 
-        if not os.path.exists(args.metricsFile):
-            print('Could not find metric definitions: {0}'.format(args.metricsFile))
-            sys.exit(1)
-        metrics = load_metrics(args.metricsFile)
-        kwargs['metrics'] = metrics
-
+        \return a pipeBase.Struct with fields:
+            - jobs: List of lsst.verify Jobs
+        """
         # Wrap the configs into keyword arguments to pass to exist code.
         # Consider pushing this down further into 'validate' module
+        kwargs = {}
+        kwargs['verbose'] = self.config.verbose
+        kwargs['level'] = self.config.targetSpecLevel
+        kwargs['metrics'] = self.metrics
+        kwargs['outputPrefix'] = self.config.outputPrefix
+        kwargs['makePlot'] = self.config.makePlot
+        kwargs['makePrint'] = self.config.makePrint
+        kwargs['metrics_package'] = self.config.metricsPackage
+        kwargs['instrument'] = self.config.instrument
+        kwargs['dataset_repo_url'] = self.config.dataset_repo_url
 
-        validate.run(args.repo, **kwargs)
+        validate.runOneRepo(repo, **kwargs)
 
     @classmethod
     def _makeArgumentParser(cls):
