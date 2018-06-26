@@ -211,7 +211,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     """
     from lsst.daf.persistence import Butler
     if instrument is None:
-        instrument = extract_instrument_from_repo(butler)
+        instrument = extract_instrument_from_repo(repo)
     if dataset_repo_url is None:
         dataset_repo_url = repo
 
