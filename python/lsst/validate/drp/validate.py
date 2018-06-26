@@ -166,6 +166,8 @@ def run(repo_or_json, metrics=None,
 
     print_pass_fail_summary(jobs, default_level=level)
 
+    return jobs
+
 
 def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
                instrument=None, dataset_repo_url=None,
