@@ -54,7 +54,11 @@ replaced with underscores.  E.g., "Cfht/output" -> "Cfht_output_"
 """
 
 class ValidateDrpConfig(pexConfig.Config):
-    """`ValidateDrpTask` configuration."""
+    """!
+\anchor ValidateDrpConfig
+
+\brief Configuration parameters for the \ref ValidateDrpTask_ "ValidateDrpTask"
+    """
     brightSnr = pexConfig.Field(
         doc='SNR cut-off for bright stars.',
         dtype=float,
@@ -100,7 +104,7 @@ Intended for use to document provenance in the summary.'
         default=None
     )
 
-# Need something more like coadd, that takes a list of data Ids 
+# Need something more like coadd, that takes a list of data Ids
 # to prepare into single output
 class ValidateDrpTaskRunner(pipeBase.TaskRunner):
     @staticmethod
@@ -108,13 +112,52 @@ class ValidateDrpTaskRunner(pipeBase.TaskRunner):
         return pipeBase.TaskRunner.getTargetList(parsedCmd, selectDataList=parsedCmd.selectId.dataList,
                                                  **kwargs)
 
-
+## \addtogroup LSST_task_documentation
+## \{
+## \page ValidateDrpTask
+## \ref ValidateDrpTask_ "ValidateDrpTask"
+## \copybrief ValidateDrpTask
+## \}
 class ValidateDrpTask(pipeBase.CmdLineTask):
+    """!
+\anchor ValidateDrpTask_
+
+\brief Validate a processed set of calexp data.  Evaluate SRD Key Performance Metrics.
+
+Example:
+Simplest.  By default figures out all of the dataIds in the repo with calexp+src data.
+\code
+validateDrp.py repo_filepath
+\endcode
+
+# Specify a specific filter and only analyze dataIds matching that filter
+\code
+validateDrp.py repo_filepath --selectId filter=r
+\endcode
+
+Specific a specific tract+path.  Only analyze dataIds within that tract+patch.
+\code
+validateDrp.py repo_filepath --selectId tract=4423 patch='3,2'
+\endcode
+
+ Note that the analysis is done on the individual Vist src+calexp files that
+  contributed to that tract+patch.  The coadd data themselves are not used.
+
+Notes.
+While tract+patch is a very natural way to divide up the calculation of many of the SRD KPMs.
+It does create significant areal boundaries for metrics such as TE3, AM3 which
+span focal-planes.  The sizes of tracts and patches are configurable, but
+generaly choices imply that one would want to evalulate a TE3, AM3
+validateDrp.py repo_filepath
+
+
+
+    """
     ConfigClass = ValidateDrpConfig
     RunnerClass = ValidateDrpTaskRunner
     _DefaultName = "validateDrp"
 
-#    def __init__(self, 
+#    def __init__(self,
 #                 **kwargs):
 
     @pipeBase.timeMethod
