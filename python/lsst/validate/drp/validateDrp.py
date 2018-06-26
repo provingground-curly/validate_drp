@@ -91,7 +91,7 @@ class ValidateDrpConfig(pexConfig.Config):
         default='design'
     )
     instrument = pexConfig.Field(
-        doc='Name of the instrument.  If None will be extracted from the Butler mapper.'
+        doc='Name of the instrument.  If None will be extracted from the Butler mapper.',
         dtype=str,
         default=None
     )
