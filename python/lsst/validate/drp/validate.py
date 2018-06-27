@@ -166,6 +166,7 @@ def run(repo_or_json, metrics=None,
 
 
 def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
+               instrument=None, dataset_repo_url=None,
                metrics_package='verify_metrics', **kwargs):
     """Calculate statistics for all filters in a repo.
 
@@ -192,6 +193,12 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         The level of the specification to check: "design", "minimum", "stretch".
     verbose : `bool`
         Provide detailed output.
+    instrument : `str`
+        Name of the instrument.  If None will be extracted from the Butler mapper.
+    dataset_repo_url : `str`
+        Location of the dataset used.  If None will be set to the path of the repo.
+    metrics_package : `string`
+        Name of the metrics package to be used in the Jobs created.
 
     Notes
     -----
@@ -202,6 +209,22 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     The filter name is added to this prefix.  If the filter name has spaces,
     there will be annoyance and sadness as those spaces will appear in the filenames.
     """
+    from lsst.daf.persistence import Butler
+    if instrument is None:
+        instrument = extract_instrument_from_repo(repo)
+    if dataset_repo_url is None:
+        dataset_repo_url = repo
+
+    def extract_instrument_from_repo(repo):
+        """Extract the last part of the mapper name from a Butler repo.
+        'lsst.obs.lsstSim.lsstSimMapper.LsstSimMapper' -> 'lsstSim'
+        'lsst.obs.cfht.megacamMapper.MegacamMapper' -> 'cfht'
+        'lsst.obs.decam.decamMapper.DecamMapper' -> 'decam'
+        'lsst.obs.hsc.hscMapper.HscMapper' -> 'hsc'
+        """
+        mapper_class = Butler.getMapperClass(repo)
+        instrument = mapper_class.split('.')[2]
+        return instrument
 
     allFilters = set([d['filter'] for d in dataIds])
 
@@ -216,6 +239,8 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         job = runOneFilter(repo, theseVisitDataIds, metrics,
                            outputPrefix=thisOutputPrefix,
                            verbose=verbose, filterName=filterName,
+                           instrument=instrument,
+                           dataset_repo_url=dataset_repo_url,
                            metrics_package=metrics_package, **kwargs)
         jobs[filterName] = job
 
@@ -225,7 +250,9 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  makeJson=True, filterName=None, outputPrefix='',
                  useJointCal=False, skipTEx=False, verbose=False,
-                 metrics_package='verify_metrics', **kwargs):
+                 metrics_package='verify_metrics',
+                 instrument='Unknown', dataset_repo_url='./',
+                 **kwargs):
     """Main executable for the case where there is just one filter.
 
     Plot files and JSON files are generated in the local directory
@@ -264,12 +291,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     verbose : bool, optional
         Output additional information on the analysis steps.
     """
-    try:
-        instrument = kwargs['instrument']
-        dataset_repo_url = kwargs['dataset_repo_url']
-    except KeyError:
-        raise ValueError("Instrument name and input dataset URL must be set in config file")
-
     job = Job.load_metrics_package(meta={'instrument': instrument,
                                          'filter_name': filterName,
                                          'dataset_repo_url': dataset_repo_url},
@@ -281,7 +302,6 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                                               skipTEx=skipTEx)
 
     photomModel = build_photometric_error_model(matchedDataset)
-
     astromModel = build_astrometric_error_model(matchedDataset)
 
     linkedBlobs = [matchedDataset, photomModel, astromModel]
