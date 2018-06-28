@@ -220,7 +220,7 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         'lsst.obs.hsc.hscMapper.HscMapper' -> 'hsc'
         """
         mapper_class = Butler.getMapperClass(repo)
-        instrument = mapper_class.split('.')[2]
+        instrument = mapper_class.getCameraName()
         return instrument
 
     if instrument is None:
