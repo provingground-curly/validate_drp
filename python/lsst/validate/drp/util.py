@@ -92,7 +92,7 @@ def ellipticity(I_xx, I_xy, I_yy):
     e, e1, e2 : (float, float, float) or (numpy.array, numpy.array, numpy.array)
         Complex ellipticity, real component, imaginary component
     """
-    e = (I_xx - I_yy + 2j*I_xy) / (I_xx + I_yy + 2*SM.sqrt(I_xx*I_yy - I_xy*2))
+    e = (I_xx - I_yy + 2j*I_xy) / (I_xx + I_yy)
     e1 = np.real(e)
     e2 = np.imag(e)
     return e, e1, e2
