@@ -25,6 +25,7 @@ from __future__ import print_function, absolute_import
 from builtins import object
 import json
 import os
+import warnings
 import numpy as np
 import astropy.units as u
 
@@ -527,40 +528,42 @@ def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), defau
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
         print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-
-        for specName in levels:
-            measurementCount = 0
-            failCount = 0
-            for key, m in job.measurements.items():
-                if np.isnan(m.quantity):
-                    continue
-                measurementCount += 1
-                metric = key.metric.split("_")[0] # For compound metrics
-                spec_set = specs[metric]
-                spec = None
-                for spec_key in spec_set:
-                    if specName in spec_key.spec:
-                        spec = job.specs[spec_key]
-                if spec is None:
+        if len(specs) > 0:
+            for specName in levels:
+                measurementCount = 0
+                failCount = 0
+                for key, m in job.measurements.items():
+                    if np.isnan(m.quantity):
+                        continue
+                    measurementCount += 1
+                    metric = key.metric.split("_")[0] # For compound metrics
+                    spec_set = specs[metric]
+                    spec = None
                     for spec_key in spec_set:
-                        if specName in spec_key.metric: # For dependent metrics
+                        if specName in spec_key.spec:
                             spec = job.specs[spec_key]
-                if not spec.check(m.quantity):
-                    failCount += 1
+                    if spec is None:
+                        for spec_key in spec_set:
+                            if specName in spec_key.metric: # For dependent metrics
+                                spec = job.specs[spec_key]
+                    if not spec.check(m.quantity):
+                        failCount += 1
 
-            if specName == default_level:
-                currentTestCount += measurementCount
-                currentFailCount += failCount
+                if specName == default_level:
+                    currentTestCount += measurementCount
+                    currentFailCount += failCount
 
-            if failCount == 0:
-                print('Passed {level:12s} {count:d} measurements'.format(
-                    level=specName, count=measurementCount))
-            else:
-                msg = 'Failed {level:12s} {failCount} of {count:d} failed'.format(
-                    level=specName, failCount=failCount, count=measurementCount)
-                print(bcolors.FAIL + msg + bcolors.ENDC)
+                if failCount == 0:
+                    print('Passed {level:12s} {count:d} measurements'.format(
+                        level=specName, count=measurementCount))
+                else:
+                    msg = 'Failed {level:12s} {failCount} of {count:d} failed'.format(
+                        level=specName, failCount=failCount, count=measurementCount)
+                    print(bcolors.FAIL + msg + bcolors.ENDC)
 
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
+            print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
+        else:
+            warnings.warn('job had no specs')
 
     # print summary against current spec level
     print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
