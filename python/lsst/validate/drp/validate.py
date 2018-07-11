@@ -209,12 +209,6 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     The filter name is added to this prefix.  If the filter name has spaces,
     there will be annoyance and sadness as those spaces will appear in the filenames.
     """
-    from lsst.daf.persistence import Butler
-    if instrument is None:
-        instrument = extract_instrument_from_repo(repo)
-    if dataset_repo_url is None:
-        dataset_repo_url = repo
-
     def extract_instrument_from_repo(repo):
         """Extract the last part of the mapper name from a Butler repo.
         'lsst.obs.lsstSim.lsstSimMapper.LsstSimMapper' -> 'lsstSim'
@@ -223,8 +217,14 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         'lsst.obs.hsc.hscMapper.HscMapper' -> 'hsc'
         """
         mapper_class = Butler.getMapperClass(repo)
-        instrument = mapper_class.split('.')[2]
+        instrument = mapper_class.__module__.split('.')[2]
         return instrument
+
+    from lsst.daf.persistence import Butler
+    if instrument is None:
+        instrument = extract_instrument_from_repo(repo)
+    if dataset_repo_url is None:
+        dataset_repo_url = repo
 
     allFilters = set([d['filter'] for d in dataIds])
 
