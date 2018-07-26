@@ -442,7 +442,7 @@ def plot_metrics(job, filterName, outputPrefix=''):
             plotTEx(job, measurement, filterName,
                     texSpecName='design',
                     outputPrefix=outputPrefix)
-        except RuntimeError as e:
+        except (RuntimeError, KeyError) as e:
             print(e)
             print('\tSkipped plot{}'.format(texName))
 
