@@ -25,12 +25,11 @@ from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
-import sqlite3
 from sqlalchemy.exc import OperationalError
+import sqlite3
 
 import lsst.afw.geom as afwGeom
 import lsst.afw.image.utils as afwImageUtils
-import lsst.afw.image as afwImage
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView,
@@ -46,7 +45,7 @@ __all__ = ['build_matched_dataset']
 
 
 def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
-             useJointCal=False):
+                          useJointCal=False, skipTEx=False):
     """Construct a container for matched star catalogs from multple visits, with filtering,
     summary statistics, and modelling.
 
@@ -64,9 +63,9 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
         Radius for matching. Default is 1 arcsecond.
     safeSnr : `float`, optional
         Minimum median SNR for a match to be considered "safe".
-    useJointCal : bool, optional
+    useJointCal : `bool`, optional
         Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
-    skipTEx : bool, optional
+    skipTEx : `bool`, optional
         Skip TEx calculations (useful for older catalogs that don't have
         PsfShape measurements).
 
@@ -111,10 +110,6 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
 
         *Not serialized.*
     """
-
-
-def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
-             useJointCal=False, skipTEx=False):
     blob = Blob('MatchedMultiVisitDataset')
 
     if not matchRadius:
@@ -128,17 +123,17 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
     blob['useJointCal'] = Datum(quantity=useJointCal,
                                 description='Whether jointcal/meas_mosaic calibrations were used')
 
-
     # Match catalogs across visits
     blob._catalog, blob._matchedCatalog = \
         _loadAndMatchCatalogs(repo, dataIds, matchRadius,
-                                   useJointCal=useJointCal, skipTEx=False)
+                              useJointCal=useJointCal, skipTEx=skipTEx)
 
     blob.magKey = blob._matchedCatalog.schema.find("base_PsfFlux_mag").key
     # Reduce catalogs into summary statistics.
     # These are the serialiable attributes of this class.
     _reduceStars(blob, blob._matchedCatalog, safeSnr)
     return blob
+
 
 def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
                           useJointCal=False, skipTEx=False):
@@ -154,6 +149,11 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
         calibration.
     matchRadius :  afwGeom.Angle(), optional
         Radius for matching. Default is 1 arcsecond.
+    useJointCal : `bool`, optional
+        Use jointcal/meas_mosaic outputs to calibrate positions and fluxes.
+    skipTEx : `bool`, optional
+        Skip TEx calculations (useful for older catalogs that don't have
+        PsfShape measurements).
 
     Returns
     -------
@@ -251,32 +251,6 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
                 print("Skipping this dataId.")
                 continue
 
-            # We don't want to put this above the first "if useJointCal block"
-            # because we need to use the first `butler.get` above to quickly
-            # catch data IDs with no usable outputs.
-            try:
-                calexpMetadata = butler.get("calexp_md", vId)
-            except (FitsError, dafPersist.NoResults) as e:
-                print(e)
-                print("Could not open calibrated image file for ", vId)
-                print("Skipping %s " % repr(vId))
-                continue
-            except TypeError as te:
-                # DECam images that haven't been properly reformatted
-                # can trigger a TypeError because of a residual FITS header
-                # LTV2 which is a float instead of the expected integer.
-                # This generates an error of the form:
-                #
-                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
-                #
-                # See, e.g., DM-2957 for details.
-                print(te)
-                print("Calibration image header information malformed.")
-                print("Skipping %s " % repr(vId))
-                continue
-
-            calib = afwImage.Calib(calexpMetadata)
-
         # We don't want to put this above the first "if useJointCal block"
         # because we need to use the first `butler.get` above to quickly
         # catch data IDs with no usable outputs.
@@ -284,12 +258,8 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
             # HSC supports these flags, which dramatically improve I/O
             # performance; support for other cameras is DM-6927.
             oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-            calexp = butler.get("calexp", vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-        except:
+        except (OperationalError, sqlite3.OperationalError):
             oldSrc = butler.get('src', vId)
-            calexp = butler.get("calexp", vId)
-
-        psf = calexp.getPsf()
 
         print(len(oldSrc), "sources in ccd %s  visit %s" %
               (vId[ccdKeyName], vId["visit"]))
@@ -330,6 +300,7 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
     allMatches = GroupView.build(matchCat)
 
     return srcVis, allMatches
+
 
 def _reduceStars(blob, allMatches, safeSnr=50.0):
     """Calculate summary statistics for each star. These are persisted

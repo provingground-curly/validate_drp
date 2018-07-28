@@ -31,13 +31,15 @@ import astropy.units as u
 from textwrap import TextWrapper
 import astropy.visualization
 
-from lsst.verify import Blob, Datum, Name
+from lsst.verify import Name
 from lsst.verify import Job, MetricSet, SpecificationSet
+
+from lsst.daf.persistence import Butler
 
 from .util import repoNameToPrefix
 from .matchreduce import build_matched_dataset
 from .photerrmodel import build_photometric_error_model
-from .astromerrmodel import build_astrometric_error_model 
+from .astromerrmodel import build_astrometric_error_model
 from .calcsrd import (measurePA1, measurePA2, measurePF1, measureAMx,
                       measureAFx, measureADx, measureTEx)
 from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
@@ -48,7 +50,7 @@ __all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
            'run', 'runOneFilter']
 
 
-class bcolors(object):
+class Bcolors(object):
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -209,11 +211,6 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
     The filter name is added to this prefix.  If the filter name has spaces,
     there will be annoyance and sadness as those spaces will appear in the filenames.
     """
-    from lsst.daf.persistence import Butler
-    if instrument is None:
-        instrument = extract_instrument_from_repo(repo)
-    if dataset_repo_url is None:
-        dataset_repo_url = repo
 
     def extract_instrument_from_repo(repo):
         """Extract the last part of the mapper name from a Butler repo.
@@ -225,6 +222,11 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
         mapper_class = Butler.getMapperClass(repo)
         instrument = mapper_class.split('.')[2]
         return instrument
+
+    if instrument is None:
+        instrument = extract_instrument_from_repo(repo)
+    if dataset_repo_url is None:
+        dataset_repo_url = repo
 
     allFilters = set([d['filter'] for d in dataIds])
 
@@ -298,8 +300,8 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                                    package_name_or_path=metrics_package)
 
     matchedDataset = build_matched_dataset(repo, visitDataIds,
-                                              useJointCal=useJointCal,
-                                              skipTEx=skipTEx)
+                                           useJointCal=useJointCal,
+                                           skipTEx=skipTEx)
 
     photomModel = build_photometric_error_model(matchedDataset)
     astromModel = build_astrometric_error_model(matchedDataset)
@@ -319,12 +321,11 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
         afxName = 'AF{0:d}'.format(x)
         adxName = 'AD{0:d}'.format(x)
 
-
         amx = measureAMx(metrics['validate_drp.'+amxName], matchedDataset, D*u.arcmin)
         add_measurement(amx)
 
-        afx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[afxName,])
-        adx_spec_set = specs.subset(required_meta={'instrument':'HSC'}, spec_tags=[adxName,])
+        afx_spec_set = specs.subset(required_meta={'instrument': 'HSC'}, spec_tags=[afxName, ])
+        adx_spec_set = specs.subset(required_meta={'instrument': 'HSC'}, spec_tags=[adxName, ])
         for afx_spec_key, adx_spec_key in zip(afx_spec_set, adx_spec_set):
             afx_spec = afx_spec_set[afx_spec_key]
             adx_spec = adx_spec_set[adx_spec_key]
@@ -336,11 +337,10 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
     pa1 = measurePA1(metrics['validate_drp.PA1'], matchedDataset, filterName)
     add_measurement(pa1)
 
-
-    pf1_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
-                                           spec_tags=['PF1',])
-    pa2_spec_set = specs.subset(required_meta={'instrument':instrument, 'filter_name':filterName},
-                                           spec_tags=['PA2',])
+    pf1_spec_set = specs.subset(required_meta={'instrument': instrument, 'filter_name': filterName},
+                                spec_tags=['PF1', ])
+    pa2_spec_set = specs.subset(required_meta={'instrument': instrument, 'filter_name': filterName},
+                                spec_tags=['PA2', ])
     # I worry these might not always be in the right order.  Sorting...
     pf1_spec_keys = list(pf1_spec_set.keys())
     pa2_spec_keys = list(pa2_spec_set.keys())
@@ -442,47 +442,47 @@ def plot_metrics(job, filterName, outputPrefix=''):
             plotTEx(job, measurement, filterName,
                     texSpecName='design',
                     outputPrefix=outputPrefix)
-        except RuntimeError as e:
+        except (RuntimeError, KeyError) as e:
             print(e)
             print('\tSkipped plot{}'.format(texName))
 
 
 def get_specs_metrics(job):
     # Get specs for this filter
-    subset = job.specs.subset(required_meta={'instrument':job.meta['instrument'],
-                                             'filter_name':job.meta['filter_name']},
+    subset = job.specs.subset(required_meta={'instrument': job.meta['instrument'],
+                                             'filter_name': job.meta['filter_name']},
                               spec_tags=['chromatic'])
     # Get specs that don't depend on filter
-    subset.update(job.specs.subset(required_meta={'instrument':job.meta['instrument']},
+    subset.update(job.specs.subset(required_meta={'instrument': job.meta['instrument']},
                                    spec_tags=['achromatic']))
     metrics = {}
     specs = {}
     for spec in subset:
-        metric_name = spec.metric.split('_')[0] # Take first part for linked metrics
+        metric_name = spec.metric.split('_')[0]  # Take first part for linked metrics
         if metric_name in metrics:
             metrics[metric_name].append(Name(package=spec.package, metric=spec.metric))
             specs[metric_name].append(spec)
         else:
-            metrics[metric_name] = [Name(package=spec.package, metric=spec.metric),]
-            specs[metric_name] = [spec,]
+            metrics[metric_name] = [Name(package=spec.package, metric=spec.metric), ]
+            specs[metric_name] = [spec, ]
     return specs, metrics
 
 
 def print_metrics(job, levels=('minimum', 'design', 'stretch')):
     specs, metrics = get_specs_metrics(job)
 
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER +
+    print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
+    print(Bcolors.BOLD + Bcolors.HEADER +
           '{band} band metric measurements'.format(band=job.meta['filter_name']) +
-          bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+          Bcolors.ENDC)
+    print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
 
     wrapper = TextWrapper(width=65)
     for metric_name, metric_set in metrics.items():
-        metric = job.metrics[metric_set[0]] # Pick the first one for the description
-        print(bcolors.HEADER + '{name} - {reference}'.format(
+        metric = job.metrics[metric_set[0]]  # Pick the first one for the description
+        print(Bcolors.HEADER + '{name} - {reference}'.format(
             name=metric.name, reference=metric.reference))
-        print(wrapper.fill(bcolors.ENDC + '{description}'.format(
+        print(wrapper.fill(Bcolors.ENDC + '{description}'.format(
             description=metric.description).strip()))
 
         for spec_key, metric_key in zip(specs[metric_name], metrics[metric_name]):
@@ -505,16 +505,15 @@ def print_metrics(job, levels=('minimum', 'design', 'stretch')):
             spec = job.specs[spec_key]
             passed = spec.check(m.quantity)
             if passed:
-                prefix = bcolors.OKBLUE + '\tPassed '
+                prefix = Bcolors.OKBLUE + '\tPassed '
             else:
-                prefix = bcolors.FAIL + '\tFailed '
+                prefix = Bcolors.FAIL + '\tFailed '
             infoStr = '{specName:12s} {meas:.4g} {op} {spec:.4g}'.format(
                 specName=level,
                 meas=m.quantity,
                 op=spec.operator_str,
                 spec=spec.threshold)
-            print(prefix + infoStr + bcolors.ENDC)
-
+            print(prefix + infoStr + Bcolors.ENDC)
 
 
 def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), default_level='design'):
@@ -524,9 +523,9 @@ def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), defau
     for filterName, job in jobs.items():
         specs, metrics = get_specs_metrics(job)
         print('')
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + '{0} band summary'.format(filterName) + bcolors.ENDC)
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+        print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
+        print(Bcolors.BOLD + Bcolors.HEADER + '{0} band summary'.format(filterName) + Bcolors.ENDC)
+        print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
 
         for specName in levels:
             measurementCount = 0
@@ -535,7 +534,7 @@ def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), defau
                 if np.isnan(m.quantity):
                     continue
                 measurementCount += 1
-                metric = key.metric.split("_")[0] # For compound metrics
+                metric = key.metric.split("_")[0]  # For compound metrics
                 spec_set = specs[metric]
                 spec = None
                 for spec_key in spec_set:
@@ -543,7 +542,7 @@ def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), defau
                         spec = job.specs[spec_key]
                 if spec is None:
                     for spec_key in spec_set:
-                        if specName in spec_key.metric: # For dependent metrics
+                        if specName in spec_key.metric:  # For dependent metrics
                             spec = job.specs[spec_key]
                 if not spec.check(m.quantity):
                     failCount += 1
@@ -558,20 +557,20 @@ def print_pass_fail_summary(jobs, levels=('minimum', 'design', 'stretch'), defau
             else:
                 msg = 'Failed {level:12s} {failCount} of {count:d} failed'.format(
                     level=specName, failCount=failCount, count=measurementCount)
-                print(bcolors.FAIL + msg + bcolors.ENDC)
+                print(Bcolors.FAIL + msg + Bcolors.ENDC)
 
-        print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC + '\n')
+        print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC + '\n')
 
     # print summary against current spec level
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + '{0} level summary'.format(default_level) + bcolors.ENDC)
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
+    print(Bcolors.BOLD + Bcolors.HEADER + '{0} level summary'.format(default_level) + Bcolors.ENDC)
+    print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
     if currentFailCount > 0:
         msg = 'FAILED ({failCount:d}/{count:d} measurements)'.format(
             failCount=currentFailCount, count=currentTestCount)
-        print(bcolors.FAIL + msg + bcolors.ENDC)
+        print(Bcolors.FAIL + msg + Bcolors.ENDC)
     else:
         print('PASSED ({count:d}/{count:d} measurements)'.format(
             count=currentTestCount))
 
-    print(bcolors.BOLD + bcolors.HEADER + "=" * 65 + bcolors.ENDC)
+    print(Bcolors.BOLD + Bcolors.HEADER + "=" * 65 + Bcolors.ENDC)
