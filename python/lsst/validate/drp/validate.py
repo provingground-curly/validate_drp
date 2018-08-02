@@ -214,14 +214,14 @@ def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
 
     def extract_instrument_from_repo(repo):
         """Extract the last part of the mapper name from a Butler repo.
-        'lsst.obs.lsstSim.lsstSimMapper.LsstSimMapper' -> 'lsstSim'
-        'lsst.obs.cfht.megacamMapper.MegacamMapper' -> 'cfht'
-        'lsst.obs.decam.decamMapper.DecamMapper' -> 'decam'
-        'lsst.obs.hsc.hscMapper.HscMapper' -> 'hsc'
+        'lsst.obs.lsstSim.lsstSimMapper.LsstSimMapper' -> 'LSSTSIM'
+        'lsst.obs.cfht.megacamMapper.MegacamMapper' -> 'CFHT'
+        'lsst.obs.decam.decamMapper.DecamMapper' -> 'DECAM'
+        'lsst.obs.hsc.hscMapper.HscMapper' -> 'HSC'
         """
         mapper_class = Butler.getMapperClass(repo)
-        instrument = mapper_class.split('.')[2]
-        return instrument
+        instrument = mapper_class.getCameraName()
+        return instrument.upper()
 
     if instrument is None:
         instrument = extract_instrument_from_repo(repo)
