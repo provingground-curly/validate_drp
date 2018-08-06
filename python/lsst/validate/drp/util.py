@@ -342,7 +342,7 @@ def getCcdKeyName(dataid):
       the different amps/ccds in the same exposure.  This function looks
       through the reference dataId to locate a field that could be the one.
     """
-    possibleCcdFieldNames = ['detector', 'ccd', 'ccdnum', 'camcol', 'sensor']
+    possibleCcdFieldNames = ['detector', 'ccd', 'ccdnum', 'camcol', 'sensor', 'raft_sensor_int']
 
     for name in possibleCcdFieldNames:
         if name in dataid:
@@ -365,6 +365,32 @@ def raftSensorToInt(vId):
     raft_int = pair_to_int(vId['raft'])
     sensor_int = pair_to_int(vId['sensor'])
     return 100*raft_int + sensor_int
+
+
+def intToRaftSensor(raft_sensor_int):
+    """Convert an int into raft, sensor.
+
+    Parameters:
+    --
+    integer
+
+    Returns:
+    --
+    dict : E.g., {'raft': '0,1', 'sensor': '1,1'}
+
+    Notes:
+    --
+    Only works for single-digit raft, sensor geometries.
+
+    >>> raft_sensor_int = 0011
+    >>> intToRaftSensor(raft_sensor_int)
+    {'raft': '0,0', 'sensor': '1,1'}
+    """
+    raft_x, raft_y, sensor_x, sensor_y = "%04d" % raft_sensor_int
+    raft = '{},{}'.format(raft_x, raft_y)
+    sensor = '{},{}'.format(sensor_x, sensor_y)
+
+    return {'raft': raft, 'sensor': sensor}
 
 
 def repoNameToPrefix(repo):
@@ -510,9 +536,20 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
         filters = [filters for _ in visits]
 
     assert len(filters) == len(visits)
-    dataIds = [{'filter': f, 'visit': v, ccdKeyName: c}
-               for (f, v) in zip(filters, visits)
-               for c in ccds]
+    # Hack to support raft, sensor set up of obs_lsstSim
+    if ccdKeyName == 'raft_sensor_int':
+        raft_sensors = [intToRaftSensor(c) for c in ccds]
+        dataIds = []
+        for (f, v) in zip(filters, visits):
+            base_data_ids = {'filter': f, 'visit': v}
+            for c in raft_sensors:
+                this_data_id = base_data_ids.copy()
+                this_data_id.update(**c)
+                dataIds.append(this_data_id)
+    else:
+        dataIds = [{'filter': f, 'visit': v, ccdKeyName: c}
+                   for (f, v) in zip(filters, visits)
+                   for c in ccds]
 
     return dataIds
 
