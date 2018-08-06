@@ -538,18 +538,17 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
     assert len(filters) == len(visits)
     # Hack to support raft, sensor set up of obs_lsstSim
     if ccdKeyName == 'raft_sensor_int':
-        raft_sensors = [intToRaftSensor(c) for c in ccds]
-        dataIds = []
-        for (f, v) in zip(filters, visits):
-            base_data_ids = {'filter': f, 'visit': v}
-            for c in raft_sensors:
-                this_data_id = base_data_ids.copy()
-                this_data_id.update(**c)
-                dataIds.append(this_data_id)
+        ccds_dict = [intToRaftSensor(c) for c in ccds]
     else:
-        dataIds = [{'filter': f, 'visit': v, ccdKeyName: c}
-                   for (f, v) in zip(filters, visits)
-                   for c in ccds]
+        ccds_dict = [{ccdKeyName: c} for c in ccds]
+
+    dataIds = []
+    for (f, v) in zip(filters, visits):
+        base_data_ids = {'filter': f, 'visit': v}
+        for c in ccds_dict:
+            this_data_id = base_data_ids.copy()
+            this_data_id.update(**c)
+            dataIds.append(this_data_id)
 
     return dataIds
 
