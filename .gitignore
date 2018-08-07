@@ -9,6 +9,9 @@ _build*
 *.pkl
 .sconsign.dblite
 .cache
+.pytest_cache
+pytest_session.txt
+.coverage
 config.log
 .sconf_temp
 *.o
