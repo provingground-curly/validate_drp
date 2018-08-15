@@ -48,7 +48,7 @@ __all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
            'run', 'runOneFilter']
 
 
-class Bcolors(object):
+class Bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
