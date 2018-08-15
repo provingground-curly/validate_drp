@@ -19,7 +19,6 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 """Miscellaneous functions to support lsst.validate.drp."""
 
-from __future__ import print_function, division
 from builtins import zip
 from past.builtins import basestring
 

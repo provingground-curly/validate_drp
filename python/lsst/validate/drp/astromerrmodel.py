@@ -20,7 +20,6 @@
 """Analytic astrometric accuracy model.
 """
 
-from __future__ import print_function, absolute_import
 
 import astropy.units as u
 import numpy as np

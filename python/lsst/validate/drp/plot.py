@@ -21,7 +21,6 @@
 as analytic models of photometric and astrometric repeatability.
 """
 
-from __future__ import print_function, division
 
 import matplotlib.pylab as plt
 import numpy as np

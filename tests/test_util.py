@@ -19,7 +19,6 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from __future__ import division, print_function
 
 import unittest
 

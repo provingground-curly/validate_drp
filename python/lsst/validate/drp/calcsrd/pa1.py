@@ -18,7 +18,6 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
-from __future__ import print_function, absolute_import
 from builtins import range
 
 import math
