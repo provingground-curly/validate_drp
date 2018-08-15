@@ -19,9 +19,6 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 """Miscellaneous functions to support lsst.validate.drp."""
 
-from builtins import zip
-from past.builtins import basestring
-
 import os
 
 import numpy as np
@@ -505,7 +502,7 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
     {'filter': 'r', 'visit': 200, 'ccd': 11}
     {'filter': 'r', 'visit': 200, 'ccd': 12}
     """
-    if isinstance(filters, basestring):
+    if isinstance(filters, str):
         filters = [filters for _ in visits]
 
     assert len(filters) == len(visits)

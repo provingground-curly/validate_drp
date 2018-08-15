@@ -21,7 +21,6 @@
 grading, and persistence.
 """
 
-from builtins import object
 import json
 import os
 import numpy as np
