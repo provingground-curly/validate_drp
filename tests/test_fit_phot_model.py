@@ -27,7 +27,7 @@ import lsst.utils.tests
 from lsst.validate.drp.photerrmodel import photErrModel, fitPhotErrModel
 
 
-class Phot_Err_Case(lsst.utils.tests.TestCase):
+class PhotErrCase(lsst.utils.tests.TestCase):
     """Testing photometric error model fitting performance and failure modes."""
     def setUp(self):
         self.sigmaSys, self.gamma, self.m5 = 0.01, 0.039, 24.35  # mag, '', mag

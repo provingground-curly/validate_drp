@@ -21,6 +21,9 @@
 grading, and persistence.
 """
 
+__all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
+           'run', 'runOneFilter']
+
 import json
 import os
 import numpy as np
@@ -42,10 +45,6 @@ from .calcsrd import (measurePA1, measurePA2, measurePF1, measureAMx,
                       measureAFx, measureADx, measureTEx)
 from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
-
-
-__all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
-           'run', 'runOneFilter']
 
 
 class Bcolors:

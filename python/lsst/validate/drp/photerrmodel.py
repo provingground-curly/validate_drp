@@ -20,15 +20,13 @@
 """Analytic single-visit photometric error model.
 """
 
+__all__ = ['photErrModel', 'fitPhotErrModel', 'build_photometric_error_model']
 
 import astropy.units as u
 import numpy as np
 from scipy.optimize import curve_fit
 
 from lsst.verify import Blob, Datum
-
-
-__all__ = ['photErrModel', 'fitPhotErrModel', 'build_photometric_error_model']
 
 
 def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):

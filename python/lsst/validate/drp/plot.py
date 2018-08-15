@@ -21,6 +21,11 @@
 as analytic models of photometric and astrometric repeatability.
 """
 
+__all__ = ['plotOutlinedAxline',
+           'plotAstrometryErrorModel',
+           'plotAstromErrModelFit', 'plotPhotErrModelFit',
+           'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
+
 
 import matplotlib.pylab as plt
 import numpy as np
@@ -29,12 +34,6 @@ import scipy.stats
 from .astromerrmodel import astromErrModel
 from .photerrmodel import photErrModel
 from lsst.verify import Name
-
-
-__all__ = ['plotOutlinedAxline',
-           'plotAstrometryErrorModel',
-           'plotAstromErrModelFit', 'plotPhotErrModelFit',
-           'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
 
 
 # Plotting defaults

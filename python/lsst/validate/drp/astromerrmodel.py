@@ -20,15 +20,13 @@
 """Analytic astrometric accuracy model.
 """
 
+__all__ = ['astromErrModel', 'fitAstromErrModel', 'build_astrometric_error_model']
 
 import astropy.units as u
 import numpy as np
 from scipy.optimize import curve_fit
 
 from lsst.verify import Blob, Datum
-
-
-__all__ = ['astromErrModel', 'fitAstromErrModel', 'build_astrometric_error_model']
 
 
 def astromErrModel(snr, theta=1000, sigmaSys=10, C=1, **kwargs):

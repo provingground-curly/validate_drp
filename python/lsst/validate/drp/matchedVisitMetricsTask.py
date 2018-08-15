@@ -1,3 +1,4 @@
+__all__ = ["MatchedVisitMetricsRunner", "MatchedVisitMetricsConfig", "MatchedVisitMetricsTask"]
 
 import os
 
@@ -5,8 +6,6 @@ from lsst.pipe.base import CmdLineTask, ArgumentParser, TaskRunner
 from lsst.pex.config import Config, Field
 from lsst.meas.base.forcedPhotCcd import PerTractCcdDataIdContainer
 from .validate import runOneFilter, plot_metrics
-
-__all__ = ["MatchedVisitMetricsRunner", "MatchedVisitMetricsConfig", "MatchedVisitMetricsTask"]
 
 
 class MatchedVisitMetricsRunner(TaskRunner):
