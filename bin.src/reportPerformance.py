@@ -22,9 +22,7 @@
 
 
 import argparse
-import os.path
 
-from lsst.utils import getPackageDir
 from lsst.validate.drp import report_performance
 
 description = """

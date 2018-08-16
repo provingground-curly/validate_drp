@@ -620,7 +620,7 @@ def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
     D = tex.extras['D'].quantity
     bin_range_operator = tex.extras['bin_range_operator'].quantity
 
-    ax1.errorbar(radius.value,  xip.value, yerr=xip_err.value)
+    ax1.errorbar(radius.value, xip.value, yerr=xip_err.value)
     ax1.set_xscale('log')
     ax1.set_xlabel('Separation (arcmin)', size=19)
     ax1.set_ylabel('Median Residual Ellipticity Correlation', size=19)

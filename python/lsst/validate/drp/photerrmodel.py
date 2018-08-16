@@ -187,7 +187,6 @@ def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, media
     """
     blob = Blob('PhotometricErrorModel')
 
-
     # FIXME add a description field to blobs?
     # _doc['doc'] \
     #     = "Photometric uncertainty model from " \
@@ -201,16 +200,17 @@ def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, media
     if not isinstance(brightSnr, u.Quantity):
         brightSnr = brightSnr * u.Unit('')
     _compute(blob,
-        matchedMultiVisitDataset['snr'].quantity,
-        matchedMultiVisitDataset['mag'].quantity,
-        matchedMultiVisitDataset['magerr'].quantity,
-        matchedMultiVisitDataset['magrms'].quantity,
-        matchedMultiVisitDataset['dist'].quantity,
-        len(matchedMultiVisitDataset.goodMatches),
-        brightSnr,
-        medianRef,
-        matchRef)
+             matchedMultiVisitDataset['snr'].quantity,
+             matchedMultiVisitDataset['mag'].quantity,
+             matchedMultiVisitDataset['magerr'].quantity,
+             matchedMultiVisitDataset['magrms'].quantity,
+             matchedMultiVisitDataset['dist'].quantity,
+             len(matchedMultiVisitDataset.goodMatches),
+             brightSnr,
+             medianRef,
+             matchRef)
     return blob
+
 
 def _compute(blob, snr, mag, magErr, magRms, dist, nMatch,
              brightSnr, medianRef, matchRef):

@@ -100,7 +100,7 @@ def fitAstromErrModel(snr, dist):
 
 
 def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
-                 medianRef=100, matchRef=500):
+                                  medianRef=100, matchRef=500):
     """Serializable model of astrometry errors across multiple visits.
 
     .. math::
@@ -150,11 +150,12 @@ def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
         medianRef = medianRef * u.marcsec
 
     _compute(blob,
-        matchedMultiVisitDataset['snr'].quantity,
-        matchedMultiVisitDataset['dist'].quantity,
-        len(matchedMultiVisitDataset.goodMatches),
-        brightSnr, medianRef, matchRef)
+             matchedMultiVisitDataset['snr'].quantity,
+             matchedMultiVisitDataset['dist'].quantity,
+             len(matchedMultiVisitDataset.goodMatches),
+             brightSnr, medianRef, matchRef)
     return blob
+
 
 def _compute(blob, snr, dist, nMatch, brightSnr, medianRef, matchRef):
     median_dist = np.median(dist)

@@ -80,13 +80,13 @@ class TexCalculations(lsst.utils.tests.TestCase):
         # Seed was arbitrarily chosen.
         rand_seed = 1238625876
         random.seed(rand_seed)
-        # Yes, a million.  N this high and L this large
+        # Yes, a million.  n this high and l this large
         #  gets xip within 1e-7 absolute of the analytic limit.
         # Takes 25 seconds to run on an early-2015 MacBook Air 2.2 GHz Intel Core i7
-        N = 1000000
-        L = 500 * u.arcmin
-        ra = ((random.random_sample(N)-0.5) * L).to(u.rad)
-        dec = ((random.random_sample(N)-0.5) * L).to(u.rad)
+        n = 1000000
+        ll = 500 * u.arcmin
+        ra = ((random.random_sample(n)-0.5) * ll).to(u.rad)
+        dec = ((random.random_sample(n)-0.5) * ll).to(u.rad)
 
         r0 = 10 * u.arcmin
         gamma0 = 0.05
@@ -102,7 +102,7 @@ class TexCalculations(lsst.utils.tests.TestCase):
             correlation_function_ellipticity(ra, dec, g1, g2)
 
         r = obs_r
-        prefactor = np.pi/16 * gamma0**2 * (r0/L)**2 * np.exp(-0.25*(r/r0)**2)
+        prefactor = np.pi/16 * gamma0**2 * (r0/ll)**2 * np.exp(-0.25*(r/r0)**2)
         exp_xip = prefactor * (r**4 - 16*r**2 * r0**2 + 32*r0**4)/r0**4
 
         self.assertFloatsAlmostEqual(exp_xip, obs_xip, atol=1e-7, rtol=1e-1)

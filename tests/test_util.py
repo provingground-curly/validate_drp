@@ -33,10 +33,10 @@ class UtilCalculations(lsst.utils.tests.TestCase):
     def testEllipticityHorizonalLine(self):
         """Is util.ellipticity correct for a horizontal line."""
 
-        Ixx, Ixy, Iyy = 1, 0, 0
+        ixx, ixy, iyy = 1, 0, 0
         exp_e, exp_e1, exp_e2 = 1+0j, 1, 0
 
-        obs_e, obs_e1, obs_e2 = util.ellipticity(Ixx, Ixy, Iyy)
+        obs_e, obs_e1, obs_e2 = util.ellipticity(ixx, ixy, iyy)
         self.assertFloatsAlmostEqual(exp_e, obs_e)
         self.assertFloatsAlmostEqual(exp_e1, obs_e1)
         self.assertFloatsAlmostEqual(exp_e2, obs_e2)
@@ -44,10 +44,10 @@ class UtilCalculations(lsst.utils.tests.TestCase):
     def testEllipticityVerticalLine(self):
         """Is util.ellipticity correct for a vertical line."""
 
-        Ixx, Ixy, Iyy = 0, 0, 1
+        ixx, ixy, iyy = 0, 0, 1
         exp_e, exp_e1, exp_e2 = -1+0j, -1, 0
 
-        obs_e, obs_e1, obs_e2 = util.ellipticity(Ixx, Ixy, Iyy)
+        obs_e, obs_e1, obs_e2 = util.ellipticity(ixx, ixy, iyy)
         self.assertFloatsAlmostEqual(exp_e, obs_e)
         self.assertFloatsAlmostEqual(exp_e1, obs_e1)
         self.assertFloatsAlmostEqual(exp_e2, obs_e2)
@@ -55,10 +55,10 @@ class UtilCalculations(lsst.utils.tests.TestCase):
     def testEllipticityDiagonalLine(self):
         """Is util.ellipticity correct for a diagonal line."""
 
-        Ixx, Ixy, Iyy = 1, 1, 1
+        ixx, ixy, iyy = 1, 1, 1
         exp_e, exp_e1, exp_e2 = 0+1j, 0, 1
 
-        obs_e, obs_e1, obs_e2 = util.ellipticity(Ixx, Ixy, Iyy)
+        obs_e, obs_e1, obs_e2 = util.ellipticity(ixx, ixy, iyy)
         print(obs_e, obs_e1, obs_e2)
         self.assertFloatsAlmostEqual(exp_e, obs_e)
         self.assertFloatsAlmostEqual(exp_e1, obs_e1)
@@ -67,10 +67,10 @@ class UtilCalculations(lsst.utils.tests.TestCase):
     def testEllipticityCircle(self):
         """Is util.ellipticity correct for a circle."""
 
-        Ixx, Ixy, Iyy = 1, 0, 1
+        ixx, ixy, iyy = 1, 0, 1
         exp_e, exp_e1, exp_e2 = 0+0j, 0, 0
 
-        obs_e, obs_e1, obs_e2 = util.ellipticity(Ixx, Ixy, Iyy)
+        obs_e, obs_e1, obs_e2 = util.ellipticity(ixx, ixy, iyy)
         self.assertFloatsAlmostEqual(exp_e, obs_e)
         self.assertFloatsAlmostEqual(exp_e1, obs_e1)
         self.assertFloatsAlmostEqual(exp_e2, obs_e2)
@@ -78,10 +78,10 @@ class UtilCalculations(lsst.utils.tests.TestCase):
     def testEllipticityEllipse(self):
         """Is util.ellipticity correct for an ellipse."""
 
-        Ixx, Ixy, Iyy = 4, 0, 1
+        ixx, ixy, iyy = 4, 0, 1
         exp_e, exp_e1, exp_e2 = 0.6+0j, 0.6, 0
 
-        obs_e, obs_e1, obs_e2 = util.ellipticity(Ixx, Ixy, Iyy)
+        obs_e, obs_e1, obs_e2 = util.ellipticity(ixx, ixy, iyy)
         self.assertFloatsAlmostEqual(exp_e, obs_e)
         self.assertFloatsAlmostEqual(exp_e1, obs_e1)
         self.assertFloatsAlmostEqual(exp_e2, obs_e2)

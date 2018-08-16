@@ -25,7 +25,7 @@ import astropy.units as u
 from lsst.verify import Measurement, Datum
 
 
-def measurePA2(metric, pa1, pf1_thresh): 
+def measurePA2(metric, pa1, pf1_thresh):
     """Measurement of PA2: millimag from median RMS (see PA1) of which
     PF1 of the samples can be found.
 

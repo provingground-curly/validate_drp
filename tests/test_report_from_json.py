@@ -56,7 +56,8 @@ class ReportPerformanceFromJob(unittest.TestCase):
 
         srd_release_report = zip(self.srd_levels, self.release_levels, self.report_files)
         for srd_level, release_level, ref_file in srd_release_report:
-            out_file_name = os.path.join(tmp_dir,
+            out_file_name = os.path.join(
+                tmp_dir,
                 "report_performance_test_{}_{}.rst".format(srd_level, release_level))
             report_performance.run(
                 [self.json_file],
@@ -72,6 +73,7 @@ class ReportPerformanceFromJob(unittest.TestCase):
 
         # Cleanup our temp directory
         os.removedirs(tmp_dir)
+
 
 if __name__ == "__main__":
     lsst.utils.tests.init()

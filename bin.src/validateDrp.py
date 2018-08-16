@@ -27,15 +27,11 @@
 # Putting this here in the command-line script is fine because no one
 # should import this script.
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # noqa E402
 
 import argparse
-import os.path
-import sys
 
-from lsst.utils import getPackageDir
 from lsst.validate.drp import validate, util
-from lsst.verify import MetricSet
 
 
 description = """
