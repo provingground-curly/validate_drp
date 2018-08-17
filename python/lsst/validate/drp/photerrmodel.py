@@ -20,16 +20,13 @@
 """Analytic single-visit photometric error model.
 """
 
-from __future__ import print_function, absolute_import
+__all__ = ['photErrModel', 'fitPhotErrModel', 'build_photometric_error_model']
 
 import astropy.units as u
 import numpy as np
 from scipy.optimize import curve_fit
 
 from lsst.verify import Blob, Datum
-
-
-__all__ = ['photErrModel', 'fitPhotErrModel', 'build_photometric_error_model']
 
 
 def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):
@@ -190,7 +187,6 @@ def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, media
     """
     blob = Blob('PhotometricErrorModel')
 
-
     # FIXME add a description field to blobs?
     # _doc['doc'] \
     #     = "Photometric uncertainty model from " \
@@ -204,16 +200,17 @@ def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, media
     if not isinstance(brightSnr, u.Quantity):
         brightSnr = brightSnr * u.Unit('')
     _compute(blob,
-        matchedMultiVisitDataset['snr'].quantity,
-        matchedMultiVisitDataset['mag'].quantity,
-        matchedMultiVisitDataset['magerr'].quantity,
-        matchedMultiVisitDataset['magrms'].quantity,
-        matchedMultiVisitDataset['dist'].quantity,
-        len(matchedMultiVisitDataset.goodMatches),
-        brightSnr,
-        medianRef,
-        matchRef)
+             matchedMultiVisitDataset['snr'].quantity,
+             matchedMultiVisitDataset['mag'].quantity,
+             matchedMultiVisitDataset['magerr'].quantity,
+             matchedMultiVisitDataset['magrms'].quantity,
+             matchedMultiVisitDataset['dist'].quantity,
+             len(matchedMultiVisitDataset.goodMatches),
+             brightSnr,
+             medianRef,
+             matchRef)
     return blob
+
 
 def _compute(blob, snr, mag, magErr, magRms, dist, nMatch,
              brightSnr, medianRef, matchRef):

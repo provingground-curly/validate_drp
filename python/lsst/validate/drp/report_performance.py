@@ -124,10 +124,10 @@ def objects_to_table(input_objects, level='design'):
                     spec = job.specs[spec_key]
             if spec is None:
                 for spec_key in spec_set:
-                    if level in spec_key.metric: # For dependent metrics
+                    if level in spec_key.metric:  # For dependent metrics
                         spec = job.specs[spec_key]
             if np.isnan(m.quantity):
-                meas_quantity_value = "**" # -- is reserved in rst for headers
+                meas_quantity_value = "**"  # -- is reserved in rst for headers
             else:
                 meas_quantity_value = m.quantity.value
             this_row = [metric, filter_name, meas_quantity_value, m.quantity.unit,
@@ -160,10 +160,10 @@ def add_release_spec(data, release_specs, release_specs_level):
     release_targets = []
     for row in data:
 
-        specs = release_specs.subset(required_meta={'filter_name':row['Filter'],
-                                                    'instrument':row['Instrument']},
+        specs = release_specs.subset(required_meta={'filter_name': row['Filter'],
+                                                    'instrument': row['Instrument']},
                                      spec_tags=['chromatic'])
-        specs.update(release_specs.subset(required_meta={'instrument':row['Instrument']},
+        specs.update(release_specs.subset(required_meta={'instrument': row['Instrument']},
                                           spec_tags=['achromatic']))
         value = None
         for spec in specs:
@@ -188,7 +188,7 @@ def float_or_dash(f, format_string='{:.3g}'):
     try:
         f = float(f)
         return format_string.format(f)
-    except:
+    except Exception:
         # dashes are reserved
         return '**'
 

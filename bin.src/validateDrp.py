@@ -20,7 +20,6 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
-from __future__ import print_function
 
 # Ensure that this script will run on a mis-configured node
 # that may default to a backend that requires X
@@ -28,15 +27,11 @@ from __future__ import print_function
 # Putting this here in the command-line script is fine because no one
 # should import this script.
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # noqa E402
 
 import argparse
-import os.path
-import sys
 
-from lsst.utils import getPackageDir
 from lsst.validate.drp import validate, util
-from lsst.verify import MetricSet
 
 
 description = """

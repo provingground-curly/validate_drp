@@ -19,14 +19,9 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 """Miscellaneous functions to support lsst.validate.drp."""
 
-from __future__ import print_function, division
-from builtins import zip
-from past.builtins import basestring
-
 import os
 
 import numpy as np
-from numpy.lib import scimath as SM
 
 import yaml
 
@@ -54,8 +49,8 @@ def ellipticity_from_cat(cat, slot_shape='slot_Shape'):
     e, e1, e2 : complex, float, float
         Complex ellipticity, real part, imaginary part
     """
-    I_xx, I_xy, I_yy = cat.get(slot_shape+'_xx'), cat.get(slot_shape+'_xy'), cat.get(slot_shape+'_yy')
-    return ellipticity(I_xx, I_xy, I_yy)
+    i_xx, i_xy, i_yy = cat.get(slot_shape+'_xx'), cat.get(slot_shape+'_xy'), cat.get(slot_shape+'_yy')
+    return ellipticity(i_xx, i_xy, i_yy)
 
 
 def ellipticity_from_shape(shape):
@@ -74,25 +69,25 @@ def ellipticity_from_shape(shape):
     e, e1, e2 : complex, float, float
         Complex ellipticity, real part, imaginary part
     """
-    I_xx, I_xy, I_yy = shape.getIxx(), shape.getIxy(), shape.getIyy()
-    return ellipticity(I_xx, I_xy, I_yy)
+    i_xx, i_xy, i_yy = shape.getIxx(), shape.getIxy(), shape.getIyy()
+    return ellipticity(i_xx, i_xy, i_yy)
 
 
-def ellipticity(I_xx, I_xy, I_yy):
+def ellipticity(i_xx, i_xy, i_yy):
     """Calculate ellipticity from second moments.
 
     Parameters
     ----------
-    I_xx : float or numpy.array
-    I_xy : float or numpy.array
-    I_yy : float or numpy.array
+    i_xx : float or numpy.array
+    i_xy : float or numpy.array
+    i_yy : float or numpy.array
 
     Returns
     -------
     e, e1, e2 : (float, float, float) or (numpy.array, numpy.array, numpy.array)
         Complex ellipticity, real component, imaginary component
     """
-    e = (I_xx - I_yy + 2j*I_xy) / (I_xx + I_yy)
+    e = (i_xx - i_yy + 2j*i_xy) / (i_xx + i_yy)
     e1 = np.real(e)
     e2 = np.imag(e)
     return e, e1, e2
@@ -506,7 +501,7 @@ def constructDataIds(filters, visits, ccds, ccdKeyName='ccd'):
     {'filter': 'r', 'visit': 200, 'ccd': 11}
     {'filter': 'r', 'visit': 200, 'ccd': 12}
     """
-    if isinstance(filters, basestring):
+    if isinstance(filters, str):
         filters = [filters for _ in visits]
 
     assert len(filters) == len(visits)

@@ -21,7 +21,11 @@
 as analytic models of photometric and astrometric repeatability.
 """
 
-from __future__ import print_function, division
+__all__ = ['plotOutlinedAxline',
+           'plotAstrometryErrorModel',
+           'plotAstromErrModelFit', 'plotPhotErrModelFit',
+           'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
+
 
 import matplotlib.pylab as plt
 import numpy as np
@@ -30,12 +34,6 @@ import scipy.stats
 from .astromerrmodel import astromErrModel
 from .photerrmodel import photErrModel
 from lsst.verify import Name
-
-
-__all__ = ['plotOutlinedAxline',
-           'plotAstrometryErrorModel',
-           'plotAstromErrModelFit', 'plotPhotErrModelFit',
-           'plotPhotometryErrorModel', 'plotPA1', 'plotAMx']
 
 
 # Plotting defaults
@@ -622,7 +620,7 @@ def plotTEx(job, tex, filterName, texSpecName='design', outputPrefix=''):
     D = tex.extras['D'].quantity
     bin_range_operator = tex.extras['bin_range_operator'].quantity
 
-    ax1.errorbar(radius.value,  xip.value, yerr=xip_err.value)
+    ax1.errorbar(radius.value, xip.value, yerr=xip_err.value)
     ax1.set_xscale('log')
     ax1.set_xlabel('Separation (arcmin)', size=19)
     ax1.set_ylabel('Median Residual Ellipticity Correlation', size=19)

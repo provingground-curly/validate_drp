@@ -18,7 +18,6 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
-from __future__ import print_function, absolute_import
 
 import numpy as np
 import astropy.units as u
@@ -26,7 +25,7 @@ import astropy.units as u
 from lsst.verify import Measurement, Datum
 
 
-def measurePA2(metric, pa1, pf1_thresh): 
+def measurePA2(metric, pa1, pf1_thresh):
     """Measurement of PA2: millimag from median RMS (see PA1) of which
     PF1 of the samples can be found.
 

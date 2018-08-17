@@ -20,16 +20,13 @@
 """Analytic astrometric accuracy model.
 """
 
-from __future__ import print_function, absolute_import
+__all__ = ['astromErrModel', 'fitAstromErrModel', 'build_astrometric_error_model']
 
 import astropy.units as u
 import numpy as np
 from scipy.optimize import curve_fit
 
 from lsst.verify import Blob, Datum
-
-
-__all__ = ['astromErrModel', 'fitAstromErrModel', 'build_astrometric_error_model']
 
 
 def astromErrModel(snr, theta=1000, sigmaSys=10, C=1, **kwargs):
@@ -103,7 +100,7 @@ def fitAstromErrModel(snr, dist):
 
 
 def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
-                 medianRef=100, matchRef=500):
+                                  medianRef=100, matchRef=500):
     """Serializable model of astrometry errors across multiple visits.
 
     .. math::
@@ -153,11 +150,12 @@ def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
         medianRef = medianRef * u.marcsec
 
     _compute(blob,
-        matchedMultiVisitDataset['snr'].quantity,
-        matchedMultiVisitDataset['dist'].quantity,
-        len(matchedMultiVisitDataset.goodMatches),
-        brightSnr, medianRef, matchRef)
+             matchedMultiVisitDataset['snr'].quantity,
+             matchedMultiVisitDataset['dist'].quantity,
+             len(matchedMultiVisitDataset.goodMatches),
+             brightSnr, medianRef, matchRef)
     return blob
+
 
 def _compute(blob, snr, dist, nMatch, brightSnr, medianRef, matchRef):
     median_dist = np.median(dist)

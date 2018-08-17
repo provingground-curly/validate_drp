@@ -21,8 +21,9 @@
 grading, and persistence.
 """
 
-from __future__ import print_function, absolute_import
-from builtins import object
+__all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
+           'run', 'runOneFilter']
+
 import json
 import os
 import numpy as np
@@ -46,11 +47,7 @@ from .plot import (plotAMx, plotPA1, plotTEx, plotPhotometryErrorModel,
                    plotAstrometryErrorModel)
 
 
-__all__ = ['plot_metrics', 'print_metrics', 'print_pass_fail_summary',
-           'run', 'runOneFilter']
-
-
-class Bcolors(object):
+class Bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'

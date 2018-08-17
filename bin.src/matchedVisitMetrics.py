@@ -21,7 +21,7 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # noqa E402
 
 from lsst.validate.drp.matchedVisitMetricsTask import MatchedVisitMetricsTask
 

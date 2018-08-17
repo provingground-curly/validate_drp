@@ -21,7 +21,7 @@
 for measurement classes, plotting functions, and JSON persistence.
 """
 
-from __future__ import print_function, absolute_import
+__all__ = ['build_matched_dataset']
 
 import numpy as np
 import astropy.units as u
@@ -39,9 +39,6 @@ from lsst.verify import Blob, Datum
 
 from .util import (getCcdKeyName, raftSensorToInt, positionRmsFromCat,
                    ellipticity_from_cat)
-
-
-__all__ = ['build_matched_dataset']
 
 
 def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,

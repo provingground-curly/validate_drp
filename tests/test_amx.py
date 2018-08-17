@@ -20,7 +20,6 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from __future__ import print_function
 
 import unittest
 
@@ -70,24 +69,24 @@ def test_missing_matchVisitComputeDistance():
     assert_allclose(exp, obs, atol=1e-7)  # 1e-7 rad == 5.73e-6 deg == 0.00036 arcsec
 
 
-def test_speed_matchVisitComputeDistance(N=5000):
-    # Explicitly convert N to int to ensure consistent behavior in indexing and numpy
-    N = int(N)
-    visits = np.arange(2*N)
+def test_speed_matchVisitComputeDistance(n=5000):
+    # Explicitly convert n to int to ensure consistent behavior in indexing and numpy
+    n = int(n)
+    visits = np.arange(2*n)
 
     np.random.shuffle(visits)
-    visit_obj1 = visits[:N]
+    visit_obj1 = visits[:n]
     np.random.shuffle(visits)
-    visit_obj2 = visits[:N]
+    visit_obj2 = visits[:n]
 
     mu, sigma = 0, 3e-4  # mean 0, ~1 arcsec width
     mean_ra = 10  # degrees
     mean_dec = 20  # degrees
 
-    ra_obj1 = mean_ra + np.random.normal(mu, sigma, N) * np.cos(np.deg2rad(mean_dec))
-    ra_obj2 = mean_ra + np.random.normal(mu, sigma, N) * np.cos(np.deg2rad(mean_dec))
-    dec_obj1 = mean_dec + np.random.normal(mu, sigma, N)
-    dec_obj2 = mean_dec + np.random.normal(mu, sigma, N)
+    ra_obj1 = mean_ra + np.random.normal(mu, sigma, n) * np.cos(np.deg2rad(mean_dec))
+    ra_obj2 = mean_ra + np.random.normal(mu, sigma, n) * np.cos(np.deg2rad(mean_dec))
+    dec_obj1 = mean_dec + np.random.normal(mu, sigma, n)
+    dec_obj2 = mean_dec + np.random.normal(mu, sigma, n)
 
     matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
                               visit_obj2, ra_obj2, dec_obj2)
