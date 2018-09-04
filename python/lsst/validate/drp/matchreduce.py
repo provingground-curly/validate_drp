@@ -264,8 +264,8 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
         # create temporary catalog
         tmpCat = SourceCatalog(SourceCatalog(newSchema).table)
         tmpCat.extend(oldSrc, mapper=mapper)
-        tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_flux'] \
-            / tmpCat['base_PsfFlux_fluxErr']
+        tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_instFlux'] \
+            / tmpCat['base_PsfFlux_instFluxErr']
 
         if useJointCal:
             for record in tmpCat:
@@ -273,8 +273,8 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
             photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
         else:
             with afwImageUtils.CalibNoThrow():
-                _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
-                                       tmpCat['base_PsfFlux_fluxErr'])
+                _ = calib.getMagnitude(tmpCat['base_PsfFlux_instFlux'],
+                                       tmpCat['base_PsfFlux_instFluxErr'])
                 tmpCat['base_PsfFlux_mag'][:] = _[0]
                 tmpCat['base_PsfFlux_magErr'][:] = _[1]
         if not skipTEx:
