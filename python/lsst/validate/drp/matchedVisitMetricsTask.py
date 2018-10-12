@@ -140,7 +140,7 @@ class MatchedVisitMetricsTask(CmdLineTask):
     @classmethod
     def _makeArgumentParser(cls):
         parser = ArgumentParser(name=cls._DefaultName)
-        parser.add_id_argument("--id", "wcs", help="data ID, with raw CCD keys + tract",
+        parser.add_id_argument("--id", "jointcal_wcs", help="data ID, with raw CCD keys + tract",
                                ContainerClass=PerTractCcdDataIdContainer)
         return parser
 
