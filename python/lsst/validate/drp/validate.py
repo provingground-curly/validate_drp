@@ -167,7 +167,7 @@ def run(repo_or_json, metrics=None,
 def runOneRepo(repo, dataIds=None, metrics=None, outputPrefix='', verbose=False,
                instrument=None, dataset_repo_url=None,
                metrics_package='verify_metrics', **kwargs):
-    """Calculate statistics for all filters in a repo.
+    r"""Calculate statistics for all filters in a repo.
 
     Runs multiple filters, if necessary, through repeated calls to `runOneFilter`.
     Assesses results against SRD specs at specified `level`.
@@ -252,7 +252,7 @@ def runOneFilter(repo, visitDataIds, metrics, brightSnr=100,
                  metrics_package='verify_metrics',
                  instrument='Unknown', dataset_repo_url='./',
                  **kwargs):
-    """Main executable for the case where there is just one filter.
+    r"""Main executable for the case where there is just one filter.
 
     Plot files and JSON files are generated in the local directory
     prefixed with the repository name (where '_' replace path separators),

@@ -28,7 +28,7 @@ from ..util import (averageRaFromCat, averageDecFromCat,
 
 
 def measureAMx(metric, matchedDataset, D, width=2., magRange=None, verbose=False):
-    """Measurement of AMx (x=1,2,3): The maximum rms of the astrometric
+    r"""Measurement of AMx (x=1,2,3): The maximum rms of the astrometric
     distance distribution for stellar pairs with separations of D arcmin
     (repeatability).
 

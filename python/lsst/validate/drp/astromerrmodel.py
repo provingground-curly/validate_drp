@@ -101,7 +101,7 @@ def fitAstromErrModel(snr, dist):
 
 def build_astrometric_error_model(matchedMultiVisitDataset, brightSnr=100,
                                   medianRef=100, matchRef=500):
-    """Serializable model of astrometry errors across multiple visits.
+    r"""Serializable model of astrometry errors across multiple visits.
 
     .. math::
 
