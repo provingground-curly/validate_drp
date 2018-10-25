@@ -26,7 +26,7 @@ from lsst.verify import Measurement
 
 
 def measureAFx(metric, amx, adx, adx_spec):
-    """Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
+    r"""Measurement of AFx (x=1,2,3): The maximum fraction of astrometric
     distances which deviate by more than ADx milliarcsec (see AMx) (%).
 
     Parameters

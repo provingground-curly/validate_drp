@@ -33,7 +33,7 @@ from ..util import (averageRaFromCat, averageDecFromCat,
 
 
 def measureTEx(metric, matchedDataset, D, bin_range_operator, verbose=False):
-    """Measurement of TEx (x=1,2): Correlation of PSF residual ellipticity
+    r"""Measurement of TEx (x=1,2): Correlation of PSF residual ellipticity
     on scales of D=(1, 5) arcmin.
 
     Parameters

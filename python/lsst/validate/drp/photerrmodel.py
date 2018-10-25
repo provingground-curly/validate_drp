@@ -30,7 +30,7 @@ from lsst.verify import Blob, Datum
 
 
 def photErrModel(mag, sigmaSys, gamma, m5, **kwargs):
-    """Model of photometric error for a single visit.
+    r"""Model of photometric error for a single visit.
 
     The model is described in the LSST Overview paper:
     http://arxiv.org/abs/0805.2366v4.
@@ -145,7 +145,7 @@ def fitPhotErrModel(mag, mag_err):
 
 def build_photometric_error_model(matchedMultiVisitDataset, brightSnr=100, medianRef=100,
                                   matchRef=500):
-    """Returns a serializable analytic photometry error model for a single visit.
+    r"""Returns a serializable analytic photometry error model for a single visit.
 
     This model is originally presented in http://arxiv.org/abs/0805.2366v4
     (Eq 4, 5):
