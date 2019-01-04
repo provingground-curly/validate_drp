@@ -2,7 +2,7 @@
 
 set -e
 
-PRODUCT_DIR=${LSST_CI_DIR}
+PRODUCT_DIR=${VALIDATE_DRP_DIR}
 if [[ ${PRODUCT_DIR} == '' ]]; then
     PRODUCT_DIR='.'
 fi
