@@ -9,5 +9,4 @@ validate_drp documentation preview
 .. toctree::
    :maxdepth: 1
 
-   validate_drp/index
    lsst.validate.drp/index
