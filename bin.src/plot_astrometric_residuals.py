@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/Users/parejkoj/lsst/lsstsw/miniconda/envs/lsst-scipipe/bin/python  # noqa
 """Plot astrometric residuals for ccds in a tract.
 
 Writes output to the current working directory, in `plots/` and `pickles/`,
@@ -16,7 +16,7 @@ plot_astrometric_residuals.py $DATADIR --jointcal --id ccd=$CCDS visit=$VISITS t
 
 Or to run on jointcal's cfht testdata output in your local directory:
 
-DATADIR=/Users/parejkoj/lsst/jointcal/jointcal/.test/JointcalTestCFHT/test_jointcalTask_2_visits_constrainedAstrometry_no_photometry
+DATADIR=/Users/parejkoj/lsst/jointcal/jointcal/tests/.test/JointcalTestCFHT/test_jointcalTask_2_visits_constrainedAstrometry_no_photometry
 TRACT=0
 VISITS=849375^850587
 CCDS=12^13^14^21^22^23
@@ -87,24 +87,36 @@ def prep_matching(butler, dataRef):
     return fluxField, newSchema, mapper, multiMatch
 
 
+def read_one(dataRef, useJointcal=False):
+    # NOTE: I know we're not supposed to access the internals of dataRefs like this,
+    # but I can't be bothered to do the "getDetector()" stuff, and you can't
+    # get at a visit ID in any other way anyway...
+    visit = dataRef.dataId['visit']
+    ccd = dataRef.dataId['ccd']
+    try:
+        oldCat = dataRef.get('src')
+    except lsst.daf.persistence.butlerExceptions.NoResults:
+        # ignore missing data
+        print("No data:", visit, ccd)
+        return None
+    if useJointcal:
+        wcs = dataRef.get('jointcal_wcs')
+        lsst.afw.table.updateSourceCoords(wcs, oldCat)
+
+    return visit, ccd, oldCat
+
+
 def do_match(multiMatch, butler, dataRefs, fluxField, newSchema, mapper, useJointcal=False):
     """Make the multiMatch, identify good matches, and compute aggregate statistics."""
-    for dataRef in dataRefs:
-        # NOTE: I know we're not supposed to access the internals of dataRefs like this,
-        # but I can't be bothered to do the "getDetector()" stuff, and you can't
-        # get at a visit ID in any other way anyway...
-        visit = dataRef.dataId['visit']
-        ccd = dataRef.dataId['ccd']
-        try:
-            oldCat = dataRef.get('src')
-        except lsst.daf.persistence.butlerExceptions.NoResults:
-            # ignore missing data
-            print("No data:", visit, ccd)
-            continue
-        if useJointcal:
-            wcs = dataRef.get('jointcal_wcs')
-            lsst.afw.table.updateSourceCoords(wcs, oldCat)
+    # import concurrent.futures
+    # import itertools
+    # max_workers = 1
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    #     mapped = executor.map(read_one, dataRefs, itertools.repeat(useJointcal))
 
+    for dataRef in dataRefs:
+        # for (visit, ccd, oldCat), dataRef in zip(mapped, dataRefs):
+        visit, ccd, oldCat = read_one(dataRef, useJointcal)
         catalog = lsst.afw.table.SourceCatalog(newSchema)
         tmpCat = lsst.afw.table.SourceCatalog(lsst.afw.table.SourceCatalog(newSchema).table)
         tmpCat.extend(oldCat, mapper=mapper)
