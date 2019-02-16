@@ -136,7 +136,7 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
 
 def loadOneCatalog(butler, dataId, ccdKeyName, schema, mapper,
                    useJointCal=False, skipTEx=False):
-    """Load, supplement, and return one dataId.
+    """Load, supplement, and return the updated catalog for one dataId.
 
     Parameters
     ----------
@@ -203,40 +203,42 @@ def loadOneCatalog(butler, dataId, ccdKeyName, schema, mapper,
     try:
         # HSC supports these flags, which dramatically improve I/O
         # performance; support for other cameras is DM-6927.
-        oldSrc = butler.get('src', dataId, flags=SOURCE_IO_NO_FOOTPRINTS)
-    except OperationalError:
-        oldSrc = butler.get('src', dataId)
+        oldCatalog = butler.get('src', dataId, flags=SOURCE_IO_NO_FOOTPRINTS)
+    except (OperationalError, sqlite3.OperationalError):
+        oldCatalog = butler.get('src', dataId)
 
-    print(len(oldSrc), "sources in ccd %s  visit %s" %
+    print(len(oldCatalog), "sources in ccd %s  visit %s" %
           (dataId[ccdKeyName], dataId["visit"]))
 
-    return oldSrc
+    return computeNewFields(oldCatalog, schema, mapper, calib=calib, skipTEx=skipTEx,
+                            wcs=wcs, photoCalib=photoCalib, useJointcal=useJointCal)
 
 
-def computeNewFields(catalog):
-    # create temporary catalog
-    tmpCat = SourceCatalog(SourceCatalog(schema).table)
-    tmpCat.extend(oldSrc, mapper=mapper)
-    tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_flux'] \
-        / tmpCat['base_PsfFlux_fluxSigma']
+def computeNewFields(oldCatalog, schema, mapper, calib=None, skipTEx=False,
+                     wcs=None, photoCalib=None, useJointCal=False):
+    catalog = SourceCatalog(SourceCatalog(schema).table)
+    catalog.extend(oldCatalog, mapper=mapper)
+    catalog['base_PsfFlux_snr'][:] = catalog['base_PsfFlux_instFlux'] / catalog['base_PsfFlux_instFluxErr']
 
     if useJointCal:
-        for record in tmpCat:
+        for record in catalog:
             record.updateCoord(wcs)
-        photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
+        photoCalib.instFluxToMagnitude(catalog, "base_PsfFlux", "base_PsfFlux")
     else:
         with afwImageUtils.CalibNoThrow():
-            _ = calib.getMagnitude(tmpCat['base_PsfFlux_flux'],
-                                   tmpCat['base_PsfFlux_fluxSigma'])
-            tmpCat['base_PsfFlux_mag'][:] = _[0]
-            tmpCat['base_PsfFlux_magErr'][:] = _[1]
+            _ = calib.getMagnitude(catalog['base_PsfFlux_instFlux'],
+                                   catalog['base_PsfFlux_instFluxErr'])
+            catalog['base_PsfFlux_mag'][:] = _[0]
+            catalog['base_PsfFlux_magErr'][:] = _[1]
     if not skipTEx:
-        _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
-        _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
-        tmpCat['e1'][:] = star_e1
-        tmpCat['e2'][:] = star_e2
-        tmpCat['psf_e1'][:] = psf_e1
-        tmpCat['psf_e2'][:] = psf_e2
+        _, psf_e1, psf_e2 = ellipticity_from_cat(oldCatalog, slot_shape='slot_PsfShape')
+        _, star_e1, star_e2 = ellipticity_from_cat(oldCatalog, slot_shape='slot_Shape')
+        catalog['e1'][:] = star_e1
+        catalog['e2'][:] = star_e2
+        catalog['psf_e1'][:] = psf_e1
+        catalog['psf_e2'][:] = psf_e2
+
+    return catalog
 
 
 # @profile
@@ -317,116 +319,36 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
     # create the new extented source catalog
     srcVis = SourceCatalog(newSchema)
 
-    for vId in dataIds:
-
-        if useJointCal:
-            try:
-                photoCalib = butler.get("jointcal_photoCalib", vId)
-            except (FitsError, dafPersist.NoResults) as e:
-                print(e)
-                print("Could not open photometric calibration for ", vId)
-                print("Skipping this dataId.")
-                continue
-            try:
-                wcs = butler.get("jointcal_wcs", vId)
-            except (FitsError, dafPersist.NoResults) as e:
-                print(e)
-                print("Could not open updated WCS for ", vId)
-                print("Skipping this dataId.")
-                continue
-        else:
-            try:
-                calib = butler.get("calexp_calib", vId)
-            except (FitsError, dafPersist.NoResults) as e:
-                print(e)
-                print("Could not open calibrated image file for ", vId)
-                print("Skipping this dataId.")
-                continue
-            except TypeError as te:
-                # DECam images that haven't been properly reformatted
-                # can trigger a TypeError because of a residual FITS header
-                # LTV2 which is a float instead of the expected integer.
-                # This generates an error of the form:
-                #
-                # lsst::pex::exceptions::TypeError: 'LTV2 has mismatched type'
-                #
-                # See, e.g., DM-2957 for details.
-                print(te)
-                print("Calibration image header information malformed.")
-                print("Skipping this dataId.")
-                continue
-
-        # We don't want to put this above the first "if useJointCal block"
-        # because we need to use the first `butler.get` above to quickly
-        # catch data IDs with no usable outputs.
-        try:
-            # HSC supports these flags, which dramatically improve I/O
-            # performance; support for other cameras is DM-6927.
-            oldSrc = butler.get('src', vId, flags=SOURCE_IO_NO_FOOTPRINTS)
-        except (OperationalError, sqlite3.OperationalError):
-            oldSrc = butler.get('src', vId)
-
-        print(len(oldSrc), "sources in ccd %s  visit %s" %
-              (vId[ccdKeyName], vId["visit"]))
-
-        # create temporary catalog
-        tmpCat = SourceCatalog(SourceCatalog(newSchema).table)
-        tmpCat.extend(oldSrc, mapper=mapper)
-        tmpCat['base_PsfFlux_snr'][:] = tmpCat['base_PsfFlux_instFlux'] \
-            / tmpCat['base_PsfFlux_instFluxErr']
-
-        if useJointCal:
-            for record in tmpCat:
-                record.updateCoord(wcs)
-            photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
-        else:
-            with afwImageUtils.CalibNoThrow():
-                _ = calib.getMagnitude(tmpCat['base_PsfFlux_instFlux'],
-                                       tmpCat['base_PsfFlux_instFluxErr'])
-                tmpCat['base_PsfFlux_mag'][:] = _[0]
-                tmpCat['base_PsfFlux_magErr'][:] = _[1]
-        if not skipTEx:
-            _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
-            _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
-            tmpCat['e1'][:] = star_e1
-            tmpCat['e2'][:] = star_e2
-            tmpCat['psf_e1'][:] = psf_e1
-            tmpCat['psf_e2'][:] = psf_e2
-
-        srcVis.extend(tmpCat, False)
-        mmatch.add(catalog=tmpCat, dataId=vId)
-    sortedIds = sorted(dataIds, key=operator.itemgetter('visit'))
+    # we eventually want to do a "group by visit" operation, if we wanted
+    # to also parallelize the mmatch.add() step. But that's for later.
+    # sortedIds = sorted(dataIds, key=operator.itemgetter('visit'))
+    for dataId in dataIds:
+        catalog = loadOneCatalog(butler, dataId, ccdKeyName, newSchema, mapper,
+                                 useJointCal=False, skipTEx=False)
+        if catalog is not None:
+            srcVis.extend(catalog, False)
+            mmatch.add(catalog=catalog, dataId=vId)
 
     def catalogLoader(dataId):
         """Simple wrapper to call loadOneCatalog with appropriate args."""
         return loadOneCatalog(butler, dataId, ccdKeyName, newSchema, mapper,
                               useJointCal=useJointCal, skipTEx=skipTEx)
 
-    # for dataId in sortedIds:
-    #     oneCatalog = loadOneCatalog(butler, dataId, ccdKeyName, newSchema, mapper,
-    #                                 useJointCal=useJointCal, skipTEx=skipTEx)
+    import concurrent.futures
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        mapped = executor.map(catalogLoader, dataIds)
+        for oneCatalog, dataId in zip(mapped, dataIds):
+            if oneCatalog is not None:
+                srcVis.extend(oneCatalog, False)
+                mmatch.add(catalog=oneCatalog, dataId=dataId)
+
+    # from pathos.pools import ProcessPool
+    # pool = ProcessPool(nodes=4)
+    # results = pool.map(catalogLoader, dataIds)
+    # for oneCatalog, dataId in zip(results, dataIds):
     #     if oneCatalog is not None:
     #         srcVis.extend(oneCatalog, False)
     #         mmatch.add(catalog=oneCatalog, dataId=dataId)
-
-    # import concurrent.futures
-    # with concurrent.futures.ProcessPoolExecutor() as executor:
-    #     mapped = executor.map(catalogLoader, sortedIds)
-    #     for oneCatalog, dataId in zip(mapped, dataIds):
-    #         if oneCatalog is not None:
-    #             srcVis.extend(oneCatalog, False)
-    #             mmatch.add(catalog=oneCatalog, dataId=dataId)
-
-    from pathos.pools import ProcessPool
-    pool = ProcessPool(nodes=4)
-
-    import os; print(os.getpid()); import ipdb; ipdb.set_trace()
-
-    results = pool.map(catalogLoader, sortedIds)
-    for oneCatalog, dataId in zip(results, dataIds):
-        if oneCatalog is not None:
-            srcVis.extend(oneCatalog, False)
-            mmatch.add(catalog=oneCatalog, dataId=dataId)
 
     # Complete the match, returning a catalog that includes
     # all matched sources with object IDs that can be used to group them.
