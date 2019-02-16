@@ -23,8 +23,6 @@ for measurement classes, plotting functions, and JSON persistence.
 
 __all__ = ['build_matched_dataset']
 
-import operator
-
 import numpy as np
 import astropy.units as u
 from sqlalchemy.exc import OperationalError
@@ -35,7 +33,7 @@ import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView,
-                            SOURCE_IO_NO_FOOTPRINTS)
+                            SOURCE_IO_NO_FOOTPRINTS, updateSourceCoords)
 from lsst.afw.fits import FitsError
 from lsst.verify import Blob, Datum
 
@@ -134,15 +132,16 @@ def build_matched_dataset(repo, dataIds, matchRadius=None, safeSnr=50.,
     return blob
 
 
-def loadOneCatalog(butler, dataId, ccdKeyName, schema, mapper,
+@profile
+def loadOneCatalog(dataId, butler, ccdKeyName, schema, mapper,
                    useJointCal=False, skipTEx=False):
     """Load, supplement, and return the updated catalog for one dataId.
 
     Parameters
     ----------
-    butler : TYPE
-        Description
     dataId : TYPE
+        Description
+    butler : TYPE
         Description
     ccdKeyName : TYPE
         Description
@@ -176,6 +175,8 @@ def loadOneCatalog(butler, dataId, ccdKeyName, schema, mapper,
             print("Skipping this dataId.")
             return None
     else:
+        wcs = None
+        photoCalib = None
         try:
             calib = butler.get("calexp_calib", dataId)
         except (FitsError, dafPersist.NoResults) as e:
@@ -211,7 +212,7 @@ def loadOneCatalog(butler, dataId, ccdKeyName, schema, mapper,
           (dataId[ccdKeyName], dataId["visit"]))
 
     return computeNewFields(oldCatalog, schema, mapper, calib=calib, skipTEx=skipTEx,
-                            wcs=wcs, photoCalib=photoCalib, useJointcal=useJointCal)
+                            wcs=wcs, photoCalib=photoCalib, useJointCal=useJointCal)
 
 
 def computeNewFields(oldCatalog, schema, mapper, calib=None, skipTEx=False,
@@ -221,8 +222,7 @@ def computeNewFields(oldCatalog, schema, mapper, calib=None, skipTEx=False,
     catalog['base_PsfFlux_snr'][:] = catalog['base_PsfFlux_instFlux'] / catalog['base_PsfFlux_instFluxErr']
 
     if useJointCal:
-        for record in catalog:
-            record.updateCoord(wcs)
+        updateSourceCoords(wcs, catalog)
         photoCalib.instFluxToMagnitude(catalog, "base_PsfFlux", "base_PsfFlux")
     else:
         with afwImageUtils.CalibNoThrow():
@@ -241,7 +241,7 @@ def computeNewFields(oldCatalog, schema, mapper, calib=None, skipTEx=False,
     return catalog
 
 
-# @profile
+@profile
 def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
                           useJointCal=False, skipTEx=False):
     """Load data all of the dataIds, and build the crossmatch catalog.
@@ -322,33 +322,43 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
     # we eventually want to do a "group by visit" operation, if we wanted
     # to also parallelize the mmatch.add() step. But that's for later.
     # sortedIds = sorted(dataIds, key=operator.itemgetter('visit'))
+
     for dataId in dataIds:
-        catalog = loadOneCatalog(butler, dataId, ccdKeyName, newSchema, mapper,
-                                 useJointCal=False, skipTEx=False)
+        catalog = loadOneCatalog(dataId, butler, ccdKeyName, newSchema, mapper,
+                                 useJointCal=useJointCal, skipTEx=False)
         if catalog is not None:
             srcVis.extend(catalog, False)
-            mmatch.add(catalog=catalog, dataId=vId)
+            mmatch.add(catalog=catalog, dataId=dataId)
 
-    def catalogLoader(dataId):
-        """Simple wrapper to call loadOneCatalog with appropriate args."""
-        return loadOneCatalog(butler, dataId, ccdKeyName, newSchema, mapper,
-                              useJointCal=useJointCal, skipTEx=skipTEx)
+    # from itertools import repeat
 
-    import concurrent.futures
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        mapped = executor.map(catalogLoader, dataIds)
-        for oneCatalog, dataId in zip(mapped, dataIds):
-            if oneCatalog is not None:
-                srcVis.extend(oneCatalog, False)
-                mmatch.add(catalog=oneCatalog, dataId=dataId)
+    # import concurrent.futures
+    # with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+    #     mapped = executor.map(loadOneCatalog, dataIds,
+    #                           repeat(butler),
+    #                           repeat(ccdKeyName),
+    #                           repeat(newSchema),
+    #                           repeat(mapper),
+    #                           repeat(useJointCal),
+    #                           repeat(skipTEx))
+    # for catalog, dataId in zip(mapped, dataIds):
+    #     if catalog is not None:
+    #         srcVis.extend(catalog, False)
+    #         mmatch.add(catalog=catalog, dataId=dataId)
 
     # from pathos.pools import ProcessPool
     # pool = ProcessPool(nodes=4)
-    # results = pool.map(catalogLoader, dataIds)
-    # for oneCatalog, dataId in zip(results, dataIds):
-    #     if oneCatalog is not None:
-    #         srcVis.extend(oneCatalog, False)
-    #         mmatch.add(catalog=oneCatalog, dataId=dataId)
+    # results = pool.map(loadOneCatalog, dataIds,
+    #                    repeat(butler),
+    #                    repeat(ccdKeyName),
+    #                    repeat(newSchema),
+    #                    repeat(mapper),
+    #                    repeat(useJointCal),
+    #                    repeat(skipTEx))
+    # for catalog, dataId in zip(results, dataIds):
+    #     if catalog is not None:
+    #         srcVis.extend(catalog, False)
+    #         mmatch.add(catalog=catalog, dataId=dataId)
 
     # Complete the match, returning a catalog that includes
     # all matched sources with object IDs that can be used to group them.
