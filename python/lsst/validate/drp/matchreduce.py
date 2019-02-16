@@ -241,6 +241,31 @@ def computeNewFields(oldCatalog, schema, mapper, calib=None, skipTEx=False,
     return catalog
 
 
+def _makeSchema(butler):
+    """Create the output Schema and SchemaMapper for the new catalog."""
+    schema = butler.get("src_schema").schema
+    mapper = SchemaMapper(schema)
+    mapper.addMinimalSchema(schema)
+    mapper.addOutputField(Field[float]('base_PsfFlux_snr',
+                                       'PSF flux SNR'))
+    mapper.addOutputField(Field[float]('base_PsfFlux_mag',
+                                       'PSF magnitude'))
+    mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
+                                       'PSF magnitude uncertainty'))
+    mapper.addOutputField(Field[float]('e1',
+                                       'Source Ellipticity 1'))
+    mapper.addOutputField(Field[float]('e2',
+                                       'Source Ellipticity 1'))
+    mapper.addOutputField(Field[float]('psf_e1',
+                                       'PSF Ellipticity 1'))
+    mapper.addOutputField(Field[float]('psf_e2',
+                                       'PSF Ellipticity 1'))
+    newSchema = mapper.getOutputSchema()
+    newSchema.setAliasMap(schema.getAliasMap())
+
+    return newSchema, mapper
+
+
 @profile
 def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
                           useJointCal=False, skipTEx=False):
@@ -275,7 +300,6 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
         butler = repo
     else:
         butler = dafPersist.Butler(repo)
-    dataset = 'src'
 
     # 2016-02-08 MWV:
     # I feel like I could be doing something more efficient with
@@ -290,41 +314,23 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
         for vId in dataIds:
             vId[ccdKeyName] = raftSensorToInt(vId)
 
-    schema = butler.get(dataset + "_schema").schema
-    mapper = SchemaMapper(schema)
-    mapper.addMinimalSchema(schema)
-    mapper.addOutputField(Field[float]('base_PsfFlux_snr',
-                                       'PSF flux SNR'))
-    mapper.addOutputField(Field[float]('base_PsfFlux_mag',
-                                       'PSF magnitude'))
-    mapper.addOutputField(Field[float]('base_PsfFlux_magErr',
-                                       'PSF magnitude uncertainty'))
-    mapper.addOutputField(Field[float]('e1',
-                                       'Source Ellipticity 1'))
-    mapper.addOutputField(Field[float]('e2',
-                                       'Source Ellipticity 1'))
-    mapper.addOutputField(Field[float]('psf_e1',
-                                       'PSF Ellipticity 1'))
-    mapper.addOutputField(Field[float]('psf_e2',
-                                       'PSF Ellipticity 1'))
-    newSchema = mapper.getOutputSchema()
-    newSchema.setAliasMap(schema.getAliasMap())
+    schema, mapper = _makeSchema(butler)
 
     # Create an object that matches multiple catalogs with same schema
-    mmatch = MultiMatch(newSchema,
+    mmatch = MultiMatch(schema,
                         dataIdFormat={'visit': np.int32, ccdKeyName: np.int32},
                         radius=matchRadius,
                         RecordClass=SimpleRecord)
 
     # create the new extented source catalog
-    srcVis = SourceCatalog(newSchema)
+    srcVis = SourceCatalog(schema)
 
     # we eventually want to do a "group by visit" operation, if we wanted
     # to also parallelize the mmatch.add() step. But that's for later.
     # sortedIds = sorted(dataIds, key=operator.itemgetter('visit'))
 
     for dataId in dataIds:
-        catalog = loadOneCatalog(dataId, butler, ccdKeyName, newSchema, mapper,
+        catalog = loadOneCatalog(dataId, butler, ccdKeyName, schema, mapper,
                                  useJointCal=useJointCal, skipTEx=False)
         if catalog is not None:
             srcVis.extend(catalog, False)
@@ -337,7 +343,7 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
     #     mapped = executor.map(loadOneCatalog, dataIds,
     #                           repeat(butler),
     #                           repeat(ccdKeyName),
-    #                           repeat(newSchema),
+    #                           repeat(schema),
     #                           repeat(mapper),
     #                           repeat(useJointCal),
     #                           repeat(skipTEx))
@@ -351,7 +357,7 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
     # results = pool.map(loadOneCatalog, dataIds,
     #                    repeat(butler),
     #                    repeat(ccdKeyName),
-    #                    repeat(newSchema),
+    #                    repeat(schema),
     #                    repeat(mapper),
     #                    repeat(useJointCal),
     #                    repeat(skipTEx))
