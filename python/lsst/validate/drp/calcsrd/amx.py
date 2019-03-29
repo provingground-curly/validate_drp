@@ -208,7 +208,8 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
                 continue
 
             finiteEntries, = np.where(np.isfinite(distances))
-            if len(finiteEntries) > 0:
+            # Need at least 2 distances to get a nonzero stdev
+            if len(finiteEntries) > 1:
                 rmsDist = np.std(np.array(distances)[finiteEntries])
                 rmsDistances.append(rmsDist)
 
