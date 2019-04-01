@@ -6,5 +6,5 @@ from lsst.sconsUtils import scripts, env
 scripts.BasicSConscript.tests(pyList=[])
 
 # avoid the classic matplotlib "Invalid DISPLAY variable" error
-if platform.system() == "Linux":
-    env["ENV"]["MPLBACKEND"] = "Agg"
+# note this will not help if one runs the tests from the command line with pytest
+env["ENV"]["MPLBACKEND"] = "Agg"
