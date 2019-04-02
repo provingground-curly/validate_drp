@@ -484,6 +484,9 @@ def print_metrics(job, levels=('minimum', 'design', 'stretch')):
 
         for spec_key, metric_key in zip(specs[metric_name], metrics[metric_name]):
             level = None
+            if 'release' in job.specs[spec_key].tags:
+                # Skip release specs
+                continue
             for l in levels:
                 if l in str(spec_key):
                     level = l

@@ -169,7 +169,7 @@ def add_release_spec(data, release_specs, release_specs_level, srd_level):
                                           spec_tags=['achromatic']))
         value = None
         for spec in specs:
-            parts = spec.metric.split('_') # for compound specs
+            parts = spec.metric.split('_')  # for compound specs
             if len(parts) == 2 and parts[1] != srd_level:
                 continue
             if parts[0] == row['Metric'] and release_specs_level in spec.spec:
