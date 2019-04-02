@@ -55,8 +55,9 @@ def run(validation_drp_report_filenames, output_file,
         print(msg)
         return
     if release_specs_package is not None and release_level is not None:
-        release_specs = SpecificationSet.load_metrics_package(release_specs_package, subset='release')
-        add_release_spec(input_table, release_specs, release_level)
+        tmp_specs = SpecificationSet.load_metrics_package(release_specs_package, subset='validate_drp')
+        release_specs = tmp_specs.subset(spec_tags=['release'])
+        add_release_spec(input_table, release_specs, release_level, srd_level)
 
     write_report(input_table, output_file)
 
@@ -120,11 +121,12 @@ def objects_to_table(input_objects, level='design'):
             spec_set = specs[metric]
             spec = None
             for spec_key in spec_set:
-                if level in spec_key.spec:
+                if level in job.specs[spec_key].tags:
                     spec = job.specs[spec_key]
+            # If spec is not tagged, ispect the name.
             if spec is None:
                 for spec_key in spec_set:
-                    if level in spec_key.metric:  # For dependent metrics
+                    if level in spec_key.spec:
                         spec = job.specs[spec_key]
             if np.isnan(m.quantity):
                 meas_quantity_value = "**"  # -- is reserved in rst for headers
@@ -148,7 +150,7 @@ def objects_to_table(input_objects, level='design'):
 
 
 # Calculate numbers in table
-def add_release_spec(data, release_specs, release_specs_level):
+def add_release_spec(data, release_specs, release_specs_level, srd_level):
     """Add columns of additional metric thresholds.
 
     Intended use is for specifying a set of release metrics that converge
@@ -167,10 +169,15 @@ def add_release_spec(data, release_specs, release_specs_level):
                                           spec_tags=['achromatic']))
         value = None
         for spec in specs:
-            if spec.metric == row['Metric'] and release_specs_level in spec.spec:
+            parts = spec.metric.split('_') # for compound specs
+            if len(parts) == 2 and parts[1] != srd_level:
+                continue
+            if parts[0] == row['Metric'] and release_specs_level in spec.spec:
                 value = specs[spec].threshold.value
+        print(row['Metric'], value)
         release_targets.append(value)
 
+    print(release_targets)
     release_targets_col = Column(
         release_targets,
         dtype=float,
