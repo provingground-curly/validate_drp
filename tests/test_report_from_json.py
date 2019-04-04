@@ -19,7 +19,6 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
 
-import filecmp
 import os
 import tempfile
 import unittest
@@ -67,7 +66,16 @@ class ReportPerformanceFromJob(unittest.TestCase):
                 release_level=release_level)
 
             assert(os.path.exists(out_file_name))
-            assert filecmp.cmp(out_file_name, ref_file)
+            of_lines = []
+            rf_lines = []
+            with open(out_file_name) as fh:
+                for line in fh.readlines():
+                    of_lines.append(line)
+            with open(ref_file) as fh:
+                for line in fh.readlines():
+                    rf_lines.append(line)
+
+            self.assertEqual(of_lines, rf_lines)
             # Cleanup our temp file
             os.remove(out_file_name)
 
