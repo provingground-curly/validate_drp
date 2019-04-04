@@ -174,10 +174,8 @@ def add_release_spec(data, release_specs, release_specs_level, srd_level):
                 continue
             if parts[0] == row['Metric'] and release_specs_level in spec.spec:
                 value = specs[spec].threshold.value
-        print(row['Metric'], value)
         release_targets.append(value)
 
-    print(release_targets)
     release_targets_col = Column(
         release_targets,
         dtype=float,
