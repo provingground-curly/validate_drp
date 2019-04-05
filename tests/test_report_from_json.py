@@ -70,9 +70,9 @@ class ReportPerformanceFromJob(unittest.TestCase):
                 of_lines = fh.readlines()
             with open(ref_file) as fh:
                 rf_lines = fh.readlines()
-            print(f"Files are {out_file_name} and {ref_file}")
             self.maxDiff = None
-            self.assertEqual(''.join(of_lines), ''.join(rf_lines))
+            self.assertEqual(''.join(of_lines), ''.join(rf_lines),
+                             msg=f"Files are {out_file_name} and {ref_file}")
             # Cleanup our temp file
             os.remove(out_file_name)
 
