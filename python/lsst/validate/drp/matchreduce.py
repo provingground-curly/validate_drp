@@ -29,7 +29,6 @@ from sqlalchemy.exc import OperationalError
 import sqlite3
 
 import lsst.afw.geom as afwGeom
-import lsst.afw.image.utils as afwImageUtils
 import lsst.daf.persistence as dafPersist
 from lsst.afw.table import (SourceCatalog, SchemaMapper, Field,
                             MultiMatch, SimpleRecord, GroupView,
@@ -228,7 +227,7 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
                 continue
         else:
             try:
-                calib = butler.get("calexp_calib", vId)
+                photoCalib = butler.get("calexp_photoCalib", vId)
             except (FitsError, dafPersist.NoResults) as e:
                 print(e)
                 print("Could not open calibrated image file for ", vId)
@@ -270,13 +269,8 @@ def _loadAndMatchCatalogs(repo, dataIds, matchRadius,
         if useJointCal:
             for record in tmpCat:
                 record.updateCoord(wcs)
-            photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
-        else:
-            with afwImageUtils.CalibNoThrow():
-                _ = calib.getMagnitude(tmpCat['base_PsfFlux_instFlux'],
-                                       tmpCat['base_PsfFlux_instFluxErr'])
-                tmpCat['base_PsfFlux_mag'][:] = _[0]
-                tmpCat['base_PsfFlux_magErr'][:] = _[1]
+        photoCalib.instFluxToMagnitude(tmpCat, "base_PsfFlux", "base_PsfFlux")
+
         if not skipTEx:
             _, psf_e1, psf_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_PsfShape')
             _, star_e1, star_e2 = ellipticity_from_cat(oldSrc, slot_shape='slot_Shape')
