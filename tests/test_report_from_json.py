@@ -66,16 +66,12 @@ class ReportPerformanceFromJob(unittest.TestCase):
                 release_level=release_level)
 
             assert(os.path.exists(out_file_name))
-            of_lines = []
-            rf_lines = []
             with open(out_file_name) as fh:
-                for line in fh.readlines():
-                    of_lines.append(line)
+                of_lines = fh.readlines()
             with open(ref_file) as fh:
-                for line in fh.readlines():
-                    rf_lines.append(line)
-
-            self.assertEqual(of_lines, rf_lines)
+                rf_lines = fh.readlines()
+            print(f"Files are {out_file_name} and {ref_file}")
+            self.assertEqual(''.join(of_lines), ''.join(rf_lines))
             # Cleanup our temp file
             os.remove(out_file_name)
 
