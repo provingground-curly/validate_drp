@@ -19,7 +19,6 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 
 
-import filecmp
 import os
 import tempfile
 import unittest
@@ -67,7 +66,13 @@ class ReportPerformanceFromJob(unittest.TestCase):
                 release_level=release_level)
 
             assert(os.path.exists(out_file_name))
-            assert filecmp.cmp(out_file_name, ref_file)
+            with open(out_file_name) as fh:
+                of_lines = fh.readlines()
+            with open(ref_file) as fh:
+                rf_lines = fh.readlines()
+            self.maxDiff = None
+            self.assertEqual(''.join(of_lines), ''.join(rf_lines),
+                             msg=f"Files are {out_file_name} and {ref_file}")
             # Cleanup our temp file
             os.remove(out_file_name)
 
