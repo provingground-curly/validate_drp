@@ -93,6 +93,8 @@ if __name__ == "__main__":
         if args.configFile:
             pbStruct = util.loadDataIdsAndParameters(args.configFile)
             kwargs = pbStruct.getDict()
+            if args.verbose:
+                print("VISITDATAIDS: ", kwargs['dataIds'])
 
         if not args.configFile or not pbStruct.dataIds:
             kwargs['dataIds'] = util.discoverDataIds(args.repo)

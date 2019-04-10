@@ -416,7 +416,8 @@ def plot_metrics(job, filterName, outputPrefix=''):
     try:
         matchedDataset = pa1.blobs['MatchedMultiVisitDataset']
         photomModel = pa1.blobs['PhotometricErrorModel']
-        filterName = pa1.extras['filter_name']
+# Don't overwrite filterName.  It was passed in as an argument.
+#        filterName = pa1.extras['filter_name']
         plotPhotometryErrorModel(matchedDataset, photomModel,
                                  filterName=filterName,
                                  outputPrefix=outputPrefix)
