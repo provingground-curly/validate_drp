@@ -201,9 +201,8 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
             rmsDist = calcRmsDistanceForOneObject(visit, ra, dec, obj1, obj2)
             if rmsDist is None:
                 if verbose:
-                    print("No matching visits found for objs: %d and %d" %
-                        (obj1, obj2))
-                    continue
+                    print("No matching visits found for objs: %d and %d" % (obj1, obj2))
+                continue
 
             rmsDistances.append(rmsDist)
 
@@ -239,10 +238,31 @@ def calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2,
 
     Examples
     --------
+    2e-5 rad (4") change in RA offset between stars across visits
+        (Dec 0 so cos(dec)=1).
+    So each is 1e-5 off from average.
+    So the RMS should be sqrt(2) * 10**(-5)
     >>> visit1, ra1, dec1 = [1, 2], [10.12344, 10.12345], [0, 0]
     >>> visit2, ra2, dec2 = [1, 2], [20.00000, 19.99999], [0, 0]
-    >>> calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2)
-    0.1
+    >>> r = calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2)
+    >>> print(r)
+    1.4142135622881543e-05
+
+    Moved together so should be RMS=0.
+    Same as above, but switched visit IDs for object 2.
+    Testing that visit ID is tracked properly
+    >>> visit1, ra1, dec1 = [1, 2], [10.12344, 10.12345], [0, 0]
+    >>> visit2, ra2, dec2 = [2, 1], [20.00000, 19.99999], [0, 0]
+    >>> r = calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2)
+    >>> print(r)
+    0.0
+
+    Should return None
+    >>> visit1, ra1, dec1 = [1], [10.12344], [0, 0]
+    >>> visit2, ra2, dec2 = [1], [20.00000], [0, 0]
+    >>> r = calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2)
+    >>> print(r)
+    None
     """
     distances = matchVisitComputeDistance(visit1, ra1, dec1, visit2, ra2, dec2)
 
