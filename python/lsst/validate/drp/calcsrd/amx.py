@@ -198,25 +198,61 @@ def calcRmsDistances(groupView, annulus, magRange, verbose=False):
         objectsInAnnulus, = np.where((annulusRadians[0] <= dist) &
                                      (dist < annulusRadians[1]))
         for obj2 in objectsInAnnulus:
-            distances = matchVisitComputeDistance(
-                visit[obj1], ra[obj1], dec[obj1],
-                visit[obj2], ra[obj2], dec[obj2])
-            if not distances:
+            rmsDist = calcRmsDistanceForOneObject(visit, ra, dec, obj1, obj2)
+            if rmsDist is None:
                 if verbose:
                     print("No matching visits found for objs: %d and %d" %
-                          (obj1, obj2))
-                continue
+                        (obj1, obj2))
+                    continue
 
-            finiteEntries, = np.where(np.isfinite(distances))
-            # Need at least 2 distances to get a finite sample stdev
-            if len(finiteEntries) > 1:
-                # ddof=1 to get sample standard deviation (e.g., 1/(n-1))
-                rmsDist = np.std(np.array(distances)[finiteEntries], ddof=1)
-                rmsDistances.append(rmsDist)
+            rmsDistances.append(rmsDist)
 
     # return quantity
     rmsDistances = np.array(rmsDistances) * u.radian
     return rmsDistances
+
+
+def calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2,
+                                verbose=False):
+    """Calculate the RMS of the distance between two objects over visits.
+
+    Parameters
+    ----------
+    visit1 : visit IDs of object 1
+    ra1 : RAs of object 1
+    dec1 : DECs of object 1
+    visit2 : visit IDs of object 2
+    ra2 : RAs of object 2
+    dec2 : DECs of object 2
+    verbose : bool, optional
+        Output additional information on the analysis steps.
+
+    visit1 and visit2 should share at least two common visits to return a result.
+    They don't have to be in order, they can be different sets.  They should
+    just overlap by at least two common visits.  If the overlap is less, then
+    this will return None.
+
+    Returns
+    -------
+    rmsDistances : RMS of angular separation in radians.
+        return None if no more than 1 distance.
+
+    Examples
+    --------
+    >>> visit1, ra1, dec1 = [1, 2], [10.12344, 10.12345], [0, 0]
+    >>> visit2, ra2, dec2 = [1, 2], [20.00000, 19.99999], [0, 0]
+    >>> calcRmsDistanceForOneObject(visit1, ra1, dec1, visit2, ra2, dec2)
+    0.1
+    """
+    distances = matchVisitComputeDistance(visit1, ra1, dec1, visit2, ra2, dec2)
+
+    finiteEntries, = np.where(np.isfinite(distances))
+    # Need at least 2 distances to get a finite sample stdev
+    if len(finiteEntries) > 1:
+        # ddof=1 to get sample standard deviation (e.g., 1/(n-1))
+        return np.std(np.array(distances)[finiteEntries], ddof=1)
+
+    return None
 
 
 def matchVisitComputeDistance(visit_obj1, ra_obj1, dec_obj1,
